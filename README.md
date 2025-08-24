@@ -62,7 +62,7 @@ AI-Powered-DnD-Game/
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/ai-powered-dnd-game.git
+   git clone https://github.com/BradReaney/AI-Powered-DnD-Game.git
    cd ai-powered-dnd-game
    ```
 
