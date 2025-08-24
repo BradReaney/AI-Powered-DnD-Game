@@ -1,0 +1,68 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Build outputs
+dist/
+build/
+*/dist/
+*/build/
+
+# Generated files
+*.min.js
+*.min.css
+*.bundle.js
+
+# Logs
+logs/
+*.log
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Package lock files
+package-lock.json
+*/package-lock.json
+
+# Git
+.git/
+.gitignore
+
+# Docker
+docker-compose.yml
+Dockerfile
+*/Dockerfile
+
+# Documentation
+docs/
+*.md
+
+# Test outputs
+coverage/
+test-results/
+playwright-report/
+*/test-results/
+*/playwright-report/
+
+# Uploads and temporary files
+uploads/
+temp/
+tmp/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Generated files
+*.min.js
+*.bundle.js
+
+# Test outputs
+coverage/
+test-results/
+
+# Configuration files
+jest.config.js
+tsconfig.json
+
+# Environment files
+.env
+.env.*
+
+# Package files
+package.json
+package-lock.json
+
+# Documentation
+*.md
+
+# Logs
+logs/
+*.log
+
+# Database
+mongo-init.js
+
+# Docker
+Dockerfile
+docker-compose.yml

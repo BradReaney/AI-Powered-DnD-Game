@@ -1,0 +1,104 @@
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load environment variables
+dotenv.config({ path: path.join(__dirname, '../../.env') });
+
+export interface Config {
+  server: {
+    port: number;
+    nodeEnv: string;
+  };
+  mongodb: {
+    uri: string;
+    uriProd: string;
+  };
+  gemini: {
+    apiKey: string;
+    flashLiteModel: string;
+    flashModel: string;
+    proModel: string;
+    modelSelectionEnabled: boolean;
+    flashLiteQualityThreshold: number;
+    flashQualityThreshold: number;
+    proFallbackEnabled: boolean;
+    threeModelFallbackEnabled: boolean;
+    flashLiteResponseTimeThreshold: number;
+    flashResponseTimeThreshold: number;
+  };
+  security: {
+    jwtSecret: string;
+    corsOrigin: string;
+  };
+  logging: {
+    level: string;
+    file: string;
+  };
+  rateLimit: {
+    windowMs: number;
+    maxRequests: number;
+  };
+  session: {
+    secret: string;
+    maxAge: number;
+  };
+  ai: {
+    maxContextLength: number;
+    contextCompressionThreshold: number;
+  };
+}
+
+export const config: Config = {
+  server: {
+    port: parseInt(process.env['PORT'] || '5001', 10),
+    nodeEnv: process.env['NODE_ENV'] || 'development',
+  },
+  mongodb: {
+    uri: process.env['MONGODB_URI'] || 'mongodb://localhost:27017/ai-dnd-game',
+    uriProd: process.env['MONGODB_URI_PROD'] || 'mongodb://localhost:27017/ai-dnd-game-prod',
+  },
+  gemini: {
+    apiKey: process.env['GEMINI_API_KEY'] || '',
+    flashLiteModel: process.env['GEMINI_FLASH_LITE_MODEL'] || 'gemini-2.0-flash-lite',
+    flashModel: process.env['GEMINI_FLASH_MODEL'] || 'gemini-2.5-flash',
+    proModel: process.env['GEMINI_PRO_MODEL'] || 'gemini-2.5-pro',
+    modelSelectionEnabled: process.env['MODEL_SELECTION_ENABLED'] === 'true',
+    flashLiteQualityThreshold: parseFloat(process.env['FLASH_LITE_QUALITY_THRESHOLD'] || '0.6'),
+    flashQualityThreshold: parseFloat(process.env['FLASH_QUALITY_THRESHOLD'] || '0.7'),
+    proFallbackEnabled: process.env['PRO_FALLBACK_ENABLED'] === 'true',
+    threeModelFallbackEnabled: process.env['THREE_MODEL_FALLBACK_ENABLED'] === 'true',
+    flashLiteResponseTimeThreshold: parseInt(
+      process.env['FLASH_LITE_RESPONSE_TIME_THRESHOLD'] || '3000',
+      10
+    ),
+    flashResponseTimeThreshold: parseInt(
+      process.env['FLASH_RESPONSE_TIME_THRESHOLD'] || '5000',
+      10
+    ),
+  },
+  security: {
+    jwtSecret: process.env['JWT_SECRET'] || 'default-secret-change-in-production',
+    corsOrigin: process.env['CORS_ORIGIN'] || 'http://localhost:3000',
+  },
+  logging: {
+    level: process.env['LOG_LEVEL'] || 'info',
+    file: process.env['LOG_FILE'] || 'logs/app.log',
+  },
+  rateLimit: {
+    windowMs: parseInt(process.env['RATE_LIMIT_WINDOW_MS'] || '900000', 10),
+    maxRequests: parseInt(process.env['RATE_LIMIT_MAX_REQUESTS'] || '100', 10),
+  },
+  session: {
+    secret: process.env['SESSION_SECRET'] || 'default-session-secret',
+    maxAge: parseInt(process.env['SESSION_MAX_AGE'] || '86400000', 10),
+  },
+  ai: {
+    maxContextLength: parseInt(process.env['MAX_CONTEXT_LENGTH'] || '8000', 10),
+    contextCompressionThreshold: parseInt(
+      process.env['CONTEXT_COMPRESSION_THRESHOLD'] || '6000',
+      10
+    ),
+  },
+};
+
+export default config;
