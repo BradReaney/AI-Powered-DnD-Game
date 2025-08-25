@@ -6,9 +6,10 @@ import {
   adaptSession,
 } from "./adapters";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-if (!API_BASE_URL) {
-  throw new Error('NEXT_PUBLIC_API_URL environment variable is required');
+// Use relative URLs for Next.js API routes in production
+const API_BASE_URL = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL;
+if (!API_BASE_URL && typeof window === 'undefined') {
+  throw new Error('NEXT_PUBLIC_API_URL environment variable is required for server-side requests');
 }
 
 class ApiService {
@@ -16,7 +17,10 @@ class ApiService {
     endpoint: string,
     options: RequestInit = {},
   ): Promise<T> {
-    const url = `${API_BASE_URL}/api${endpoint}`;
+    // Use relative URL for client-side requests, full URL for server-side
+    const url = typeof window !== 'undefined' 
+      ? `/api${endpoint}` 
+      : `${API_BASE_URL}/api${endpoint}`;
 
     const headers: Record<string, string> = {
       "Cache-Control": "no-cache",
@@ -95,7 +99,7 @@ class ApiService {
     content: string;
     metadata: any;
   }> {
-    // Call backend directly since we're using standalone output
+    // Call Next.js API route instead of backend directly
     return await this.request<any>(`/campaigns/${campaignId}/initialize`, {
       method: "POST",
       body: JSON.stringify({
