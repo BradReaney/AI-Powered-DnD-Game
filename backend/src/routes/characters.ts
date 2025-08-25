@@ -242,6 +242,7 @@ router.post('/', async (req, res) => {
             campaignId: humanCharacterData.campaignId,
             sessionNumber: 1,
             status: 'active',
+            createdBy: humanCharacterData.createdBy || 'user', // Add the missing required field
             metadata: {
               startTime: new Date(),
               endTime: new Date(),
@@ -297,9 +298,9 @@ router.post('/simple', async (req, res) => {
 
     // Validate required fields
     if (!characterData.name || !characterData.campaignId) {
-      return res.status(400).json({ 
-        error: 'Missing required fields', 
-        required: ['name', 'campaignId'] 
+      return res.status(400).json({
+        error: 'Missing required fields',
+        required: ['name', 'campaignId']
       });
     }
 
@@ -352,6 +353,7 @@ router.post('/simple', async (req, res) => {
             campaignId: simpleCharacterData.campaignId,
             sessionNumber: 1,
             status: 'active',
+            createdBy: simpleCharacterData.createdBy || 'user', // Add the missing required field
             metadata: {
               startTime: new Date(),
               endTime: new Date(),
