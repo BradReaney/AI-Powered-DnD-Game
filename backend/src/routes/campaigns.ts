@@ -28,23 +28,6 @@ router.get('/user/:userId', async (req, res) => {
   }
 });
 
-// Get campaign by ID
-router.get('/:campaignId', async (req, res) => {
-  try {
-    const { campaignId } = req.params;
-    const campaign = await campaignService.getCampaign(campaignId);
-
-    if (!campaign) {
-      return res.status(404).json({ error: 'Campaign not found' });
-    }
-
-    return res.json(campaign);
-  } catch (error) {
-    logger.error('Error getting campaign:', error);
-    return res.status(500).json({ error: 'Failed to get campaign' });
-  }
-});
-
 // Create new campaign
 router.post('/', async (req, res) => {
   try {
@@ -68,50 +51,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update campaign
-router.put('/:campaignId', async (req, res) => {
-  try {
-    const { campaignId } = req.params;
-    const updateData = req.body;
-
-    const campaign = await campaignService.updateCampaign(campaignId, updateData);
-
-    if (!campaign) {
-      return res.status(404).json({ error: 'Campaign not found' });
-    }
-
-    return res.json(campaign);
-  } catch (error) {
-    logger.error('Error updating campaign:', error);
-    return res.status(500).json({ error: 'Failed to update campaign' });
-  }
-});
-
-// Delete campaign (soft delete - archive)
-router.delete('/:campaignId', async (req, res) => {
-  try {
-    const { campaignId } = req.params;
-    await campaignService.deleteCampaign(campaignId);
-    res.json({ message: 'Campaign archived successfully' });
-  } catch (error) {
-    logger.error('Error deleting campaign:', error);
-    res.status(500).json({ error: 'Failed to delete campaign' });
-  }
-});
-
-// Hard delete campaign (completely remove)
-router.delete('/:campaignId/hard', async (req, res) => {
-  try {
-    const { campaignId } = req.params;
-    await campaignService.hardDeleteCampaign(campaignId);
-    res.json({ message: 'Campaign and all related data deleted successfully' });
-  } catch (error) {
-    logger.error('Error hard deleting campaign:', error);
-    res.status(500).json({ error: 'Failed to hard delete campaign' });
-  }
-});
-
-// Get campaign statistics
+// Get campaign stats
 router.get('/:campaignId/stats', async (req, res) => {
   try {
     const { campaignId } = req.params;
@@ -178,13 +118,15 @@ router.post('/:campaignId/quests', async (req, res) => {
       !questData.description ||
       !questData.objectives ||
       !questData.difficulty ||
-      !questData.experienceReward
+      !questData.experienceReward ||
+      !questData.location ||
+      !questData.questGiver
     ) {
       return res.status(400).json({ error: 'Missing required quest fields' });
     }
 
-    await campaignService.addQuest(campaignId, questData);
-    return res.status(201).json({ message: 'Quest added successfully' });
+    const quest = await campaignService.addQuest(campaignId, questData);
+    return res.status(201).json(quest);
   } catch (error) {
     logger.error('Error adding quest:', error);
     return res.status(500).json({ error: 'Failed to add quest' });
@@ -195,7 +137,9 @@ router.post('/:campaignId/quests', async (req, res) => {
 router.put('/:campaignId/quests/:questName/complete', async (req, res) => {
   try {
     const { campaignId, questName } = req.params;
-    await campaignService.completeQuest(campaignId, questName);
+    const { outcomes } = req.body;
+
+    await campaignService.completeQuest(campaignId, questName, outcomes);
     res.json({ message: 'Quest completed successfully' });
   } catch (error) {
     logger.error('Error completing quest:', error);
@@ -210,12 +154,20 @@ router.post('/:campaignId/events', async (req, res) => {
     const eventData = req.body;
 
     // Validate required fields
-    if (!eventData.title || !eventData.description || !eventData.impact || !eventData.location) {
+    if (
+      !eventData.title ||
+      !eventData.description ||
+      !eventData.impact ||
+      !eventData.location ||
+      !eventData.affectedFactions ||
+      !eventData.consequences ||
+      !eventData.duration
+    ) {
       return res.status(400).json({ error: 'Missing required event fields' });
     }
 
-    await campaignService.addWorldEvent(campaignId, eventData);
-    return res.status(201).json({ message: 'World event added successfully' });
+    const event = await campaignService.addWorldEvent(campaignId, eventData);
+    return res.status(201).json(event);
   } catch (error) {
     logger.error('Error adding world event:', error);
     return res.status(500).json({ error: 'Failed to add world event' });
@@ -226,11 +178,17 @@ router.post('/:campaignId/events', async (req, res) => {
 router.put('/:campaignId/events/:eventTitle/resolve', async (req, res) => {
   try {
     const { campaignId, eventTitle } = req.params;
-    await campaignService.resolveWorldEvent(campaignId, eventTitle);
-    res.json({ message: 'World event resolved successfully' });
+    const { resolution } = req.body;
+
+    if (!resolution) {
+      return res.status(400).json({ error: 'Missing resolution field' });
+    }
+
+    await campaignService.resolveWorldEvent(campaignId, eventTitle, resolution);
+    return res.json({ message: 'World event resolved successfully' });
   } catch (error) {
     logger.error('Error resolving world event:', error);
-    res.status(500).json({ error: 'Failed to resolve world event' });
+    return res.status(500).json({ error: 'Failed to resolve world event' });
   }
 });
 
@@ -241,12 +199,16 @@ router.post('/:campaignId/locations', async (req, res) => {
     const locationData = req.body;
 
     // Validate required fields
-    if (!locationData.name || !locationData.type || !locationData.description) {
+    if (
+      !locationData.name ||
+      !locationData.type ||
+      !locationData.description
+    ) {
       return res.status(400).json({ error: 'Missing required location fields' });
     }
 
-    await campaignService.addLocation(campaignId, locationData);
-    return res.status(201).json({ message: 'Location added successfully' });
+    const location = await campaignService.addLocation(campaignId, locationData);
+    return res.status(201).json(location);
   } catch (error) {
     logger.error('Error adding location:', error);
     return res.status(500).json({ error: 'Failed to add location' });
@@ -346,6 +308,66 @@ router.post('/:campaignId/initialize', async (req, res) => {
   } catch (error) {
     logger.error('Error initializing campaign:', error);
     return res.status(500).json({ error: 'Failed to initialize campaign' });
+  }
+});
+
+// Get campaign by ID (MUST BE LAST - most general route)
+router.get('/:campaignId', async (req, res) => {
+  try {
+    const { campaignId } = req.params;
+    const campaign = await campaignService.getCampaign(campaignId);
+
+    if (!campaign) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+
+    return res.json(campaign);
+  } catch (error) {
+    logger.error('Error getting campaign:', error);
+    return res.status(500).json({ error: 'Failed to get campaign' });
+  }
+});
+
+// Update campaign
+router.put('/:campaignId', async (req, res) => {
+  try {
+    const { campaignId } = req.params;
+    const updateData = req.body;
+
+    const campaign = await campaignService.updateCampaign(campaignId, updateData);
+
+    if (!campaign) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+
+    return res.json(campaign);
+  } catch (error) {
+    logger.error('Error updating campaign:', error);
+    return res.status(500).json({ error: 'Failed to update campaign' });
+  }
+});
+
+// Delete campaign (soft delete - archive)
+router.delete('/:campaignId', async (req, res) => {
+  try {
+    const { campaignId } = req.params;
+    await campaignService.deleteCampaign(campaignId);
+    res.json({ message: 'Campaign archived successfully' });
+  } catch (error) {
+    logger.error('Error deleting campaign:', error);
+    res.status(500).json({ error: 'Failed to delete campaign' });
+  }
+});
+
+// Hard delete campaign
+router.delete('/:campaignId/hard', async (req, res) => {
+  try {
+    const { campaignId } = req.params;
+    await campaignService.hardDeleteCampaign(campaignId);
+    res.json({ message: 'Campaign permanently deleted' });
+  } catch (error) {
+    logger.error('Error hard deleting campaign:', error);
+    res.status(500).json({ error: 'Failed to hard delete campaign' });
   }
 });
 
