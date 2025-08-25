@@ -137,9 +137,8 @@ router.post('/:campaignId/quests', async (req, res) => {
 router.put('/:campaignId/quests/:questName/complete', async (req, res) => {
   try {
     const { campaignId, questName } = req.params;
-    const { outcomes } = req.body;
 
-    await campaignService.completeQuest(campaignId, questName, outcomes);
+    await campaignService.completeQuest(campaignId, questName);
     res.json({ message: 'Quest completed successfully' });
   } catch (error) {
     logger.error('Error completing quest:', error);
@@ -178,13 +177,8 @@ router.post('/:campaignId/events', async (req, res) => {
 router.put('/:campaignId/events/:eventTitle/resolve', async (req, res) => {
   try {
     const { campaignId, eventTitle } = req.params;
-    const { resolution } = req.body;
 
-    if (!resolution) {
-      return res.status(400).json({ error: 'Missing resolution field' });
-    }
-
-    await campaignService.resolveWorldEvent(campaignId, eventTitle, resolution);
+    await campaignService.resolveWorldEvent(campaignId, eventTitle);
     return res.json({ message: 'World event resolved successfully' });
   } catch (error) {
     logger.error('Error resolving world event:', error);
