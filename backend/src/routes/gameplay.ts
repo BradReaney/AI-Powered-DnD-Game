@@ -1,14 +1,14 @@
 import express from 'express';
 import SkillCheckService from '../services/SkillCheckService';
 import ContextManager from '../services/ContextManager';
-import GeminiClient from '../services/GeminiClient';
+import LLMClientFactory from '../services/LLMClientFactory';
 import PromptService from '../services/PromptService';
 import logger from '../services/LoggerService';
 
 const router = express.Router();
 const skillCheckService = new SkillCheckService();
 const contextManager = new ContextManager();
-const geminiClient = new GeminiClient();
+const geminiClient = LLMClientFactory.getInstance().getClient();
 const promptService = new PromptService();
 
 // Perform a skill check
@@ -595,11 +595,11 @@ router.post('/story-generate', async (req, res) => {
             resources: Array.isArray(locData.resources) ? locData.resources : [],
             pointsOfInterest: Array.isArray(locData.pointsOfInterest)
               ? locData.pointsOfInterest.map(poi => ({
-                  name: poi.name || 'Unknown POI',
-                  description: poi.description || 'Point of interest',
-                  type: poi.type || 'unknown',
-                  isExplored: Boolean(poi.isExplored),
-                }))
+                name: poi.name || 'Unknown POI',
+                description: poi.description || 'Point of interest',
+                type: poi.type || 'unknown',
+                isExplored: Boolean(poi.isExplored),
+              }))
               : [],
             campaignId,
             sessionId,

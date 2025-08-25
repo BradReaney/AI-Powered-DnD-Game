@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { ChatMessage, Character, Location, Campaign } from "@/lib/types";
 import apiService from "@/lib/api";
-import { GameTools } from "./game-tools";
+import { useSlashCommands } from "@/hooks/useSlashCommands";
+import { CommandAutocomplete } from "./CommandAutocomplete";
 import {
   Send,
   Bot,
@@ -21,6 +22,7 @@ import {
   Heart,
   MapPin,
   ArrowLeft,
+  Command,
 } from "lucide-react";
 
 interface GameChatProps {
@@ -50,8 +52,19 @@ export function GameChat({
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Initialize slash commands
+  const {
+    executeCommand,
+    isCommand,
+    getSuggestions
+  } = useSlashCommands(character, campaign);
+
+  // Get command suggestions for autocomplete
+  const suggestions = getSuggestions(inputMessage);
 
   useEffect(() => {
     const initializeCampaign = async () => {
@@ -124,6 +137,36 @@ export function GameChat({
 
     const userMessage = inputMessage.trim();
     setInputMessage("");
+    setShowAutocomplete(false);
+
+    // Check if this is a slash command
+    if (isCommand(userMessage)) {
+      const commandResponse = executeCommand(userMessage);
+
+      if (commandResponse) {
+        // Add user command message
+        addMessage({
+          sender: "player",
+          content: userMessage,
+          type: "action",
+          metadata: {
+            characterId: character.id,
+          },
+        });
+
+        // Add command response message
+        addMessage({
+          sender: "dm",
+          content: commandResponse.content,
+          type: commandResponse.type === "roll" ? "roll" : "message",
+          metadata: {
+            characterId: "system",
+            diceRoll: commandResponse.metadata?.diceRoll,
+          },
+        });
+      }
+      return;
+    }
 
     // Add user message
     addMessage({
@@ -181,6 +224,26 @@ export function GameChat({
     }
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInputMessage(value);
+
+    // Show autocomplete for slash commands
+    if (value.startsWith('/') && value.length > 1) {
+      setShowAutocomplete(true);
+    } else {
+      setShowAutocomplete(false);
+    }
+  };
+
+  const handleSelectSuggestion = (suggestion: string) => {
+    if (suggestion) {
+      setInputMessage(`/${suggestion} `);
+    }
+    setShowAutocomplete(false);
+    inputRef.current?.focus();
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -196,221 +259,203 @@ export function GameChat({
   };
 
   return (
-    <div className="flex flex-col h-[600px] max-w-4xl mx-auto">
-      {/* Back Button */}
-      <div className="mb-4">
-        <Button variant="outline" size="sm" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Game Session
+    <div className="flex flex-col h-[600px] md:h-[600px] max-w-4xl mx-auto">
+      {/* Back Button - No gap to title */}
+      <div className="mb-0">
+        <Button variant="outline" size="sm" onClick={onBack} className="h-7 md:h-8 px-2 md:px-3">
+          <ArrowLeft className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+          <span className="text-xs md:text-sm">Back to Game Session</span>
         </Button>
       </div>
 
-      {/* Game Header */}
-      <Card className="mb-4">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-lg">{campaign.name}</CardTitle>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <span>
+      {/* Game Header - Ultra Compact on Mobile */}
+      <Card className="mb-0">
+        <CardHeader className="py-0 px-2 md:px-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1 md:gap-0">
+            <div className="space-y-0.5">
+              <CardTitle className="text-sm md:text-lg leading-tight">{campaign.name}</CardTitle>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2 text-xs md:text-sm text-muted-foreground">
+                <span className="font-medium text-xs md:text-sm">
                   {character.name} - Level {character.level} {character.race}{" "}
                   {character.class}
                 </span>
                 {currentLocation && (
                   <Badge
                     variant="outline"
-                    className="capitalize flex items-center gap-1"
+                    className="capitalize flex items-center gap-1 w-fit text-xs"
                   >
-                    <MapPin className="h-3 w-3" />
+                    <MapPin className="h-2 w-2 md:h-3 md:w-3" />
                     {currentLocation.name}
                   </Badge>
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-2 md:gap-3 text-xs">
               <div className="flex items-center gap-1">
-                <Heart className="h-4 w-4 text-red-500" />
-                <span>
+                <Heart className="h-2 w-2 md:h-3 md:w-3 text-red-500" />
+                <span className="text-xs">
                   {character.hitPoints.current}/{character.hitPoints.maximum}
                 </span>
               </div>
               <div className="flex items-center gap-1">
-                <Shield className="h-4 w-4 text-blue-500" />
-                <span>{character.armorClass}</span>
+                <Shield className="h-2 w-2 md:h-3 md:w-3 text-blue-500" />
+                <span className="text-xs">{character.armorClass}</span>
               </div>
             </div>
           </div>
         </CardHeader>
       </Card>
 
-      <div className="flex gap-4 flex-1 min-h-0">
-        {/* Chat Area */}
-        <Card className="flex-1 flex flex-col min-h-0">
-          <CardHeader className="pb-3 flex-shrink-0">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Bot className="h-5 w-5" />
-              Adventure Chat
-              {(isLoading || isInitializing) && (
-                <Badge variant="secondary" className="text-xs">
-                  {isInitializing ? "Initializing Campaign..." : "AI Thinking..."}
-                </Badge>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 flex flex-col p-0 min-h-0">
-            {/* Messages */}
-            <div
-              className="flex-1 px-4 overflow-y-auto"
-              style={{ height: '400px', maxHeight: '400px' }}
-              ref={scrollAreaRef}
-            >
-              <div className="space-y-4 pb-4">
-                {messages.map((message) => (
+      {/* Chat Area - Now Full Width */}
+      <Card className="flex-1 flex flex-col min-h-0">
+        <CardHeader className="py-0 flex-shrink-0 px-2 md:px-6">
+          <CardTitle className="text-sm md:text-lg flex items-center gap-2">
+            <Bot className="h-3 w-3 md:h-5 md:w-5" />
+            Adventure Chat
+            {(isLoading || isInitializing) && (
+              <Badge variant="secondary" className="text-xs">
+                {isInitializing ? "Initializing..." : "AI Thinking..."}
+              </Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex-1 flex flex-col p-0 min-h-0">
+          {/* Messages */}
+          <div
+            className="flex-1 px-3 md:px-4 overflow-y-auto"
+            style={{ height: '500px', maxHeight: '500px' }}
+            ref={scrollAreaRef}
+          >
+            <div className="space-y-2 md:space-y-4 pb-2">
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex gap-2 md:gap-3 ${message.sender === "player" ? "flex-row-reverse" : ""}`}
+                >
+                  <Avatar className="h-6 w-6 md:h-8 md:w-8">
+                    <AvatarFallback>
+                      {message.sender === "dm" ? (
+                        <Bot className="h-3 w-3 md:h-4 md:w-4" />
+                      ) : (
+                        <User className="h-3 w-3 md:h-4 md:w-4" />
+                      )}
+                    </AvatarFallback>
+                  </Avatar>
                   <div
-                    key={message.id}
-                    className={`flex gap-3 ${message.sender === "player" ? "flex-row-reverse" : ""}`}
+                    className={`flex-1 max-w-[80%] ${message.sender === "player" ? "text-right" : ""}`}
                   >
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>
-                        {message.sender === "dm" ? (
-                          <Bot className="h-4 w-4" />
-                        ) : (
-                          <User className="h-4 w-4" />
-                        )}
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs md:text-sm font-medium">
+                        {message.sender === "dm"
+                          ? "Dungeon Master"
+                          : character.name}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatTimestamp(message.timestamp)}
+                      </span>
+                      {message.type === "roll" && (
+                        <Badge variant="secondary" className="text-xs">
+                          <Dices className="h-2 w-2 md:h-3 md:w-3 mr-1" />
+                          Roll
+                        </Badge>
+                      )}
+                      {message.type === "action" && (
+                        <Badge variant="outline" className="text-xs">
+                          <Sword className="h-2 w-2 md:h-3 md:w-3 mr-1" />
+                          Action
+                        </Badge>
+                      )}
+                    </div>
                     <div
-                      className={`flex-1 max-w-[80%] ${message.sender === "player" ? "text-right" : ""}`}
+                      className={`p-2 md:p-3 rounded-lg ${message.sender === "dm"
+                        ? "bg-muted"
+                        : message.type === "roll"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-primary text-primary-foreground"
+                        }`}
                     >
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium">
-                          {message.sender === "dm"
-                            ? "Dungeon Master"
-                            : character.name}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {formatTimestamp(message.timestamp)}
-                        </span>
-                        {message.type === "roll" && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Dices className="h-3 w-3 mr-1" />
-                            Roll
-                          </Badge>
-                        )}
-                        {message.type === "action" && (
-                          <Badge variant="outline" className="text-xs">
-                            <Sword className="h-3 w-3 mr-1" />
-                            Action
-                          </Badge>
-                        )}
-                      </div>
-                      <div
-                        className={`p-3 rounded-lg ${message.sender === "dm"
-                          ? "bg-muted"
-                          : message.type === "roll"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-primary text-primary-foreground"
-                          }`}
-                      >
-                        <p className="text-sm whitespace-pre-wrap">
-                          {message.content}
-                        </p>
+                      <p className="text-xs md:text-sm whitespace-pre-wrap">
+                        {message.content}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {(isLoading || isInitializing) && (
+                <div className="flex gap-2 md:gap-3">
+                  <Avatar className="h-6 w-6 md:h-8 md:w-8">
+                    <AvatarFallback>
+                      <Bot className="h-3 w-3 md:h-4 md:w-4" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs md:text-sm font-medium">
+                        Dungeon Master
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {isInitializing ? "initializing campaign..." : "thinking..."}
+                      </span>
+                    </div>
+                    <div className="p-2 md:p-3 bg-muted rounded-lg">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
+                        <div
+                          className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
+                          style={{ animationDelay: "0.1s" }}
+                        ></div>
+                        <div
+                          className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
+                          style={{ animationDelay: "0.2s" }}
+                        ></div>
                       </div>
                     </div>
                   </div>
-                ))}
-                {(isLoading || isInitializing) && (
-                  <div className="flex gap-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>
-                        <Bot className="h-4 w-4" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium">
-                          Dungeon Master
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {isInitializing ? "initializing campaign..." : "thinking..."}
-                        </span>
-                      </div>
-                      <div className="p-3 bg-muted rounded-lg">
-                        <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
-                          <div
-                            className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
-                            style={{ animationDelay: "0.1s" }}
-                          ></div>
-                          <div
-                            className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
-                            style={{ animationDelay: "0.2s" }}
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
+          </div>
 
-            {/* Input Area */}
-            <div className="border-t p-4 flex-shrink-0">
-              <div className="flex gap-2">
+          {/* Input Area with Command Autocomplete */}
+          <div className="border-t p-1 md:p-4 flex-shrink-0 relative pb-0">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
                 <Input
                   ref={inputRef}
                   value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
+                  onChange={handleInputChange}
                   onKeyPress={handleKeyPress}
-                  placeholder={isInitializing ? "Initializing campaign..." : "Describe your action..."}
+                  placeholder={isInitializing ? "Initializing campaign..." : "Describe your action or use /help for commands..."}
                   disabled={isLoading || isInitializing}
-                  className="flex-1"
+                  className="flex-1 text-sm md:text-base"
                 />
-                <Button
-                  onClick={handleSendMessage}
-                  disabled={!inputMessage.trim() || isLoading || isInitializing}
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="text-xs text-muted-foreground mt-2">
-                Press Enter to send • Describe what your character wants to do
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                {inputMessage.startsWith('/') && (
+                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                    <Command className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
+                  </div>
+                )}
 
-        {/* Game Tools Sidebar */}
-        <GameTools
-          character={character}
-          campaign={campaign}
-          currentLocation={currentLocation}
-          onCombatAction={(action) => {
-            // Add combat action to chat
-            addMessage({
-              sender: "player",
-              content: `[Combat] ${action.name}`,
-              type: "action",
-              metadata: {
-                characterId: character.id,
-                combatAction: action,
-              },
-            });
-          }}
-          onDiceRoll={(result) => {
-            // Add dice roll to chat
-            addMessage({
-              sender: "player",
-              content: `[Dice] Rolled ${result.dice} = ${result.total}${result.modifier ? ` + ${result.modifier} = ${result.finalTotal}` : ""}`,
-              type: "roll",
-              metadata: {
-                characterId: character.id,
-                diceRoll: result,
-              },
-            });
-          }}
-        />
-      </div>
+                {/* Command Autocomplete */}
+                <CommandAutocomplete
+                  inputValue={inputMessage}
+                  suggestions={suggestions}
+                  onSelectSuggestion={handleSelectSuggestion}
+                  visible={showAutocomplete}
+                />
+              </div>
+              <Button
+                onClick={handleSendMessage}
+                disabled={!inputMessage.trim() || isLoading || isInitializing}
+                size="sm"
+                className="h-8 md:h-10 px-2 md:px-3"
+              >
+                <Send className="h-3 w-3 md:h-4 md:w-4" />
+              </Button>
+            </div>
+
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -33,11 +33,21 @@ cd ai-powered-dnd-game
 
 ### 2. Environment Setup
 
+#### For Local Development
 ```bash
-# Copy the environment template
+# Copy the development environment template
 cp config/env.example .env
 
 # Edit the environment file with your configuration
+nano .env  # or use your preferred editor
+```
+
+#### For Railway Deployment
+```bash
+# Copy the Railway environment template
+cp config/env.railway .env
+
+# Edit the environment file with your Railway service URLs
 nano .env  # or use your preferred editor
 ```
 
@@ -89,6 +99,18 @@ CONTEXT_COMPRESSION_THRESHOLD=6000
 JWT_SECRET=your_jwt_secret_here
 SESSION_SECRET=your_session_secret_here
 CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002
+FRONTEND_URL=http://localhost:3000
+
+# =============================================================================
+# FRONTEND CONFIGURATION
+# =============================================================================
+NEXT_PUBLIC_API_URL=http://localhost:5001
+NEXT_PUBLIC_APP_NAME=AI-Powered D&D Game
+
+# =============================================================================
+# DOCKER CONFIGURATION
+# =============================================================================
+BACKEND_URL=http://localhost:5001
 
 # =============================================================================
 # RATE LIMITING

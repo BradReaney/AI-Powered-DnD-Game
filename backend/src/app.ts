@@ -10,6 +10,7 @@ import { Server } from 'socket.io';
 import config from './config';
 import logger from './services/LoggerService';
 import DatabaseService from './services/DatabaseService';
+import { cacheService } from './services/CacheService';
 
 // Import routes
 import campaignRoutes from './routes/campaigns';
@@ -93,14 +94,159 @@ class App {
   }
 
   private initializeRoutes(): void {
-    // Health check endpoint
-    this.app.get('/health', (_req, res) => {
+    // Root endpoint for Railway health checks
+    this.app.get('/', (_req, res) => {
       res.status(200).json({
-        status: 'ok',
+        message: 'AI-Powered D&D Game Backend API',
+        status: 'running',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         environment: config.server.nodeEnv,
+        version: '1.0.0',
+        endpoints: {
+          health: '/health',
+          campaigns: '/api/campaigns',
+          characters: '/api/characters',
+          sessions: '/api/sessions',
+          gameplay: '/api/gameplay',
+          combat: '/api/combat',
+          quests: '/api/quests',
+          locations: '/api/locations'
+        }
       });
+    });
+
+    // Health check endpoint
+    this.app.get('/health', async (_req, res) => {
+      try {
+        // Check database health
+        const dbHealthy = await DatabaseService.getInstance().healthCheck();
+
+        // Check Redis health
+        const redisHealthy = await cacheService.healthCheck();
+
+        res.status(200).json({
+          status: 'ok',
+          timestamp: new Date().toISOString(),
+          uptime: process.uptime(),
+          environment: config.server.nodeEnv,
+          services: {
+            database: dbHealthy ? 'healthy' : 'unhealthy',
+            redis: redisHealthy ? 'healthy' : 'unhealthy'
+          }
+        });
+      } catch (error) {
+        logger.error('Health check failed:', error);
+        res.status(500).json({
+          status: 'error',
+          timestamp: new Date().toISOString(),
+          error: 'Health check failed'
+        });
+      }
+    });
+
+    // Redis health check endpoint
+    this.app.get('/health/redis', async (_req, res) => {
+      try {
+        const healthy = await cacheService.healthCheck();
+        const stats = await cacheService.getStats();
+
+        res.status(200).json({
+          status: healthy ? 'healthy' : 'unhealthy',
+          timestamp: new Date().toISOString(),
+          redis: {
+            connected: healthy,
+            stats: stats
+          }
+        });
+      } catch (error) {
+        logger.error('Redis health check failed:', error);
+        res.status(500).json({
+          status: 'error',
+          timestamp: new Date().toISOString(),
+          error: 'Redis health check failed'
+        });
+      }
+    });
+
+    // Cache management endpoints
+    this.app.get('/api/cache/stats', async (_req, res) => {
+      try {
+        const stats = await cacheService.getStats();
+        res.status(200).json({
+          status: 'success',
+          data: stats,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        logger.error('Failed to get cache stats:', error);
+        res.status(500).json({
+          status: 'error',
+          error: 'Failed to get cache stats'
+        });
+      }
+    });
+
+    this.app.post('/api/cache/clear', async (_req, res) => {
+      try {
+        await cacheService.clearAll();
+        res.status(200).json({
+          status: 'success',
+          message: 'All cache cleared successfully',
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        logger.error('Failed to clear cache:', error);
+        res.status(500).json({
+          status: 'error',
+          error: 'Failed to clear cache'
+        });
+      }
+    });
+
+    this.app.post('/api/cache/warm', async (_req, res) => {
+      try {
+        await cacheService.warmCache();
+        res.status(200).json({
+          status: 'success',
+          message: 'Cache warming completed successfully',
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        logger.error('Failed to warm cache:', error);
+        res.status(500).json({
+          status: 'error',
+          error: 'Failed to warm cache'
+        });
+      }
+    });
+
+    // Cache performance monitoring endpoint
+    this.app.get('/api/cache/performance', async (_req, res) => {
+      try {
+        const stats = await cacheService.getStats();
+        const health = await cacheService.healthCheck();
+
+        res.status(200).json({
+          status: 'success',
+          data: {
+            health: health ? 'healthy' : 'unhealthy',
+            stats: stats,
+            performance: {
+              hitRate: stats.hitRate,
+              efficiency: stats.hitRate > 80 ? 'excellent' : stats.hitRate > 60 ? 'good' : 'poor',
+              recommendations: this.getCacheRecommendations(stats)
+            }
+          },
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        logger.error('Failed to get cache performance:', error);
+        res.status(500).json({
+          status: 'error',
+          error: 'Failed to get cache performance'
+        });
+      }
     });
 
     // Register routes
@@ -124,6 +270,31 @@ class App {
         method: req.method,
       });
     });
+  }
+
+  // Helper method for cache recommendations
+  private getCacheRecommendations(stats: any): string[] {
+    const recommendations = [];
+
+    if (stats.hitRate < 50) {
+      recommendations.push('Consider increasing cache TTL for frequently accessed data');
+      recommendations.push('Review cache invalidation strategies');
+    }
+
+    if (stats.hitRate < 30) {
+      recommendations.push('Cache warming may be needed');
+      recommendations.push('Consider adding more data to cache');
+    }
+
+    if (stats.memory > 100 * 1024 * 1024) { // 100MB
+      recommendations.push('Monitor memory usage - consider compression for large objects');
+    }
+
+    if (stats.keys > 1000) {
+      recommendations.push('Consider implementing cache eviction policies');
+    }
+
+    return recommendations;
   }
 
   private initializeSocketIO(): void {
@@ -189,11 +360,24 @@ class App {
       await DatabaseService.getInstance().connect();
       logger.info('Database connected successfully');
 
+      // Initialize cache service
+      try {
+        await cacheService.healthCheck();
+        logger.info('Redis cache service connected successfully');
+
+        // Warm up cache
+        await cacheService.warmCache();
+        logger.info('Cache warming completed');
+      } catch (error) {
+        logger.warn('Redis cache service not available, continuing without caching:', error);
+      }
+
       // Start server
       this.server.listen(config.server.port, () => {
         logger.info(`Server started on port ${config.server.port}`);
         logger.info(`Environment: ${config.server.nodeEnv}`);
         logger.info(`Health check: http://localhost:${config.server.port}/health`);
+        logger.info(`Redis health check: http://localhost:${config.server.port}/health/redis`);
       });
     } catch (error) {
       logger.error('Failed to start server:', error);
@@ -204,6 +388,14 @@ class App {
   public async shutdown(): Promise<void> {
     try {
       logger.info('Shutting down server...');
+
+      // Close cache service
+      try {
+        await cacheService.shutdown();
+        logger.info('Cache service shutdown complete');
+      } catch (error) {
+        logger.error('Cache service shutdown failed:', error);
+      }
 
       // Close database connection
       await DatabaseService.getInstance().disconnect();

@@ -1,8 +1,9 @@
 import { Server as SocketIOServer } from 'socket.io';
 import logger from './LoggerService';
 import { Campaign, Session, ISession, Character, ICharacter } from '../models';
-import GeminiClient from './GeminiClient';
+import LLMClientFactory from './LLMClientFactory';
 import { ContextManager } from './ContextManager';
+import { cacheService } from './CacheService';
 
 export interface GameState {
   currentScene: string;
@@ -41,14 +42,14 @@ export interface GameState {
 export interface StoryEvent {
   timestamp: Date;
   type:
-    | 'action'
-    | 'dialogue'
-    | 'combat'
-    | 'exploration'
-    | 'skill_check'
-    | 'story'
-    | 'other'
-    | 'ai-response';
+  | 'action'
+  | 'dialogue'
+  | 'combat'
+  | 'exploration'
+  | 'skill_check'
+  | 'story'
+  | 'other'
+  | 'ai-response';
   title: string;
   description: string;
   participants: string[];
@@ -114,15 +115,15 @@ export interface CombatAction {
   characterId: string;
   sessionId: string;
   action:
-    | 'attack'
-    | 'spell'
-    | 'move'
-    | 'dash'
-    | 'dodge'
-    | 'help'
-    | 'ready'
-    | 'search'
-    | 'use_object';
+  | 'attack'
+  | 'spell'
+  | 'move'
+  | 'dash'
+  | 'dodge'
+  | 'help'
+  | 'ready'
+  | 'search'
+  | 'use_object';
   target?: string;
   spell?: string;
   weapon?: string;
@@ -140,14 +141,14 @@ export interface CombatResult {
 class GameEngineService {
   private static instance: GameEngineService;
   private io: SocketIOServer;
-  private geminiClient: GeminiClient;
+  private geminiClient: any;
   private activeSessions: Map<string, ISession> = new Map();
   private sessionGameStates: Map<string, GameState> = new Map();
   private contextManager: ContextManager;
 
   private constructor(io: SocketIOServer) {
     this.io = io;
-    this.geminiClient = new GeminiClient();
+    this.geminiClient = LLMClientFactory.getInstance().getClient();
     this.contextManager = new ContextManager();
     this.initializeSocketHandlers();
   }
@@ -509,6 +510,16 @@ class GameEngineService {
 
   private async generateAIResponse(prompt: string): Promise<string> {
     try {
+      // Try to get from cache first
+      const promptHash = Buffer.from(prompt).toString('base64').substring(0, 32);
+      const cacheKey = `ai:response:${promptHash}`;
+
+      const cached = await cacheService.get<string>(cacheKey);
+      if (cached) {
+        logger.debug('Cache hit for AI response');
+        return cached;
+      }
+
       const response = await this.geminiClient.sendPrompt({
         prompt,
         taskType: 'story_response',
@@ -517,6 +528,10 @@ class GameEngineService {
       if (!response.success) {
         throw new Error('Failed to generate AI response: ' + response.error);
       }
+
+      // Cache the response for 1 hour (AI responses can be reused for similar prompts)
+      await cacheService.set(cacheKey, response.content, { ttl: 3600 });
+      logger.debug('Cached AI response');
 
       return response.content;
     } catch (error) {

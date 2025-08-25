@@ -4,7 +4,7 @@ Complete guide to deploying the AI-Powered D&D Game in production environments.
 
 ## 🎯 Overview
 
-This guide covers deploying the application to production with proper security, performance, and monitoring configurations. The application is designed to be containerized and can be deployed to various cloud platforms.
+This guide covers deploying the application to production with proper security, performance, and monitoring configurations. The application is designed to be containerized and can be deployed to various cloud platforms, with **Railway** being the primary recommended deployment platform.
 
 ## 🏗️ Architecture
 
@@ -24,6 +24,37 @@ Internet → Load Balancer → Nginx Reverse Proxy → Frontend/Backend Containe
 - **Cache**: Redis with persistence and clustering
 - **Reverse Proxy**: Nginx with SSL termination
 - **Load Balancer**: Cloud load balancer or HAProxy
+
+## 🚂 Railway Deployment (Recommended)
+
+### Quick Railway Setup
+
+Railway is the recommended deployment platform for this application. It provides:
+- **Automatic SSL certificates** and HTTPS
+- **Built-in MongoDB and Redis services**
+- **Automatic scaling** and load balancing
+- **Zero-downtime deployments**
+- **Environment variable management**
+
+### Railway Environment Configuration
+
+```bash
+# Use the Railway environment template
+cp config/env.railway .env
+
+# Update with your Railway service URLs
+NEXT_PUBLIC_API_URL=https://your-backend-service.railway.app
+BACKEND_URL=https://your-backend-service.railway.app
+CORS_ORIGIN=https://your-frontend-service.railway.app
+FRONTEND_URL=https://your-frontend-service.railway.app
+```
+
+### Railway Service Setup
+
+1. **Create Railway Project**: Connect your GitHub repository
+2. **Add Services**: Frontend, Backend, MongoDB, Redis
+3. **Set Environment Variables**: Use Railway dashboard or `railway variables set`
+4. **Deploy**: Automatic deployment on git push
 
 ## 🔒 Security Configuration
 

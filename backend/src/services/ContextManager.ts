@@ -1,5 +1,5 @@
 import logger from './LoggerService';
-import { GeminiClient } from './GeminiClient';
+import LLMClientFactory from './LLMClientFactory';
 import { ModelSelectionService } from './ModelSelectionService';
 import { PerformanceTracker } from './PerformanceTracker';
 
@@ -55,7 +55,7 @@ export class ContextManager {
   private conversationMemories: Map<string, ConversationMemory> = new Map();
   private contextCache: Map<string, { context: string; timestamp: Date; ttl: number }> = new Map();
 
-  private geminiClient: GeminiClient;
+  private geminiClient: any;
   private modelSelectionService: ModelSelectionService;
   private performanceTracker: PerformanceTracker;
 
@@ -63,7 +63,7 @@ export class ContextManager {
     this.maxContextTokens = parseInt(process.env['MAX_CONTEXT_LENGTH'] || '8000');
     this.compressionThreshold = parseInt(process.env['CONTEXT_COMPRESSION_THRESHOLD'] || '6000');
 
-    this.geminiClient = new GeminiClient();
+    this.geminiClient = LLMClientFactory.getInstance().getClient();
     this.modelSelectionService = ModelSelectionService.getInstance();
     this.performanceTracker = PerformanceTracker.getInstance();
   }

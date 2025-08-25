@@ -1,8 +1,9 @@
-import GeminiClient from './GeminiClient';
+import LLMClientFactory from './LLMClientFactory';
 import { ModelSelectionService } from './ModelSelectionService';
 import { PerformanceTracker } from './PerformanceTracker';
 import { Campaign } from '../models';
 import logger from './LoggerService';
+import { cacheService } from './CacheService';
 
 export interface QuestObjective {
   id: string;
@@ -101,13 +102,13 @@ export interface WorldExplorationData {
 export interface FactionData {
   name: string;
   type:
-    | 'guild'
-    | 'noble house'
-    | 'religious order'
-    | 'mercenary company'
-    | 'criminal syndicate'
-    | 'government'
-    | 'academy';
+  | 'guild'
+  | 'noble house'
+  | 'religious order'
+  | 'mercenary company'
+  | 'criminal syndicate'
+  | 'government'
+  | 'academy';
   alignment: string;
   influence: number; // 0-100
   territory: string[];
@@ -132,7 +133,7 @@ export interface FactionData {
 
 export class QuestService {
   private static instance: QuestService;
-  private geminiClient: GeminiClient;
+  private geminiClient: any;
   private modelSelectionService: ModelSelectionService;
   private performanceTracker: PerformanceTracker;
 
@@ -141,7 +142,7 @@ export class QuestService {
   private factionData: Map<string, FactionData> = new Map();
 
   constructor() {
-    this.geminiClient = new GeminiClient();
+    this.geminiClient = LLMClientFactory.getInstance().getClient();
     this.modelSelectionService = ModelSelectionService.getInstance();
     this.performanceTracker = PerformanceTracker.getInstance();
     this.initializeQuestTemplates();
@@ -530,6 +531,10 @@ Make the quest engaging, appropriate for the difficulty level, and integrated wi
       }
 
       await campaign.save();
+
+      // Invalidate related cache
+      await this.invalidateQuestCache(campaignId);
+
       return true;
     } catch (error) {
       logger.error('Error updating quest objective:', error);
@@ -571,10 +576,34 @@ Make the quest engaging, appropriate for the difficulty level, and integrated wi
 
       await campaign.save();
 
+      // Invalidate related cache
+      await this.invalidateQuestCache(campaignId);
+
       logger.info(`Completed quest "${questName}" in campaign ${campaignId}`);
     } catch (error) {
       logger.error('Error completing quest:', error);
       throw error;
+    }
+  }
+
+  // Private method to invalidate quest-related cache
+  private async invalidateQuestCache(campaignId: string): Promise<void> {
+    try {
+      const patterns = [
+        `quest:statistics:${campaignId}`,
+        `quest:templates:*`,
+        `campaign:${campaignId}`,
+        `campaigns:all`,
+        `campaigns:user:*`,
+      ];
+
+      for (const pattern of patterns) {
+        await cacheService.deletePattern(pattern);
+      }
+
+      logger.debug(`Cache invalidated for quests in campaign: ${campaignId}`);
+    } catch (error) {
+      logger.error(`Failed to invalidate cache for quests in campaign ${campaignId}:`, error);
     }
   }
 
@@ -802,28 +831,65 @@ Format as JSON with the structure:
   /**
    * Get quest templates by type and difficulty
    */
-  public getQuestTemplates(
+  public async getQuestTemplates(
     type?: string,
     difficulty?: string,
     levelRange?: { min: number; max: number }
-  ): QuestTemplate[] {
-    let templates = Array.from(this.questTemplates.values());
+  ): Promise<QuestTemplate[]> {
+    try {
+      // Create cache key based on filters
+      const filterString = JSON.stringify({ type, difficulty, levelRange });
+      const cacheKey = `quest:templates:${Buffer.from(filterString).toString('base64')}`;
 
-    if (type) {
-      templates = templates.filter(t => t.type === type);
+      // Try to get from cache first
+      const cached = await cacheService.get<QuestTemplate[]>(cacheKey);
+      if (cached) {
+        logger.debug('Cache hit for quest templates');
+        return cached;
+      }
+
+      let templates = Array.from(this.questTemplates.values());
+
+      if (type) {
+        templates = templates.filter(t => t.type === type);
+      }
+
+      if (difficulty) {
+        templates = templates.filter(t => t.difficulty === difficulty);
+      }
+
+      if (levelRange) {
+        templates = templates.filter(
+          t => t.levelRange.min <= levelRange.max && t.levelRange.max >= levelRange.min
+        );
+      }
+
+      // Cache the result for 10 minutes (quest templates don't change often)
+      await cacheService.set(cacheKey, templates, { ttl: 600 });
+      logger.debug('Cached quest templates');
+
+      return templates;
+    } catch (error) {
+      logger.error('Error getting quest templates:', error);
+      // Fallback to non-cached version
+      let templates = Array.from(this.questTemplates.values());
+
+      if (type) {
+        templates = templates.filter(t => t.type === type);
+      }
+
+      if (difficulty) {
+        templates = templates.filter(t => t.difficulty === difficulty);
+      }
+
+      if (levelRange) {
+        templates = templates.filter(
+          t => t.levelRange.min <= levelRange.max && t.levelRange.max >= levelRange.min
+        );
+      }
+
+      return templates;
     }
-
-    if (difficulty) {
-      templates = templates.filter(t => t.difficulty === difficulty);
-    }
-
-    if (levelRange) {
-      templates = templates.filter(
-        t => t.levelRange.min <= levelRange.max && t.levelRange.max >= levelRange.min
-      );
-    }
-
-    return templates;
   }
 
   /**
@@ -831,6 +897,14 @@ Format as JSON with the structure:
    */
   public async getQuestStatistics(campaignId: string): Promise<any> {
     try {
+      // Try to get from cache first
+      const cacheKey = `quest:statistics:${campaignId}`;
+      const cached = await cacheService.get<any>(cacheKey);
+      if (cached) {
+        logger.debug(`Cache hit for quest statistics: ${campaignId}`);
+        return cached;
+      }
+
       const campaign = await Campaign.findById(campaignId);
       if (!campaign) {
         throw new Error('Campaign not found');
@@ -848,7 +922,7 @@ Format as JSON with the structure:
         averageExperiencePerQuest:
           completedQuests.length > 0
             ? completedQuests.reduce((sum, q) => sum + q.experienceReward, 0) /
-              completedQuests.length
+            completedQuests.length
             : 0,
         totalExperienceRewarded: completedQuests.reduce((sum, q) => sum + q.experienceReward, 0),
         totalGoldRewarded: 0, // Campaign model doesn't store gold rewards
@@ -874,6 +948,10 @@ Format as JSON with the structure:
         // Note: Campaign model doesn't store quest type or difficulty for completed quests
         // We can only analyze active quests for these statistics
       });
+
+      // Cache the result for 5 minutes
+      await cacheService.set(cacheKey, statistics, { ttl: 300 });
+      logger.debug(`Cached quest statistics: ${campaignId}`);
 
       return statistics;
     } catch (error) {

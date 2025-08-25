@@ -1,6 +1,6 @@
 import express from 'express';
 import PerformanceTracker from '../services/PerformanceTracker';
-import { GeminiClient } from '../services/GeminiClient';
+import LLMClientFactory from '../services/LLMClientFactory';
 
 const router = express.Router();
 const performanceTracker = PerformanceTracker.getInstance();
@@ -8,7 +8,7 @@ const performanceTracker = PerformanceTracker.getInstance();
 // Test Gemini API connection
 router.get('/test-gemini', async (req, res) => {
   try {
-    const geminiClient = new GeminiClient();
+    const geminiClient = LLMClientFactory.getInstance().getClient();
     const isConnected = await geminiClient.testConnection();
 
     if (isConnected) {

@@ -1,6 +1,7 @@
 import logger from './LoggerService';
 import { Campaign, ICampaign } from '../models';
-import GeminiClient from './GeminiClient';
+import LLMClientFactory from './LLMClientFactory';
+import { cacheService } from './CacheService';
 
 export interface CampaignCreationData {
   name: string;
@@ -98,10 +99,10 @@ export interface WorldEventData {
 }
 
 class CampaignService {
-  private geminiClient: GeminiClient;
+  private geminiClient: any;
 
   constructor() {
-    this.geminiClient = new GeminiClient();
+    this.geminiClient = LLMClientFactory.getInstance().getClient();
   }
 
   public async createCampaign(data: CampaignCreationData): Promise<ICampaign> {
@@ -417,7 +418,24 @@ class CampaignService {
 
   public async getCampaign(campaignId: string): Promise<ICampaign | null> {
     try {
-      return await Campaign.findById(campaignId);
+      // Try to get from cache first
+      const cacheKey = `campaign:${campaignId}`;
+      const cached = await cacheService.get<ICampaign>(cacheKey);
+      if (cached) {
+        logger.debug(`Cache hit for campaign: ${campaignId}`);
+        return cached;
+      }
+
+      // If not in cache, get from database
+      const campaign = await Campaign.findById(campaignId);
+
+      if (campaign) {
+        // Cache the result for 5 minutes
+        await cacheService.set(cacheKey, campaign, { ttl: 300 });
+        logger.debug(`Cached campaign: ${campaignId}`);
+      }
+
+      return campaign;
     } catch (error) {
       logger.error('Error getting campaign:', error);
       throw error;
@@ -426,7 +444,22 @@ class CampaignService {
 
   public async getAllCampaigns(): Promise<ICampaign[]> {
     try {
-      return await Campaign.find().sort({ createdAt: -1 });
+      // Try to get from cache first
+      const cacheKey = 'campaigns:all';
+      const cached = await cacheService.get<ICampaign[]>(cacheKey);
+      if (cached) {
+        logger.debug('Cache hit for all campaigns');
+        return cached;
+      }
+
+      // If not in cache, get from database
+      const campaigns = await Campaign.find().sort({ createdAt: -1 });
+
+      // Cache the result for 2 minutes
+      await cacheService.set(cacheKey, campaigns, { ttl: 120 });
+      logger.debug('Cached all campaigns');
+
+      return campaigns;
     } catch (error) {
       logger.error('Error getting all campaigns:', error);
       throw error;
@@ -435,7 +468,22 @@ class CampaignService {
 
   public async getCampaignsByUser(userId: string): Promise<ICampaign[]> {
     try {
-      return await Campaign.find({ createdBy: userId }).sort({ lastPlayed: -1 });
+      // Try to get from cache first
+      const cacheKey = `campaigns:user:${userId}`;
+      const cached = await cacheService.get<ICampaign[]>(cacheKey);
+      if (cached) {
+        logger.debug(`Cache hit for campaigns by user: ${userId}`);
+        return cached;
+      }
+
+      // If not in cache, get from database
+      const campaigns = await Campaign.find({ createdBy: userId }).sort({ lastPlayed: -1 });
+
+      // Cache the result for 3 minutes
+      await cacheService.set(cacheKey, campaigns, { ttl: 180 });
+      logger.debug(`Cached campaigns for user: ${userId}`);
+
+      return campaigns;
     } catch (error) {
       logger.error('Error getting campaigns by user:', error);
       throw error;
@@ -460,6 +508,10 @@ class CampaignService {
       });
 
       await campaign.save();
+
+      // Invalidate related cache
+      await this.invalidateCampaignCache(campaignId);
+
       logger.info(`Updated campaign: ${campaign.name}`);
       return campaign;
     } catch (error) {
@@ -478,6 +530,9 @@ class CampaignService {
       // Soft delete - mark as archived
       campaign.status = 'archived';
       await campaign.save();
+
+      // Invalidate related cache
+      await this.invalidateCampaignCache(campaignId);
 
       logger.info(`Archived campaign: ${campaign.name}`);
     } catch (error) {
@@ -498,29 +553,43 @@ class CampaignService {
 
       // Delete all related data
       await Promise.all([
-        // Delete all sessions in this campaign
         Session.deleteMany({ campaignId }),
-
-        // Delete all characters in this campaign
         Character.deleteMany({ campaignId }),
-
-        // Delete all locations in this campaign
         Location.deleteMany({ campaignId }),
-
-        // Delete all messages in this campaign
         Message.deleteMany({ campaignId }),
-
-        // Delete all story events in this campaign
         StoryEvent.deleteMany({ campaignId }),
-
-        // Finally delete the campaign itself
         Campaign.findByIdAndDelete(campaignId),
       ]);
 
-      logger.info(`Hard deleted campaign: ${campaign.name} and all related data`);
+      // Invalidate all related cache
+      await this.invalidateCampaignCache(campaignId);
+
+      logger.info(`Hard deleted campaign: ${campaign.name}`);
     } catch (error) {
       logger.error('Error hard deleting campaign:', error);
       throw error;
+    }
+  }
+
+  // Private method to invalidate campaign-related cache
+  private async invalidateCampaignCache(campaignId: string): Promise<void> {
+    try {
+      const patterns = [
+        `campaign:${campaignId}`,
+        'campaigns:all',
+        'campaigns:user:*',
+        `sessions:campaign:${campaignId}:*`,
+        `characters:campaign:${campaignId}:*`,
+        `quests:campaign:${campaignId}:*`,
+      ];
+
+      for (const pattern of patterns) {
+        await cacheService.deletePattern(pattern);
+      }
+
+      logger.debug(`Cache invalidated for campaign: ${campaignId}`);
+    } catch (error) {
+      logger.error(`Failed to invalidate cache for campaign ${campaignId}:`, error);
     }
   }
 

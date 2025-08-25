@@ -1,6 +1,7 @@
 import logger from './LoggerService';
 import { Character, ICharacter, Campaign, ICampaign, Session } from '../models';
-import GeminiClient from './GeminiClient';
+import LLMClientFactory from './LLMClientFactory';
+import { cacheService } from './CacheService';
 
 export interface CharacterCreationData {
   name: string;
@@ -122,10 +123,10 @@ export interface CharacterUpdateData {
 }
 
 class CharacterService {
-  private geminiClient: GeminiClient;
+  private geminiClient: any;
 
   constructor() {
-    this.geminiClient = new GeminiClient();
+    this.geminiClient = LLMClientFactory.getInstance().getClient();
   }
 
   public async createHumanCharacter(data: CharacterCreationData): Promise<ICharacter> {
@@ -848,7 +849,24 @@ class CharacterService {
    */
   public async getCharacter(characterId: string): Promise<ICharacter | null> {
     try {
-      return await Character.findById(characterId);
+      // Try to get from cache first
+      const cacheKey = `character:${characterId}`;
+      const cached = await cacheService.get<ICharacter>(cacheKey);
+      if (cached) {
+        logger.debug(`Cache hit for character: ${characterId}`);
+        return cached;
+      }
+
+      // If not in cache, get from database
+      const character = await Character.findById(characterId);
+
+      if (character) {
+        // Cache the result for 5 minutes
+        await cacheService.set(cacheKey, character, { ttl: 300 });
+        logger.debug(`Cached character: ${characterId}`);
+      }
+
+      return character;
     } catch (error) {
       logger.error('Error getting character:', error);
       throw error;
@@ -857,7 +875,22 @@ class CharacterService {
 
   public async getCharactersByCampaign(campaignId: string): Promise<ICharacter[]> {
     try {
-      return await Character.find({ campaignId, isActive: true });
+      // Try to get from cache first
+      const cacheKey = `characters:campaign:${campaignId}`;
+      const cached = await cacheService.get<ICharacter[]>(cacheKey);
+      if (cached) {
+        logger.debug(`Cache hit for characters by campaign: ${campaignId}`);
+        return cached;
+      }
+
+      // If not in cache, get from database
+      const characters = await Character.find({ campaignId, isActive: true });
+
+      // Cache the result for 3 minutes
+      await cacheService.set(cacheKey, characters, { ttl: 180 });
+      logger.debug(`Cached characters for campaign: ${campaignId}`);
+
+      return characters;
     } catch (error) {
       logger.error('Error getting characters by campaign:', error);
       throw error;
@@ -866,7 +899,22 @@ class CharacterService {
 
   public async getCharactersBySession(sessionId: string): Promise<ICharacter[]> {
     try {
-      return await Character.find({ sessionId, isActive: true });
+      // Try to get from cache first
+      const cacheKey = `characters:session:${sessionId}`;
+      const cached = await cacheService.get<ICharacter[]>(cacheKey);
+      if (cached) {
+        logger.debug(`Cache hit for characters by session: ${sessionId}`);
+        return cached;
+      }
+
+      // If not in cache, get from database
+      const characters = await Character.find({ sessionId, isActive: true });
+
+      // Cache the result for 3 minutes
+      await cacheService.set(cacheKey, characters, { ttl: 180 });
+      logger.debug(`Cached characters for session: ${sessionId}`);
+
+      return characters;
     } catch (error) {
       logger.error('Error getting characters by session:', error);
       throw error;
@@ -875,7 +923,24 @@ class CharacterService {
 
   public async getCharacterByName(name: string, campaignId: string): Promise<ICharacter | null> {
     try {
-      return await Character.findOne({ name, campaignId, isActive: true });
+      // Try to get from cache first
+      const cacheKey = `character:name:${name}:campaign:${campaignId}`;
+      const cached = await cacheService.get<ICharacter>(cacheKey);
+      if (cached) {
+        logger.debug(`Cache hit for character by name: ${name} in campaign: ${campaignId}`);
+        return cached;
+      }
+
+      // If not in cache, get from database
+      const character = await Character.findOne({ name, campaignId, isActive: true });
+
+      if (character) {
+        // Cache the result for 5 minutes
+        await cacheService.set(cacheKey, character, { ttl: 300 });
+        logger.debug(`Cached character by name: ${name} in campaign: ${campaignId}`);
+      }
+
+      return character;
     } catch (error) {
       logger.error('Error getting character by name:', error);
       throw error;
@@ -900,6 +965,10 @@ class CharacterService {
       });
 
       await character.save();
+
+      // Invalidate related cache
+      await this.invalidateCharacterCache(characterId, character.campaignId.toString(), character.sessionId.toString());
+
       logger.info(`Updated character: ${character.name}`);
       return character;
     } catch (error) {
@@ -948,14 +1017,36 @@ class CharacterService {
         character.aiPersonality = updates.aiPersonality;
       }
 
-      character.updatedAt = new Date();
       await character.save();
+
+      // Invalidate related cache
+      await this.invalidateCharacterCache(characterId, character.campaignId.toString(), character.sessionId.toString());
 
       logger.info(`Updated character progress: ${character.name}`);
       return character;
     } catch (error) {
       logger.error('Error updating character progress:', error);
       throw error;
+    }
+  }
+
+  // Private method to invalidate character-related cache
+  private async invalidateCharacterCache(characterId: string, campaignId: string, sessionId: string): Promise<void> {
+    try {
+      const patterns = [
+        `character:${characterId}`,
+        `characters:campaign:${campaignId}`,
+        `characters:session:${sessionId}`,
+        `character:name:*:campaign:${campaignId}`,
+      ];
+
+      for (const pattern of patterns) {
+        await cacheService.deletePattern(pattern);
+      }
+
+      logger.debug(`Cache invalidated for character: ${characterId}`);
+    } catch (error) {
+      logger.error(`Failed to invalidate cache for character ${characterId}:`, error);
     }
   }
 

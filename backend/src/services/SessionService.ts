@@ -2,6 +2,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import logger from './LoggerService';
 import { Session } from '../models';
 import GameEngineService from './GameEngineService';
+import { cacheService } from './CacheService';
 
 export interface SessionMetadata {
   name: string;
@@ -56,7 +57,7 @@ export class SessionService {
   private gameEngineService: GameEngineService | null = null;
   private io: SocketIOServer | null = null;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): SessionService {
     if (!SessionService.instance) {
@@ -242,6 +243,14 @@ export class SessionService {
   // Session analytics
   public async getSessionAnalytics(sessionId: string): Promise<SessionAnalytics | null> {
     try {
+      // Try to get from cache first
+      const cacheKey = `session:analytics:${sessionId}`;
+      const cached = await cacheService.get<SessionAnalytics>(cacheKey);
+      if (cached) {
+        logger.debug(`Cache hit for session analytics: ${sessionId}`);
+        return cached;
+      }
+
       const session = await Session.findById(sessionId);
       if (!session) {
         return null;
@@ -250,8 +259,8 @@ export class SessionService {
       // Calculate analytics based on session data
       const duration = session.metadata.endTime
         ? (new Date(session.metadata.endTime).getTime() -
-            new Date(session.metadata.startTime).getTime()) /
-          (1000 * 60) // minutes
+          new Date(session.metadata.startTime).getTime()) /
+        (1000 * 60) // minutes
         : 0;
 
       const storyEventsCount = session.storyEvents?.length || 0;
@@ -273,7 +282,7 @@ export class SessionService {
       // Calculate completion rate (placeholder - would need actual completion data)
       const completionRate = 0.9; // 0-1 scale
 
-      return {
+      const analytics = {
         sessionId,
         duration,
         participantCount: session.metadata.players.length,
@@ -286,6 +295,12 @@ export class SessionService {
         difficultyRating,
         completionRate,
       };
+
+      // Cache the result for 5 minutes
+      await cacheService.set(cacheKey, analytics, { ttl: 300 });
+      logger.debug(`Cached session analytics: ${sessionId}`);
+
+      return analytics;
     } catch (error) {
       logger.error('Error getting session analytics:', error);
       throw error;
@@ -304,6 +319,17 @@ export class SessionService {
     searchTerm?: string;
   }): Promise<any[]> {
     try {
+      // Create cache key based on filters
+      const filterString = JSON.stringify(filters);
+      const cacheKey = `sessions:search:${Buffer.from(filterString).toString('base64')}`;
+
+      // Try to get from cache first
+      const cached = await cacheService.get<any[]>(cacheKey);
+      if (cached) {
+        logger.debug('Cache hit for session search');
+        return cached;
+      }
+
       const query: any = {};
 
       if (filters.campaignId) {
@@ -348,6 +374,10 @@ export class SessionService {
 
       const sessions = await Session.find(query).sort({ startTime: -1 }).lean();
 
+      // Cache the result for 2 minutes
+      await cacheService.set(cacheKey, sessions, { ttl: 120 });
+      logger.debug('Cached session search results');
+
       return sessions;
     } catch (error) {
       logger.error('Error searching sessions:', error);
@@ -361,6 +391,10 @@ export class SessionService {
       await Session.findByIdAndUpdate(sessionId, {
         $addToSet: { tags: { $each: tags } },
       });
+
+      // Invalidate related cache
+      await this.invalidateSessionCache(sessionId);
+
       logger.info(`Added tags ${tags.join(', ')} to session ${sessionId}`);
     } catch (error) {
       logger.error('Error adding session tags:', error);
@@ -373,6 +407,10 @@ export class SessionService {
       await Session.findByIdAndUpdate(sessionId, {
         $pull: { tags: { $in: tags } },
       });
+
+      // Invalidate related cache
+      await this.invalidateSessionCache(sessionId);
+
       logger.info(`Removed tags ${tags.join(', ')} from session ${sessionId}`);
     } catch (error) {
       logger.error('Error removing session tags:', error);
@@ -400,20 +438,41 @@ export class SessionService {
         analytics: await this.getSessionAnalytics(sessionId),
       };
 
-      // Store archive (this would typically go to a separate collection)
-      // For now, we'll mark the session as archived using the status field
+      // Mark session as archived
       await Session.findByIdAndUpdate(sessionId, {
-        status: 'archived',
         $set: {
+          status: 'archived',
           'metadata.archivedAt': new Date(),
           'metadata.archiveReason': archiveReason,
         },
       });
 
+      // Invalidate related cache
+      await this.invalidateSessionCache(sessionId);
+
       logger.info(`Archived session ${sessionId}: ${archiveReason}`);
     } catch (error) {
       logger.error('Error archiving session:', error);
       throw error;
+    }
+  }
+
+  // Private method to invalidate session-related cache
+  private async invalidateSessionCache(sessionId: string): Promise<void> {
+    try {
+      const patterns = [
+        `session:analytics:${sessionId}`,
+        'sessions:search:*',
+        `sessions:campaign:*`,
+      ];
+
+      for (const pattern of patterns) {
+        await cacheService.deletePattern(pattern);
+      }
+
+      logger.debug(`Cache invalidated for session: ${sessionId}`);
+    } catch (error) {
+      logger.error(`Failed to invalidate cache for session ${sessionId}:`, error);
     }
   }
 

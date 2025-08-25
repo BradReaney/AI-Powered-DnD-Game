@@ -25,7 +25,7 @@ class DatabaseService {
   private queryTimes: number[] = [];
   private slowQueryThreshold = 100; // 100ms threshold for slow queries
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): DatabaseService {
     if (!DatabaseService.instance) {

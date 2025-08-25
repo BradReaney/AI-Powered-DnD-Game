@@ -1,20 +1,21 @@
 import logger from './LoggerService';
 import { Location, ILocation } from '../models';
-import GeminiClient from './GeminiClient';
+import LLMClientFactory from './LLMClientFactory';
+import { cacheService } from './CacheService';
 
 export interface LocationCreationData {
   name: string;
   description: string;
   type:
-    | 'settlement'
-    | 'dungeon'
-    | 'wilderness'
-    | 'landmark'
-    | 'shop'
-    | 'tavern'
-    | 'temple'
-    | 'castle'
-    | 'other';
+  | 'settlement'
+  | 'dungeon'
+  | 'wilderness'
+  | 'landmark'
+  | 'shop'
+  | 'tavern'
+  | 'temple'
+  | 'castle'
+  | 'other';
   campaignId: string;
   sessionId?: string;
   discoveredBy: string[];
@@ -33,15 +34,15 @@ export interface ExtractedLocationData {
   name: string;
   description: string;
   type:
-    | 'settlement'
-    | 'dungeon'
-    | 'wilderness'
-    | 'landmark'
-    | 'shop'
-    | 'tavern'
-    | 'temple'
-    | 'castle'
-    | 'other';
+  | 'settlement'
+  | 'dungeon'
+  | 'wilderness'
+  | 'landmark'
+  | 'shop'
+  | 'tavern'
+  | 'temple'
+  | 'castle'
+  | 'other';
   importance?: 'minor' | 'moderate' | 'major' | 'critical';
   tags?: string[];
   coordinates?: {
@@ -66,15 +67,15 @@ export interface LocationUpdateData {
   name?: string;
   description?: string;
   type?:
-    | 'settlement'
-    | 'dungeon'
-    | 'wilderness'
-    | 'landmark'
-    | 'shop'
-    | 'tavern'
-    | 'temple'
-    | 'castle'
-    | 'other';
+  | 'settlement'
+  | 'dungeon'
+  | 'wilderness'
+  | 'landmark'
+  | 'shop'
+  | 'tavern'
+  | 'temple'
+  | 'castle'
+  | 'other';
   coordinates?: {
     x: number;
     y: number;
@@ -99,10 +100,10 @@ export interface LocationUpdateData {
 }
 
 export class LocationService {
-  private geminiClient: GeminiClient;
+  private geminiClient: any;
 
   constructor() {
-    this.geminiClient = new GeminiClient();
+    this.geminiClient = LLMClientFactory.getInstance().getClient();
   }
 
   /**
@@ -132,7 +133,24 @@ export class LocationService {
    */
   async getLocationById(locationId: string): Promise<ILocation | null> {
     try {
-      return await Location.findById(locationId);
+      // Try to get from cache first
+      const cacheKey = `location:${locationId}`;
+      const cached = await cacheService.get<ILocation>(cacheKey);
+      if (cached) {
+        logger.debug(`Cache hit for location: ${locationId}`);
+        return cached;
+      }
+
+      // If not in cache, get from database
+      const location = await Location.findById(locationId);
+
+      if (location) {
+        // Cache the result for 5 minutes
+        await cacheService.set(cacheKey, location, { ttl: 300 });
+        logger.debug(`Cached location: ${locationId}`);
+      }
+
+      return location;
     } catch (error) {
       logger.error('Error getting location by ID:', error);
       throw error;
@@ -144,7 +162,24 @@ export class LocationService {
    */
   async getLocationByName(name: string, campaignId: string): Promise<ILocation | null> {
     try {
-      return await Location.findOne({ name, campaignId });
+      // Try to get from cache first
+      const cacheKey = `location:name:${name}:campaign:${campaignId}`;
+      const cached = await cacheService.get<ILocation>(cacheKey);
+      if (cached) {
+        logger.debug(`Cache hit for location by name: ${name} in campaign: ${campaignId}`);
+        return cached;
+      }
+
+      // If not in cache, get from database
+      const location = await Location.findOne({ name, campaignId });
+
+      if (location) {
+        // Cache the result for 5 minutes
+        await cacheService.set(cacheKey, location, { ttl: 300 });
+        logger.debug(`Cached location by name: ${name} in campaign: ${campaignId}`);
+      }
+
+      return location;
     } catch (error) {
       logger.error('Error getting location by name:', error);
       throw error;
@@ -160,10 +195,25 @@ export class LocationService {
     offset: number = 0
   ): Promise<ILocation[]> {
     try {
-      return await Location.find({ campaignId })
+      // Try to get from cache first
+      const cacheKey = `locations:campaign:${campaignId}:${limit}:${offset}`;
+      const cached = await cacheService.get<ILocation[]>(cacheKey);
+      if (cached) {
+        logger.debug(`Cache hit for campaign locations: ${campaignId}`);
+        return cached;
+      }
+
+      // If not in cache, get from database
+      const locations = await Location.find({ campaignId })
         .sort({ lastVisited: -1 })
         .skip(offset)
         .limit(limit);
+
+      // Cache the result for 3 minutes
+      await cacheService.set(cacheKey, locations, { ttl: 180 });
+      logger.debug(`Cached campaign locations: ${campaignId}`);
+
+      return locations;
     } catch (error) {
       logger.error('Error getting campaign locations:', error);
       throw error;
@@ -179,7 +229,22 @@ export class LocationService {
     offset: number = 0
   ): Promise<ILocation[]> {
     try {
-      return await Location.find({ sessionId }).sort({ lastVisited: -1 }).skip(offset).limit(limit);
+      // Try to get from cache first
+      const cacheKey = `locations:session:${sessionId}:${limit}:${offset}`;
+      const cached = await cacheService.get<ILocation[]>(cacheKey);
+      if (cached) {
+        logger.debug(`Cache hit for session locations: ${sessionId}`);
+        return cached;
+      }
+
+      // If not in cache, get from database
+      const locations = await Location.find({ sessionId }).sort({ lastVisited: -1 }).skip(offset).limit(limit);
+
+      // Cache the result for 3 minutes
+      await cacheService.set(cacheKey, locations, { ttl: 180 });
+      logger.debug(`Cached session locations: ${sessionId}`);
+
+      return locations;
     } catch (error) {
       logger.error('Error getting session locations:', error);
       throw error;
@@ -201,6 +266,9 @@ export class LocationService {
       );
 
       if (updatedLocation) {
+        // Invalidate related cache
+        await this.invalidateLocationCache(locationId, updatedLocation.campaignId.toString(), updatedLocation.sessionId?.toString());
+
         logger.info('Location updated successfully', {
           locationId: updatedLocation._id,
           name: updatedLocation.name,
@@ -227,11 +295,48 @@ export class LocationService {
         throw new Error('Location not found');
       }
 
-      await location.markAsVisited(characterName);
+      // Update last visited timestamp and visit count
+      location.lastVisited = new Date();
+      location.visitCount = (location.visitCount || 0) + 1;
+
+      // Add to discovered by if not already there
+      if (!location.discoveredBy.includes(characterName)) {
+        location.discoveredBy.push(characterName);
+      }
+
+      await location.save();
+
+      // Invalidate related cache
+      await this.invalidateLocationCache(locationId, location.campaignId.toString(), location.sessionId?.toString());
+
+      logger.info(`Location ${location.name} marked as visited by ${characterName}`);
       return location;
     } catch (error) {
       logger.error('Error marking location as visited:', error);
       throw error;
+    }
+  }
+
+  // Private method to invalidate location-related cache
+  private async invalidateLocationCache(locationId: string, campaignId: string, sessionId?: string): Promise<void> {
+    try {
+      const patterns = [
+        `location:${locationId}`,
+        `location:name:*:campaign:${campaignId}`,
+        `locations:campaign:${campaignId}:*`,
+      ];
+
+      if (sessionId) {
+        patterns.push(`locations:session:${sessionId}:*`);
+      }
+
+      for (const pattern of patterns) {
+        await cacheService.deletePattern(pattern);
+      }
+
+      logger.debug(`Cache invalidated for location: ${locationId}`);
+    } catch (error) {
+      logger.error(`Failed to invalidate cache for location ${locationId}:`, error);
     }
   }
 

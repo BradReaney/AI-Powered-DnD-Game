@@ -11,7 +11,7 @@ AI-Powered-DnD-Game/
 ├── .env                    # Active environment file (root directory)
 ├── config/
 │   ├── env.example         # Template for development
-│   ├── env.production      # Template for production
+│   ├── env.railway         # Template for Railway deployment
 │   └── mongo-init.js       # MongoDB initialization
 └── docker-compose.yml      # References root .env file
 ```
@@ -40,12 +40,12 @@ cp config/env.example .env
 nano .env
 ```
 
-### For Production
+### For Railway Production
 ```bash
-# Copy the production template to create active .env file
-cp config/env.production .env
+# Copy the Railway template to create active .env file
+cp config/env.railway .env
 
-# Edit the .env file with your production values
+# Edit the .env file with your Railway service URLs
 nano .env
 ```
 
@@ -94,7 +94,26 @@ mv config/.env .env
 
 See the template files for the complete list of available environment variables:
 - Development: `config/env.example`
-- Production: `config/env.production`
+- Railway Production: `config/env.railway`
+
+## Key Environment Variables
+
+### Frontend Configuration
+- **`NEXT_PUBLIC_API_URL`**: Client-side API endpoint (must be accessible from browser)
+- **`NEXT_PUBLIC_APP_NAME`**: Application name for display
+- **`FRONTEND_PORT`**: Frontend server port
+
+### Backend Configuration
+- **`BACKEND_URL`**: Server-side API endpoint (for Next.js API routes)
+- **`MONGODB_URI`**: MongoDB connection string
+- **`REDIS_HOST`**: Redis host address
+- **`CORS_ORIGIN`**: Allowed CORS origins
+- **`FRONTEND_URL`**: Frontend URL for CORS and redirects
+
+### AI Configuration
+- **`GEMINI_API_KEY`**: Google Gemini API key
+- **`MODEL_SELECTION_ENABLED`**: Enable automatic AI model selection
+- **`MAX_CONTEXT_LENGTH`**: Maximum context length for AI responses
 
 ## Related Documentation
 

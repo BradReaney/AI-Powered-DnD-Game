@@ -1,5 +1,6 @@
 import Redis from 'ioredis';
 import logger from './LoggerService';
+import config from '../config';
 
 export interface CacheOptions {
   ttl?: number; // Time to live in seconds
@@ -26,18 +27,17 @@ export class CacheService {
     this.defaultTTL = 300; // 5 minutes default
     this.keyPrefix = 'dnd_game:';
 
-    // Initialize Redis connection
+    // Initialize Redis connection using config
     this.redis = new Redis({
-      host: process.env.REDIS_HOST,
-      port: parseInt(process.env.REDIS_PORT || '6379'),
-      password: process.env.REDIS_PASSWORD,
-      db: parseInt(process.env.REDIS_DB || '0'),
-
-      maxRetriesPerRequest: 3,
+      host: config.redis.host,
+      port: config.redis.port,
+      password: config.redis.password,
+      db: config.redis.db,
+      maxRetriesPerRequest: config.redis.maxRetriesPerRequest,
       lazyConnect: true,
-      keepAlive: 30000,
-      connectTimeout: 10000,
-      commandTimeout: 5000,
+      keepAlive: config.redis.keepAlive,
+      connectTimeout: config.redis.connectTimeout,
+      commandTimeout: config.redis.commandTimeout,
     });
 
     // Initialize stats
@@ -253,6 +253,12 @@ export class CacheService {
       // Warm quest templates cache
       await this.warmQuestTemplatesCache();
 
+      // Warm AI response templates cache
+      await this.warmAIResponseTemplatesCache();
+
+      // Warm common game mechanics cache
+      await this.warmGameMechanicsCache();
+
       logger.info('Cache warming completed');
     } catch (error) {
       logger.error('Cache warming failed:', error);
@@ -450,6 +456,43 @@ export class CacheService {
     ];
 
     await this.set('quest:templates', templates, { ttl: 1800 }); // 30 minutes
+  }
+
+  private async warmAIResponseTemplatesCache(): Promise<void> {
+    const templates = [
+      'The DM considers the situation carefully...',
+      'A moment of tension hangs in the air...',
+      'The world around you seems to respond...',
+    ];
+
+    await this.set('ai:response:templates', templates, { ttl: 3600 }); // 1 hour
+  }
+
+  private async warmGameMechanicsCache(): Promise<void> {
+    const mechanics = {
+      skillChecks: {
+        very_easy: 5,
+        easy: 10,
+        medium: 15,
+        hard: 20,
+        very_hard: 25,
+        nearly_impossible: 30,
+      },
+      combat: {
+        initiative: 'd20 + dexterity modifier',
+        attack: 'd20 + attack bonus',
+        damage: 'weapon damage + strength modifier',
+      },
+      experience: {
+        level1: 0,
+        level2: 300,
+        level3: 900,
+        level4: 2700,
+        level5: 6500,
+      },
+    };
+
+    await this.set('game:mechanics', mechanics, { ttl: 7200 }); // 2 hours
   }
 }
 

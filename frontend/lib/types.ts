@@ -206,3 +206,49 @@ export interface GameState {
   messages: ChatMessage[];
   lastSaved: Date | null;
 }
+
+// Command System Types
+export interface CommandResult {
+  command: string;
+  args: string[];
+  isValid: boolean;
+  error?: string;
+}
+
+export interface CommandResponse {
+  success: boolean;
+  content: string;
+  type: "message" | "roll" | "info" | "error";
+  metadata?: {
+    diceRoll?: {
+      dice: string;
+      rolls: number[];
+      total: number;
+      modifier: number;
+      finalTotal: number;
+    };
+    characterInfo?: Partial<Character>;
+    combatAction?: {
+      type: string;
+      name: string;
+      result: any;
+    };
+  };
+}
+
+export interface CommandHandler {
+  name: string;
+  description: string;
+  usage: string;
+  examples: string[];
+  category: "character" | "dice" | "combat" | "utility";
+  execute: (args: string[], character: Character, campaign: Campaign) => CommandResponse;
+}
+
+export interface CommandHelp {
+  name: string;
+  description: string;
+  usage: string;
+  examples: string[];
+  category: string;
+}

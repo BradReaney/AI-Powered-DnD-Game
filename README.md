@@ -96,9 +96,14 @@ AI-Powered-DnD-Game/
    JWT_SECRET=your_jwt_secret_here
    SESSION_SECRET=your_session_secret_here
    CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002
+   FRONTEND_URL=http://localhost:3000
+   
+   # Frontend Configuration
+   NEXT_PUBLIC_API_URL=http://localhost:5001
+   NEXT_PUBLIC_APP_NAME=AI-Powered D&D Game
    
    # Docker Configuration
-   BACKEND_URL=http://backend:5001
+   BACKEND_URL=http://localhost:5001
    ```
 
 4. **Start with Docker Compose**
@@ -329,6 +334,25 @@ docker-compose logs -f
 # Stop all services
 docker-compose down
 ```
+
+### Railway Deployment
+
+The application is also configured for Railway deployment with proper environment variable management:
+
+```bash
+# For Railway deployment, use the Railway environment template
+cp config/env.railway .env
+
+# Update the .env file with your Railway service URLs
+# All environment variables are automatically configured for Railway
+```
+
+**Railway Features:**
+- ✅ **Environment Variables**: Automatically configured for Railway services
+- ✅ **Service Communication**: Proper service-to-service communication
+- ✅ **CORS Configuration**: Production-ready CORS settings
+- ✅ **Database Integration**: MongoDB and Redis services configured
+- ✅ **HTTPS Support**: Automatic SSL certificate management
 
 #### **Service Architecture**
 - **Frontend**: Next.js application on port 3000

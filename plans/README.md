@@ -10,9 +10,14 @@ This directory contains the strategic planning documents for the AI-Powered DnD 
 **Description**: Comprehensive roadmap for improving user experience based on Playwright testing and analysis. Focuses on mobile-first design, enhanced AI interaction, and social features.
 
 ### [DnD App Debugging Plan](./dnd-app-debugging-plan.md)
-**Status**: Active - All Features Implemented  
+**Status**: Active - Template Ready for Future Use  
 **Last Updated**: January 2025  
-**Description**: Implementation plan for core D&D game features including Combat State Persistence and Campaign Settings Configuration. All planned features have been successfully implemented and tested.
+**Description**: Template for tracking and resolving future issues. All previous issues have been resolved and the document has been cleaned up to serve as a structured template for future debugging and issue resolution.
+
+### [Comprehensive Testing Plan](./comprehensive-testing-plan.md) ⭐ **Main Regression Testing Plan**
+**Status**: Active - Enhanced for Regression Testing  
+**Last Updated**: January 2025  
+**Description**: Comprehensive testing strategy covering all functionality, now enhanced with specific test cases, regression testing priorities, and verified working features. This is the main plan for ongoing regression testing and quality assurance.
 
 ## Archived Plans
 
@@ -23,6 +28,10 @@ All previous plans have been moved to the `archive/` directory for reference. Th
 - Technical Implementation Details
 - Frontend Migration Summaries
 - Plans Update Summaries
+- **Endpoint Environment Variables Migration Plan** ✅ **Completed** - Environment variables successfully migrated to Railway deployment
+- **Interaction Points Inventory** ✅ **Completed** - All 100+ interaction points verified and integrated into main testing plan
+- **Playwright Testing Session Summary** ✅ **Completed** - Testing session results integrated into main testing plan
+- **Testing Exploration Summary** ✅ **Completed** - Testing exploration findings integrated into main testing plan
 
 ## Plan Structure
 

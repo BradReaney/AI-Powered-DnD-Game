@@ -71,6 +71,13 @@ NODE_ENV=development
 # Database
 MONGODB_URI=mongodb://admin:password@mongodb:27017/ai-dnd-game?authSource=admin
 
+# Redis Configuration
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_DB=0
+REDIS_PASSWORD=your_redis_password
+REDIS_HOST_INTERNAL=redis
+
 # Security
 JWT_SECRET=your_jwt_secret_here
 SESSION_SECRET=your_session_secret_here
@@ -93,6 +100,93 @@ FLASH_RESPONSE_TIME_THRESHOLD=5000
 # Context Management
 MAX_CONTEXT_LENGTH=8000
 CONTEXT_COMPRESSION_THRESHOLD=6000
+```
+
+## 🗄️ Redis Cache Management
+
+### Redis Container Operations
+
+```bash
+# Check Redis container status
+docker-compose ps redis
+
+# View Redis logs
+docker-compose logs redis
+
+# Access Redis CLI
+docker-compose exec redis redis-cli
+
+# Redis health check
+docker-compose exec redis redis-cli ping
+
+# Monitor Redis operations
+docker-compose exec redis redis-cli monitor
+
+# Check Redis info
+docker-compose exec redis redis-cli info
+```
+
+### Cache Management via API
+
+```bash
+# Check Redis health
+curl http://localhost:5001/health/redis
+
+# Get cache statistics
+curl http://localhost:5001/api/cache/stats
+
+# Warm up cache
+curl -X POST http://localhost:5001/api/cache/warm
+
+# Clear all cache
+curl -X POST http://localhost:5001/api/cache/clear
+
+# Get performance recommendations
+curl http://localhost:5001/api/cache/performance
+```
+
+### Redis CLI Commands
+
+```bash
+# Connect to Redis
+docker-compose exec redis redis-cli
+
+# List all keys
+KEYS *
+
+# List cache keys by pattern
+KEYS dnd_game:*
+
+# Check specific key
+GET dnd_game:campaigns:get:507f1f77bcf86cd799439011
+
+# Check key TTL
+TTL dnd_game:campaigns:get:507f1f77bcf86cd799439011
+
+# Delete specific key
+DEL dnd_game:campaigns:get:507f1f77bcf86cd799439011
+
+# Delete pattern-based keys
+DEL dnd_game:campaigns:*
+
+# Check memory usage
+INFO memory
+
+# Check Redis stats
+INFO stats
+```
+
+### Cache Performance Monitoring
+
+```bash
+# Monitor cache hit rate
+watch -n 5 'curl -s http://localhost:5001/api/cache/stats | jq ".data.hitRate"'
+
+# Check cache key count
+curl -s http://localhost:5001/api/cache/stats | jq ".data.keys"
+
+# Monitor Redis memory usage
+watch -n 5 'docker-compose exec redis redis-cli info memory | grep used_memory_human'
 ```
 
 ## 🌐 Service URLs

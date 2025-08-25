@@ -289,7 +289,7 @@ router.get('/campaign/:campaignId/recommendations', async (req, res) => {
     }
 
     // Get quest templates that match the party level
-    const recommendations = questService.getQuestTemplates(undefined, undefined, {
+    const recommendations = await questService.getQuestTemplates(undefined, undefined, {
       min: Math.max(1, Number(partyLevel) - 2),
       max: Number(partyLevel) + 2,
     });

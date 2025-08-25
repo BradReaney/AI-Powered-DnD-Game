@@ -1,5 +1,5 @@
 import logger from './LoggerService';
-import { GeminiClient } from './GeminiClient';
+import LLMClientFactory from './LLMClientFactory';
 
 export interface CampaignTheme {
   id: string;
@@ -72,11 +72,11 @@ export interface Reward {
 }
 
 export class CampaignThemeService {
-  private geminiClient: GeminiClient;
+  private geminiClient: any;
   private themes: Map<string, CampaignTheme> = new Map();
 
   constructor() {
-    this.geminiClient = new GeminiClient();
+    this.geminiClient = LLMClientFactory.getInstance().getClient();
     this.initializeThemes();
   }
 

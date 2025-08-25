@@ -13,6 +13,16 @@ export interface Config {
     uri: string;
     uriProd: string;
   };
+  redis: {
+    host: string;
+    port: number;
+    password: string;
+    db: number;
+    maxRetriesPerRequest: number;
+    connectTimeout: number;
+    commandTimeout: number;
+    keepAlive: number;
+  };
   gemini: {
     apiKey: string;
     flashLiteModel: string;
@@ -25,6 +35,8 @@ export interface Config {
     threeModelFallbackEnabled: boolean;
     flashLiteResponseTimeThreshold: number;
     flashResponseTimeThreshold: number;
+    serviceUrl: string;
+    useMockService: boolean;
   };
   security: {
     jwtSecret: string;
@@ -57,6 +69,16 @@ export const config: Config = {
     uri: process.env['MONGODB_URI'],
     uriProd: process.env['MONGODB_URI_PROD'],
   },
+  redis: {
+    host: process.env['REDIS_HOST_INTERNAL'] || process.env['REDIS_HOST'] || 'localhost',
+    port: parseInt(process.env['REDIS_PORT'] || '6379', 10),
+    password: process.env['REDIS_PASSWORD'] || '',
+    db: parseInt(process.env['REDIS_DB'] || '0', 10),
+    maxRetriesPerRequest: 3,
+    connectTimeout: 10000,
+    commandTimeout: 5000,
+    keepAlive: 30000,
+  },
   gemini: {
     apiKey: process.env['GEMINI_API_KEY'] || '',
     flashLiteModel: process.env['GEMINI_FLASH_LITE_MODEL'] || 'gemini-2.0-flash-lite',
@@ -72,9 +94,11 @@ export const config: Config = {
       10
     ),
     flashResponseTimeThreshold: parseInt(
-      process.env['FLASH_RESPONSE_TIME_THRESHOLD'] || '5000',
+      process.env['FLASH_LITE_RESPONSE_TIME_THRESHOLD'] || '5000',
       10
     ),
+    serviceUrl: process.env['LLM_SERVICE_URL'] || 'https://generativelanguage.googleapis.com',
+    useMockService: process.env['MOCK_LLM_ENABLED'] === 'true',
   },
   security: {
     jwtSecret: process.env['JWT_SECRET'] || 'default-secret-change-in-production',
