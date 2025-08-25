@@ -179,7 +179,7 @@ const SessionSchema = new Schema<ISession>(
     _id: {
       type: String, // Allow string IDs (UUIDs) instead of ObjectIds
       required: true,
-      index: true,
+      // Removed the custom index - MongoDB handles _id indexing automatically
     },
     campaignId: {
       type: Schema.Types.ObjectId,
