@@ -1,6 +1,7 @@
 import express from 'express';
 import CharacterService from '../services/CharacterService';
 import logger from '../services/LoggerService';
+import crypto from 'crypto';
 
 const router = express.Router();
 const characterService = new CharacterService();
@@ -236,31 +237,40 @@ router.post('/', async (req, res) => {
         } else {
           const Session = require('../models').Session;
           const defaultSession = new Session({
+            _id: crypto.randomUUID(), // Generate UUID for session ID
             name: 'Character Creation Session',
             campaignId: humanCharacterData.campaignId,
-            startTime: new Date(),
-            endTime: new Date(),
-            participants: [],
-            sessionNumber: 1, // Required field
-            createdBy: humanCharacterData.createdBy || 'user', // Required field
-            gameState: {
-              activeCharacters: [],
-              currentLocation: 'Character Creation',
-              weather: 'Clear',
-              timeOfDay: 'afternoon',
-              difficulty: 'easy',
-              sessionType: 'character-creation',
-            },
+            sessionNumber: 1,
+            status: 'active',
             metadata: {
               startTime: new Date(),
               endTime: new Date(),
+              duration: 0,
+              players: [],
+              dm: humanCharacterData.createdBy || 'user',
               location: 'Character Creation',
               weather: 'Clear',
-              timeOfDay: 'afternoon',
-              difficulty: 'easy',
-              sessionType: 'character-creation',
-              dm: humanCharacterData.createdBy || 'user', // Required field
+              timeOfDay: 'afternoon'
             },
+            gameState: {
+              currentScene: 'Character Creation',
+              sceneDescription: 'Session for creating new characters',
+              activeCharacters: [],
+              currentTurn: 0,
+              initiativeOrder: [],
+              combatState: {
+                isActive: false,
+                round: 0,
+                currentCharacter: null,
+                conditions: []
+              },
+              worldState: {
+                currentLocation: 'Character Creation',
+                discoveredLocations: [],
+                activeEffects: []
+              }
+            },
+            storyEvents: []
           });
 
           await defaultSession.save();
