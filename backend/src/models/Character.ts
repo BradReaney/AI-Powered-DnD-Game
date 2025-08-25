@@ -93,7 +93,7 @@ export interface ICharacter extends Document {
 
   // Campaign and session tracking
   campaignId: mongoose.Types.ObjectId;
-  sessionId: mongoose.Types.ObjectId;
+  sessionId: string; // Changed from ObjectId to string to support UUIDs
   isActive: boolean;
 
   // Location tracking
@@ -295,7 +295,7 @@ const CharacterSchema = new Schema<ICharacter>(
       required: true,
     },
     sessionId: {
-      type: Schema.Types.ObjectId,
+      type: String, // Changed from ObjectId to String to support UUIDs
       ref: 'Session',
       required: true,
     },

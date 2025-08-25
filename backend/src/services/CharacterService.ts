@@ -137,7 +137,7 @@ class CharacterService {
         throw new Error('Campaign not found');
       }
 
-      const session = await Session.findById(data.sessionId);
+      const session = await Session.findOne({_id: data.sessionId});
       if (!session) {
         throw new Error('Session not found');
       }
@@ -213,7 +213,7 @@ class CharacterService {
         throw new Error('Campaign not found');
       }
 
-      const session = await Session.findById(data.sessionId);
+      const session = await Session.findOne({_id: data.sessionId});
       if (!session) {
         throw new Error('Session not found');
       }
@@ -339,7 +339,7 @@ class CharacterService {
         throw new Error('Campaign not found');
       }
 
-      const session = await Session.findById(data.sessionId);
+      const session = await Session.findOne({_id: data.sessionId});
       if (!session) {
         throw new Error('Session not found');
       }
