@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND_URL = process.env.NODE_ENV === 'production'
-    ? 'http://backend:5001'
-    : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001');
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5001';
 
 export async function GET(
     request: NextRequest,
