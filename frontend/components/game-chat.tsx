@@ -181,7 +181,12 @@ export function GameChat({
     // Get AI response from backend
     setIsLoading(true);
     try {
-      const response = await fetch("/api/gameplay/story-response", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!apiUrl) {
+        throw new Error('API URL not configured');
+      }
+
+      const response = await fetch(`${apiUrl}/api/gameplay/story-response`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -51,20 +51,8 @@ class ApiService {
 
   // Campaigns
   async getCampaigns(): Promise<Campaign[]> {
-    // Use local API route to avoid CORS issues
-    const response = await fetch("/api/campaigns", {
-      headers: {
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-      },
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const backendCampaigns = await response.json();
+    // Call backend directly since we're using standalone output
+    const backendCampaigns = await this.request<any[]>('/campaigns');
     return backendCampaigns.map(adaptCampaign);
   }
 
@@ -74,23 +62,11 @@ class ApiService {
   }
 
   async createCampaign(campaignData: Partial<Campaign>): Promise<Campaign> {
-    // Use local API route to avoid CORS issues
-    const response = await fetch("/api/campaigns", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-      },
+    // Call backend directly since we're using standalone output
+    const backendCampaign = await this.request<any>('/campaigns', {
+      method: 'POST',
       body: JSON.stringify(campaignData),
-      cache: "no-store",
     });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const backendCampaign = await response.json();
     return adaptCampaign(backendCampaign);
   }
 
@@ -119,26 +95,14 @@ class ApiService {
     content: string;
     metadata: any;
   }> {
-    // Use local API route to avoid CORS issues
-    const response = await fetch(`/api/campaigns/${campaignId}/initialize`, {
+    // Call backend directly since we're using standalone output
+    return await this.request<any>(`/campaigns/${campaignId}/initialize`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-      },
       body: JSON.stringify({
         sessionId,
         characterIds,
       }),
-      cache: "no-store",
     });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return await response.json();
   }
 
   // Characters
@@ -149,20 +113,8 @@ class ApiService {
   }
 
   async getCharactersByCampaign(campaignId: string): Promise<Character[]> {
-    // Use local API route to avoid CORS issues
-    const response = await fetch(`/api/characters?campaignId=${campaignId}`, {
-      headers: {
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-      },
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const backendCharacters = await response.json();
+    // Call backend directly since we're using standalone output
+    const backendCharacters = await this.request<any[]>(`/characters?campaignId=${campaignId}`);
     return backendCharacters.map(adaptCharacter);
   }
 
@@ -240,20 +192,8 @@ class ApiService {
   }
 
   async getLocationsByCampaign(campaignId: string): Promise<Location[]> {
-    // Use local API route to avoid CORS issues
-    const response = await fetch(`/api/locations?campaignId=${campaignId}`, {
-      headers: {
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-      },
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const backendLocations = await response.json();
+    // Call backend directly since we're using standalone output
+    const backendLocations = await this.request<any[]>(`/locations?campaignId=${campaignId}`);
     return backendLocations.map(adaptLocation);
   }
 
