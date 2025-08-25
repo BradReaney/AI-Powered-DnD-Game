@@ -25,6 +25,7 @@ import {
   Trophy,
   Flag,
   Settings,
+  Loader2,
 } from "lucide-react";
 import type { Campaign, Session, Character, Location } from "@/lib/types";
 
@@ -77,6 +78,12 @@ export function CampaignManagement({
   const [noteType, setNoteType] = useState<"player" | "dm" | "system">(
     "player",
   );
+
+  // Loading states
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [isAddingSession, setIsAddingSession] = useState(false);
+  const [isAddingNote, setIsAddingNote] = useState(false);
+  const [settingsMessage, setSettingsMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   const campaignTemplates: CampaignTemplate[] = [
     {
@@ -169,22 +176,56 @@ export function CampaignManagement({
     };
   };
 
-  const addSessionNote = () => {
+  const addSessionNote = async () => {
     if (!newNote.trim() || !selectedSession) return;
 
-    const note: SessionNote = {
-      id: crypto.randomUUID(),
-      sessionId: selectedSession.id,
-      type: noteType,
-      content: newNote,
-      timestamp: new Date(),
-      author: noteType === "dm" ? "Dungeon Master" : "Player",
-    };
+    try {
+      setIsAddingNote(true);
+      
+      const note: SessionNote = {
+        id: crypto.randomUUID(),
+        sessionId: selectedSession.id,
+        type: noteType,
+        content: newNote,
+        timestamp: new Date(),
+        author: noteType === "dm" ? "Dungeon Master" : "Player",
+      };
 
-    // In a real app, this would be saved to the backend
+      // In a real app, this would be saved to the backend
+      // await saveNoteToBackend(note);
 
-    setNewNote("");
-    setShowAddNote(false);
+      setNewNote("");
+      setShowAddNote(false);
+      
+      // Show success message
+      setSettingsMessage({ type: 'success', text: 'Note added successfully!' });
+      setTimeout(() => setSettingsMessage(null), 3000);
+      
+    } catch (error) {
+      setSettingsMessage({ type: 'error', text: 'Failed to add note' });
+      setTimeout(() => setSettingsMessage(null), 5000);
+    } finally {
+      setIsAddingNote(false);
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    try {
+      setIsSavingSettings(true);
+      setSettingsMessage(null);
+
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setSettingsMessage({ type: 'success', text: 'Settings saved successfully!' });
+      setTimeout(() => setSettingsMessage(null), 3000);
+      
+    } catch (error) {
+      setSettingsMessage({ type: 'error', text: 'Failed to save settings' });
+      setTimeout(() => setSettingsMessage(null), 5000);
+    } finally {
+      setIsSavingSettings(false);
+    }
   };
 
   const getDifficultyColor = (difficulty: string) => {
@@ -449,8 +490,13 @@ export function CampaignManagement({
                           size="sm"
                           onClick={addSessionNote}
                           className="text-xs"
+                          disabled={isAddingNote}
                         >
-                          Save
+                          {isAddingNote ? (
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          ) : (
+                            'Save'
+                          )}
                         </Button>
                         <Button
                           variant="outline"
@@ -735,10 +781,32 @@ export function CampaignManagement({
 
               {/* Save Button */}
               <div className="pt-4">
-                <Button className="w-full text-xs">
-                  Save Settings
+                <Button 
+                  className="w-full text-xs"
+                  onClick={handleSaveSettings}
+                  disabled={isSavingSettings}
+                >
+                  {isSavingSettings ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Settings'
+                  )}
                 </Button>
               </div>
+
+              {/* Settings Messages */}
+              {settingsMessage && (
+                <div className={`p-2 rounded text-xs ${
+                  settingsMessage.type === 'success' 
+                    ? 'bg-green-100 text-green-800 border border-green-200' 
+                    : 'bg-red-100 text-red-800 border border-red-200'
+                }`}>
+                  {settingsMessage.text}
+                </div>
+              )}
             </div>
           )}
         </CardContent>

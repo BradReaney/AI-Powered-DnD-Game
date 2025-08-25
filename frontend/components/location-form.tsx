@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Location } from "@/lib/types";
-import { Save, X, Plus } from "lucide-react";
+import { Save, X, Plus, Loader2 } from "lucide-react";
 
 interface LocationFormProps {
   location?: Location;
@@ -32,6 +32,7 @@ interface LocationFormProps {
   availableLocations?: Location[];
   campaignId?: string;
   sessionId?: string;
+  isSaving?: boolean;
 }
 
 const LOCATION_TYPES = [
@@ -69,6 +70,7 @@ export function LocationForm({
   availableLocations = [],
   campaignId,
   sessionId,
+  isSaving,
 }: LocationFormProps) {
   const [formData, setFormData] = useState({
     name: location?.name || "",
@@ -307,11 +309,25 @@ export function LocationForm({
           </div>
 
           <div className="flex gap-3 pt-4">
-            <Button type="submit" className="flex-1">
-              <Save className="h-4 w-4 mr-2" />
-              {location ? "Update Location" : "Create Location"}
+            <Button type="submit" className="flex-1" disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {location ? "Updating..." : "Creating..."}
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  {location ? "Update Location" : "Create Location"}
+                </>
+              )}
             </Button>
-            <Button type="button" variant="outline" onClick={onCancel}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onCancel}
+              disabled={isSaving}
+            >
               <X className="h-4 w-4 mr-2" />
               Cancel
             </Button>

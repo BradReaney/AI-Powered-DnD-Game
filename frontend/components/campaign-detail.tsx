@@ -36,8 +36,8 @@ interface CampaignDetailProps {
   onBack: () => void;
   onEdit: () => void;
   onPlaySession?: (session: Session) => void;
-  onSaveCharacter: (character: Partial<Character>) => void;
-  onSaveLocation: (location: Partial<Location>) => void;
+  onSaveCharacter: (character: Partial<Character>) => Promise<void>;
+  onSaveLocation: (location: Partial<Location>) => Promise<void>;
 }
 
 export function CampaignDetail({
@@ -68,6 +68,10 @@ export function CampaignDetail({
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [settingsSuccess, setSettingsSuccess] = useState<string | null>(null);
+
+  // Loading states for character and location operations
+  const [isSavingCharacter, setIsSavingCharacter] = useState(false);
+  const [isSavingLocation, setIsSavingLocation] = useState(false);
 
   // Load settings from API when component mounts
   useEffect(() => {
@@ -113,10 +117,18 @@ export function CampaignDetail({
     setCharacterViewMode("view");
   };
 
-  const handleSaveCharacterData = (characterData: Partial<Character>) => {
-    onSaveCharacter({ ...characterData, campaignId: campaign.id });
-    setCharacterViewMode("list");
-    setSelectedCharacter(null);
+  const handleSaveCharacterData = async (characterData: Partial<Character>) => {
+    try {
+      setIsSavingCharacter(true);
+      await onSaveCharacter({ ...characterData, campaignId: campaign.id });
+      setCharacterViewMode("list");
+      setSelectedCharacter(null);
+    } catch (error) {
+      console.error('Error saving character:', error);
+      // You could add error handling UI here
+    } finally {
+      setIsSavingCharacter(false);
+    }
   };
 
   const handleCreateLocation = () => {
@@ -134,10 +146,18 @@ export function CampaignDetail({
     setLocationViewMode("view");
   };
 
-  const handleSaveLocationData = (locationData: Partial<Location>) => {
-    onSaveLocation({ ...locationData, campaignId: campaign.id });
-    setLocationViewMode("list");
-    setSelectedLocation(null);
+  const handleSaveLocationData = async (locationData: Partial<Location>) => {
+    try {
+      setIsSavingLocation(true);
+      await onSaveLocation({ ...locationData, campaignId: campaign.id });
+      setLocationViewMode("list");
+      setSelectedLocation(null);
+    } catch (error) {
+      console.error('Error saving location:', error);
+      // You could add error handling UI here
+    } finally {
+      setIsSavingLocation(false);
+    }
   };
 
   const handleSaveSettings = async () => {
@@ -293,6 +313,7 @@ export function CampaignDetail({
               onCancel={() => setCharacterViewMode("list")}
               campaignId={campaign.id}
               sessionId={campaign.sessions?.[0]?.id || ""}
+              isSaving={isSavingCharacter}
             />
           ) : characterViewMode === "view" && selectedCharacter ? (
             <div className="space-y-4">
@@ -400,6 +421,7 @@ export function CampaignDetail({
               availableLocations={campaignLocations}
               campaignId={campaign.id}
               sessionId={campaign.sessions?.[0]?.id}
+              isSaving={isSavingLocation}
             />
           ) : locationViewMode === "view" && selectedLocation ? (
             <div className="space-y-4">

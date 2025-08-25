@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Character } from "@/lib/types";
-import { Save, X, Dice6 } from "lucide-react";
+import { Save, X, Dice6, Loader2 } from "lucide-react";
 
 interface CharacterFormProps {
   character?: Character;
@@ -31,6 +31,7 @@ interface CharacterFormProps {
   onCancel: () => void;
   campaignId?: string;
   sessionId?: string;
+  isSaving?: boolean;
 }
 
 const RACES = [
@@ -119,6 +120,7 @@ export function CharacterForm({
   onCancel,
   campaignId,
   sessionId,
+  isSaving,
 }: CharacterFormProps) {
   const [formData, setFormData] = useState({
     name: character?.name || "",
@@ -603,11 +605,29 @@ export function CharacterForm({
           </Tabs>
 
           <div className="flex gap-3 pt-4">
-            <Button type="submit" className="flex-1">
-              <Save className="h-4 w-4 mr-2" />
-              {character ? "Update Character" : "Create Character"}
+            <Button 
+              type="submit" 
+              className="flex-1"
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {character ? "Updating..." : "Creating..."}
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  {character ? "Update Character" : "Create Character"}
+                </>
+              )}
             </Button>
-            <Button type="button" variant="outline" onClick={onCancel}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onCancel}
+              disabled={isSaving}
+            >
               <X className="h-4 w-4 mr-2" />
               Cancel
             </Button>

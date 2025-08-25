@@ -62,6 +62,11 @@ export default function HomePage() {
     character: Character;
   } | null>(null);
 
+  // Loading states for operations
+  const [isSavingCampaign, setIsSavingCampaign] = useState(false);
+  const [isSavingCharacter, setIsSavingCharacter] = useState(false);
+  const [isSavingLocation, setIsSavingLocation] = useState(false);
+
   // Fetch initial data
   useEffect(() => {
     const fetchData = async () => {
@@ -114,6 +119,9 @@ export default function HomePage() {
 
   const handleSaveCampaign = async (campaignData: Partial<Campaign>) => {
     try {
+      setIsSavingCampaign(true);
+      setError(null);
+      
       if (selectedCampaign) {
         const updatedCampaign = await apiService.updateCampaign(
           selectedCampaign.id,
@@ -133,6 +141,9 @@ export default function HomePage() {
     } catch (err) {
       console.error("Failed to save campaign:", err);
       setError(err instanceof Error ? err.message : "Failed to save campaign");
+      throw err; // Re-throw to let the form handle the error
+    } finally {
+      setIsSavingCampaign(false);
     }
   };
 
@@ -150,6 +161,9 @@ export default function HomePage() {
 
   const handleSaveCharacter = async (characterData: Partial<Character>) => {
     try {
+      setIsSavingCharacter(true);
+      setError(null);
+      
       if (selectedCharacter) {
         const updatedCharacter = await apiService.updateCharacter(
           selectedCharacter.id,
@@ -167,11 +181,17 @@ export default function HomePage() {
     } catch (err) {
       console.error("Failed to save character:", err);
       setError(err instanceof Error ? err.message : "Failed to save character");
+      throw err; // Re-throw to let the form handle the error
+    } finally {
+      setIsSavingCharacter(false);
     }
   };
 
   const handleSaveLocation = async (locationData: Partial<Location>) => {
     try {
+      setIsSavingLocation(true);
+      setError(null);
+      
       if (selectedLocation) {
         const updatedLocation = await apiService.updateLocation(
           selectedLocation.id,
@@ -189,6 +209,9 @@ export default function HomePage() {
     } catch (err) {
       console.error("Failed to save location:", err);
       setError(err instanceof Error ? err.message : "Failed to save location");
+      throw err; // Re-throw to let the form handle the error
+    } finally {
+      setIsSavingLocation(false);
     }
   };
 
@@ -234,6 +257,7 @@ export default function HomePage() {
             campaign={selectedCampaign}
             onSave={handleSaveCampaign}
             onCancel={handleBackToOverview}
+            isSaving={isSavingCampaign}
           />
         </div>
       </div>
@@ -265,6 +289,7 @@ export default function HomePage() {
             character={selectedCharacter}
             onSave={handleSaveCharacter}
             onCancel={handleBackToOverview}
+            isSaving={isSavingCharacter}
           />
         </div>
       </div>
@@ -325,6 +350,7 @@ export default function HomePage() {
             location={selectedLocation}
             onSave={handleSaveLocation}
             onCancel={handleBackToOverview}
+            isSaving={isSavingLocation}
           />
         </div>
       </div>
