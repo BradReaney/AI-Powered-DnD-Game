@@ -967,9 +967,10 @@ The campaign begins in a world of ${campaign.theme.toLowerCase()}. ${campaign.de
 Your journey starts now. What would you like to do first?`;
       }
 
-      // Create a proper Session record first
+      // Create a proper Session record using the provided sessionId
       const Session = require('../models').Session;
       const session = new Session({
+        _id: sessionId, // Use the UUID provided by the frontend
         campaignId: campaign._id,
         sessionNumber: campaign.sessions.length + 1,
         name: `Session ${new Date().toLocaleDateString()}`,

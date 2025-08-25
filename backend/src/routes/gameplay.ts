@@ -243,7 +243,7 @@ router.get('/skills/:skillName', async (req, res) => {
 // Generate AI story response
 router.post('/story-response', async (req, res) => {
   try {
-    const { playerAction, campaignId, characterContext, worldState } = req.body;
+    const { playerAction, campaignId, characterContext, worldState, sessionId } = req.body;
 
     // Validate required fields
     if (!playerAction || !campaignId) {
@@ -270,6 +270,57 @@ router.post('/story-response', async (req, res) => {
       });
     }
 
+    // Save the player message to the database if sessionId is provided
+    let userMessageId = null;
+    if (sessionId) {
+      try {
+        const { Message: MessageModel } = await import('../models');
+        const userMessage = new MessageModel({
+          sessionId,
+          campaignId,
+          type: 'player',
+          sender: 'You',
+          content: playerAction,
+          timestamp: new Date(),
+          metadata: {
+            aiResponse: false,
+            originalMessage: playerAction,
+          },
+        });
+        await userMessage.save();
+        userMessageId = userMessage._id;
+      } catch (saveError) {
+        logger.warn('Failed to save player message to database:', saveError);
+        // Continue with the response even if saving fails
+      }
+    }
+
+    // Save the AI response to the database if sessionId is provided
+    let aiMessageId = null;
+    if (sessionId) {
+      try {
+        const { Message: MessageModel } = await import('../models');
+        const aiMessage = new MessageModel({
+          sessionId,
+          campaignId,
+          type: 'ai',
+          sender: 'AI Game Master',
+          content: response.content,
+          timestamp: new Date(),
+          metadata: {
+            aiResponse: true,
+            originalMessage: playerAction,
+            usage: response.usage,
+          },
+        });
+        await aiMessage.save();
+        aiMessageId = aiMessage._id;
+      } catch (saveError) {
+        logger.warn('Failed to save AI response to database:', saveError);
+        // Continue with the response even if saving fails
+      }
+    }
+
     // Add the player action and AI response to context
     contextManager.addContextLayer(campaignId, 'immediate', `Player Action: ${playerAction}`, 8);
 
@@ -280,6 +331,8 @@ router.post('/story-response', async (req, res) => {
       aiResponse: response.content,
       usage: response.usage,
       message: 'Story response generated successfully',
+      userMessageId,
+      aiMessageId,
     });
   } catch (error) {
     logger.error('Error generating story response:', error);

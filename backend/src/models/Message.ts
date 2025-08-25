@@ -1,7 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IMessage extends Document {
-  sessionId: mongoose.Types.ObjectId;
+  sessionId: string; // Changed from ObjectId to string to support UUIDs
   campaignId: mongoose.Types.ObjectId;
   type: 'player' | 'ai' | 'system' | 'combat' | 'skill-check';
   sender: string; // Character name or 'Dungeon Master' for AI
@@ -57,8 +57,7 @@ export interface IMessageModel extends mongoose.Model<IMessage> {
 const MessageSchema = new Schema<IMessage>(
   {
     sessionId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Session',
+      type: String, // Changed from ObjectId to String to support UUIDs
       required: true,
       index: true,
     },

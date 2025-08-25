@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,49 +34,110 @@ export function SessionManager({
   campaign,
   onSessionSelect,
 }: SessionManagerProps) {
-  const [sessions, setSessions] = useState<Session[]>(campaign.sessions || []);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [isCreating, setIsCreating] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [newSession, setNewSession] = useState({
     name: "",
     description: "",
   });
 
-  const handleCreateSession = () => {
-    if (!newSession.name.trim()) return;
+  // Load sessions from backend
+  useEffect(() => {
+    loadSessions();
+  }, [campaign.id]);
 
-    const session: Session = {
-      id: crypto.randomUUID(),
-      campaignId: campaign.id,
-      title: newSession.name,
-      name: newSession.name,
-      description: newSession.description,
-      date: new Date(),
-      isCompleted: false,
-      sessionNumber: sessions.length + 1,
-      status: "Not Started",
-      duration: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      isActive: false,
-    };
+  const loadSessions = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
 
-    setSessions([...sessions, session]);
-    setNewSession({ name: "", description: "" });
-    setIsCreating(false);
-  };
+      const response = await fetch(`/api/sessions?campaignId=${campaign.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to load sessions');
+      }
 
-  const handleStartSession = (session: Session) => {
-    // Mark all other sessions as inactive
-    const updatedSessions = sessions.map((s) => ({
-      ...s,
-      isActive: s.id === session.id,
-    }));
-    setSessions(updatedSessions);
-
-    if (onSessionSelect) {
-      onSessionSelect({ ...session, isActive: true });
+      const data = await response.json();
+      setSessions(data.sessions || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load sessions');
+      console.error('Error loading sessions:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  const handleCreateSession = async () => {
+    if (!newSession.name.trim()) return;
+
+    try {
+      const response = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          campaignId: campaign.id,
+          name: newSession.name,
+          dm: 'Game Master', // Default DM name
+          location: 'Starting Location',
+          weather: 'Clear',
+          timeOfDay: 'morning',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create session');
+      }
+
+      const createdSession = await response.json();
+
+      // Reload sessions to get the updated list
+      await loadSessions();
+
+      setNewSession({ name: "", description: "" });
+      setIsCreating(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create session');
+      console.error('Error creating session:', err);
+    }
+  };
+
+  const handleStartSession = async (session: Session) => {
+    try {
+      // Mark all other sessions as inactive
+      const updatedSessions = sessions.map((s) => ({
+        ...s,
+        isActive: s.id === session.id,
+      }));
+      setSessions(updatedSessions);
+
+      if (onSessionSelect) {
+        onSessionSelect({ ...session, isActive: true });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to start session');
+      console.error('Error starting session:', err);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-2xl font-bold">Sessions</h3>
+            <p className="text-muted-foreground">Manage your campaign sessions</p>
+          </div>
+        </div>
+        <div className="text-center py-8">
+          <p>Loading sessions...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -126,6 +187,9 @@ export function SessionManager({
                   rows={3}
                 />
               </div>
+              {error && (
+                <div className="text-red-500 text-sm">{error}</div>
+              )}
               <div className="flex gap-2">
                 <Button onClick={handleCreateSession} className="flex-1">
                   Create Session
@@ -138,6 +202,20 @@ export function SessionManager({
           </DialogContent>
         </Dialog>
       </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <p className="text-red-800">{error}</p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadSessions}
+            className="mt-2"
+          >
+            Retry
+          </Button>
+        </div>
+      )}
 
       <ScrollArea className="h-96">
         <div className="space-y-4">
@@ -180,7 +258,7 @@ export function SessionManager({
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Clock className="h-4 w-4" />
-                      {session.createdAt.toLocaleDateString()}
+                      {new Date(session.createdAt).toLocaleDateString()}
                     </div>
                   </div>
                   <CardTitle className="text-lg">{session.name}</CardTitle>

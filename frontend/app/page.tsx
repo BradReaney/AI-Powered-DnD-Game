@@ -20,6 +20,7 @@ import { CharacterSheet } from "@/components/character-sheet";
 import { LocationForm } from "@/components/location-form";
 import { LocationDetail } from "@/components/location-detail";
 import { GameSession } from "@/components/game-session";
+import { SessionContinuity } from "@/components/session-continuity";
 import { Sword, MessageSquare, Plus, Play } from "lucide-react";
 import { GameChat } from "@/components/game-chat";
 
@@ -35,7 +36,8 @@ type ViewMode =
   | "edit-location"
   | "location-detail"
   | "game-session"
-  | "gameplay";
+  | "gameplay"
+  | "session-continuity";
 
 // Force dynamic rendering to prevent build-time prerendering issues
 export const dynamic = 'force-dynamic';
@@ -58,6 +60,11 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeGameSession, setActiveGameSession] = useState<{
+    campaign: Campaign;
+    character: Character;
+    sessionId?: string; // Add sessionId for resuming existing sessions
+  } | null>(null);
+  const [sessionContinuityData, setSessionContinuityData] = useState<{
     campaign: Campaign;
     character: Character;
   } | null>(null);
@@ -121,7 +128,7 @@ export default function HomePage() {
     try {
       setIsSavingCampaign(true);
       setError(null);
-      
+
       if (selectedCampaign) {
         const updatedCampaign = await apiService.updateCampaign(
           selectedCampaign.id,
@@ -163,7 +170,7 @@ export default function HomePage() {
     try {
       setIsSavingCharacter(true);
       setError(null);
-      
+
       if (selectedCharacter) {
         const updatedCharacter = await apiService.updateCharacter(
           selectedCharacter.id,
@@ -191,7 +198,7 @@ export default function HomePage() {
     try {
       setIsSavingLocation(true);
       setError(null);
-      
+
       if (selectedLocation) {
         const updatedLocation = await apiService.updateLocation(
           selectedLocation.id,
@@ -217,6 +224,21 @@ export default function HomePage() {
 
   const handleStartGameSession = () => {
     setViewMode("game-session");
+  };
+
+  const handleSessionContinuity = (campaign: Campaign, character: Character) => {
+    setSessionContinuityData({ campaign, character });
+    setViewMode("session-continuity");
+  };
+
+  const handleResumeSession = (sessionId: string) => {
+    if (sessionContinuityData) {
+      setActiveGameSession({
+        ...sessionContinuityData,
+        sessionId: sessionId
+      });
+      setViewMode("gameplay");
+    }
   };
 
   const handleStartGameplay = (campaign: Campaign, character: Character) => {
@@ -451,6 +473,45 @@ export default function HomePage() {
     );
   }
 
+  if (viewMode === "session-continuity") {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="border-b border-border bg-card">
+          <div className="container mx-auto px-4 py-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary rounded-lg">
+                <Sword className="h-4 w-4" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">
+                  AI Dungeons & Dragons
+                </h1>
+                <p className="text-muted-foreground">Session Continuity</p>
+              </div>
+            </div>
+          </div>
+        </header>
+        <div className="container mx-auto px-4 py-8">
+          {sessionContinuityData ? (
+            <SessionContinuity
+              campaign={sessionContinuityData.campaign}
+              character={sessionContinuityData.character}
+              onResumeSession={handleResumeSession}
+              onStartNewSession={handleStartGameSession}
+            />
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No session continuity data found.</p>
+              <Button onClick={() => setViewMode("overview")} className="mt-4">
+                Back to Overview
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (viewMode === "gameplay") {
     return (
       <div className="min-h-screen bg-background">
@@ -475,6 +536,7 @@ export default function HomePage() {
               campaign={activeGameSession.campaign}
               character={activeGameSession.character}
               onBack={() => setViewMode("game-session")}
+              existingSessionId={activeGameSession.sessionId}
             />
           ) : (
             <div className="text-center py-8">
@@ -638,25 +700,55 @@ export default function HomePage() {
 
           {/* Play Tab */}
           <TabsContent value="play" className="space-y-6">
-            <div className="text-center py-12">
-              <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-foreground mb-2">
-                Begin Your Adventure
-              </h2>
-              <p className="text-muted-foreground mb-6">
-                Choose your campaign and character to start playing with your AI
-                Dungeon Master. The AI will guide your story and play all the
-                NPCs you encounter.
-              </p>
-              <Button
-                size="lg"
-                className="bg-primary hover:bg-primary/90"
-                onClick={handleStartGameSession}
-              >
-                <Play className="h-5 w-5 mr-2" />
-                Start New Adventure
-              </Button>
-            </div>
+            {campaigns.length > 0 && characters.length > 0 ? (
+              <div>
+                <div className="text-center mb-6">
+                  <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <h2 className="text-2xl font-bold text-foreground mb-2">
+                    Ready to Play?
+                  </h2>
+                  <p className="text-muted-foreground mb-6">
+                    Choose your campaign and character to start your adventure.
+                  </p>
+                  <div className="flex gap-4 justify-center">
+                    <Button
+                      onClick={() => handleSessionContinuity(campaigns[0], characters[0])}
+                      className="bg-primary hover:bg-primary/90"
+                    >
+                      <Play className="h-4 w-4 mr-2" />
+                      Continue Adventure
+                    </Button>
+                    <Button
+                      onClick={() => handleStartGameplay(campaigns[0], characters[0])}
+                      variant="outline"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Start New Session
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-foreground mb-2">
+                  Begin Your Adventure
+                </h2>
+                <p className="text-muted-foreground mb-6">
+                  Choose your campaign and character to start playing with your AI
+                  Dungeon Master. The AI will guide your story and play all the
+                  NPCs you encounter.
+                </p>
+                <Button
+                  size="lg"
+                  className="bg-primary hover:bg-primary/90"
+                  onClick={handleStartGameSession}
+                >
+                  <Play className="h-5 w-5 mr-2" />
+                  Start New Adventure
+                </Button>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>

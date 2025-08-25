@@ -1,6 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface ISession extends Document {
+  _id: string; // Override Document's _id to be string instead of ObjectId
   campaignId: mongoose.Types.ObjectId;
   sessionNumber: number;
   name: string;
@@ -62,14 +63,14 @@ export interface ISession extends Document {
   storyEvents: Array<{
     timestamp: Date;
     type:
-      | 'action'
-      | 'dialogue'
-      | 'combat'
-      | 'exploration'
-      | 'skill_check'
-      | 'story'
-      | 'other'
-      | 'ai-response';
+    | 'action'
+    | 'dialogue'
+    | 'combat'
+    | 'exploration'
+    | 'skill_check'
+    | 'story'
+    | 'other'
+    | 'ai-response';
     title: string;
     description: string;
     participants: mongoose.Types.ObjectId[];
@@ -175,6 +176,11 @@ export interface ISession extends Document {
 
 const SessionSchema = new Schema<ISession>(
   {
+    _id: {
+      type: String, // Allow string IDs (UUIDs) instead of ObjectIds
+      required: true,
+      index: true,
+    },
     campaignId: {
       type: Schema.Types.ObjectId,
       ref: 'Campaign',

@@ -3,7 +3,7 @@ import GameEngineService from '../services/GameEngineService';
 import SessionService from '../services/SessionService';
 import logger from '../services/LoggerService';
 import { Server as SocketIOServer } from 'socket.io';
-import { Message } from '../models';
+import { Message, Session } from '../models';
 
 const router = express.Router();
 
@@ -175,6 +175,80 @@ router.get('/active/list', async (_req, res) => {
   }
 });
 
+// Get active sessions for session continuity (based on recent message activity)
+router.get('/active/continuity', async (req, res) => {
+  try {
+    const { campaignId, characterId } = req.query;
+
+    if (!campaignId) {
+      return res.status(400).json({ error: 'Campaign ID is required' });
+    }
+
+    // Get recent sessions (within last 24 hours) that have messages
+    const { Message } = await import('../models');
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    // Find sessions with recent messages for this campaign
+    const mongoose = require('mongoose');
+    const recentSessions = await Message.aggregate([
+      {
+        $match: {
+          campaignId: new mongoose.Types.ObjectId(campaignId),
+          createdAt: { $gte: twentyFourHoursAgo },
+          type: { $in: ['player', 'ai'] }
+        }
+      },
+      {
+        $group: {
+          _id: '$sessionId',
+          lastMessageTime: { $max: '$createdAt' },
+          messageCount: { $sum: 1 },
+          lastMessage: { $last: '$content' },
+          lastMessageType: { $last: '$type' }
+        }
+      },
+      {
+        $sort: { lastMessageTime: -1 }
+      },
+      {
+        $limit: 5
+      }
+    ]);
+
+    // Get session details for each active session
+    const activeSessions = [];
+    for (const sessionData of recentSessions) {
+      try {
+        const session = await Session.findOne({ _id: sessionData._id });
+        if (session && session.status === 'active') {
+          activeSessions.push({
+            sessionId: sessionData._id,
+            campaignId: session.campaignId,
+            name: session.name,
+            description: session.metadata?.location || 'Unknown Location',
+            status: session.status,
+            lastMessageTime: sessionData.lastMessageTime,
+            messageCount: sessionData.messageCount,
+            lastMessage: sessionData.lastMessage,
+            lastMessageType: sessionData.lastMessageType
+          });
+        }
+      } catch (error) {
+        logger.warn('Error fetching session details:', error);
+        // Continue with other sessions
+      }
+    }
+
+    return res.json({
+      activeSessions,
+      message: 'Active sessions retrieved successfully'
+    });
+  } catch (error) {
+    logger.error('Error getting active sessions for continuity:', error);
+    return res.status(500).json({ error: 'Failed to get active sessions for continuity' });
+  }
+});
+
 // Data quality and integrity routes (must be before /:sessionId route)
 router.get('/data-quality-report', async (req, res) => {
   try {
@@ -240,6 +314,50 @@ router.get('/:sessionId', async (req, res) => {
   } catch (error) {
     logger.error('Error getting session:', error);
     res.status(500).json({ error: 'Failed to get session' });
+  }
+});
+
+// Get messages for a specific session
+router.get('/:sessionId/messages', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { limit = 50, offset = 0 } = req.query;
+
+    if (!sessionId) {
+      return res.status(400).json({ error: 'Session ID is required' });
+    }
+
+    // Import models
+    const { Message, Session } = await import('../models');
+
+    // Get messages for this session
+    const messages = await Message.getSessionMessages(
+      sessionId,
+      parseInt(limit as string),
+      parseInt(offset as string),
+      false // Don't include deleted messages
+    );
+
+    // Get total count for pagination
+    const totalCount = await Message.countDocuments({
+      sessionId,
+      deleted: { $ne: true }
+    });
+
+    res.json({
+      message: 'Session messages retrieved successfully',
+      sessionId,
+      messages,
+      pagination: {
+        total: totalCount,
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+        hasMore: totalCount > parseInt(limit as string) + parseInt(offset as string)
+      }
+    });
+  } catch (error) {
+    logger.error('Error getting session messages:', error);
+    res.status(500).json({ error: 'Failed to get session messages' });
   }
 });
 

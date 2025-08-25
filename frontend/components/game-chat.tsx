@@ -31,6 +31,7 @@ interface GameChatProps {
   currentLocation?: Location;
   onLocationChange?: (location: Location) => void;
   onBack: () => void;
+  existingSessionId?: string; // For resuming existing sessions
 }
 
 interface DiceRollResult {
@@ -47,6 +48,7 @@ export function GameChat({
   currentLocation,
   onLocationChange,
   onBack,
+  existingSessionId,
 }: GameChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState("");
@@ -69,35 +71,20 @@ export function GameChat({
   useEffect(() => {
     const initializeCampaign = async () => {
       try {
-        // Generate a session ID for this game session
-        const sessionId = crypto.randomUUID();
-
-        // Call the campaign initialization API
-        const initialization = await apiService.initializeCampaign(
-          campaign.id,
-          sessionId,
-          [character.id]
-        );
-
-        // Create the welcome message with the AI-generated content
-        const welcomeMessage: ChatMessage = {
-          id: "1",
-          sessionId: sessionId,
-          sender: "dm",
-          content: initialization.content,
-          timestamp: new Date(),
-          type: "message",
-        };
-
-        setMessages([welcomeMessage]);
-        setIsInitializing(false);
+        if (existingSessionId) {
+          // Resume existing session - load messages from database
+          await loadExistingSession(existingSessionId);
+        } else {
+          // Start new session - generate new session ID
+          const sessionId = crypto.randomUUID();
+          await startNewSession(sessionId);
+        }
       } catch (error) {
         console.error('Failed to initialize campaign:', error);
-
-        // Fallback to basic welcome message if API fails
+        // Fallback to basic welcome message
         const fallbackMessage: ChatMessage = {
           id: "1",
-          sessionId: "current",
+          sessionId: existingSessionId || "current",
           sender: "dm",
           content: `Welcome to ${campaign.name}, ${character.name}! You are a Level ${character.level} ${character.race} ${character.class}. ${currentLocation ? `You find yourself in ${currentLocation.name}. ${currentLocation.description}` : "Your adventure begins now..."} What would you like to do?`,
           timestamp: new Date(),
@@ -110,7 +97,70 @@ export function GameChat({
     };
 
     initializeCampaign();
-  }, [campaign, character, currentLocation]);
+  }, [campaign, character, currentLocation, existingSessionId]);
+
+  const startNewSession = async (sessionId: string) => {
+    try {
+      // Call the campaign initialization API
+      const initialization = await apiService.initializeCampaign(
+        campaign.id,
+        sessionId,
+        [character.id]
+      );
+
+      // Create the welcome message with the AI-generated content
+      const welcomeMessage: ChatMessage = {
+        id: "1",
+        sessionId: sessionId,
+        sender: "dm",
+        content: initialization.content,
+        timestamp: new Date(),
+        type: "message",
+      };
+
+      setMessages([welcomeMessage]);
+      setIsInitializing(false);
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const loadExistingSession = async (sessionId: string) => {
+    try {
+      // Load existing messages from the database
+      const response = await fetch(`/api/sessions/${sessionId}/messages`);
+      if (!response.ok) {
+        throw new Error('Failed to load session messages');
+      }
+
+      const data = await response.json();
+      const existingMessages = data.messages || [];
+
+      if (existingMessages.length > 0) {
+        // Convert string timestamps to Date objects for existing messages
+        const messagesWithDates = existingMessages.map(msg => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }));
+        setMessages(messagesWithDates);
+      } else {
+        // No existing messages, create a welcome back message
+        const welcomeBackMessage: ChatMessage = {
+          id: "1",
+          sessionId: sessionId,
+          sender: "dm",
+          content: `Welcome back to ${campaign.name}, ${character.name}! Your adventure continues...`,
+          timestamp: new Date(),
+          type: "message",
+        };
+        setMessages([welcomeBackMessage]);
+      }
+
+      setIsInitializing(false);
+    } catch (error) {
+      throw error;
+    }
+  };
 
   useEffect(() => {
     // Scroll to bottom when new messages are added
@@ -122,10 +172,13 @@ export function GameChat({
   const addMessage = (
     message: Omit<ChatMessage, "id" | "sessionId" | "timestamp">,
   ) => {
+    // Get the session ID from the first message (which contains the real session ID)
+    const sessionId = messages.length > 0 ? messages[0].sessionId : "current";
+
     const newMessage: ChatMessage = {
       ...message,
       id: crypto.randomUUID(),
-      sessionId: "current",
+      sessionId: sessionId,
       timestamp: new Date(),
     };
     setMessages((prev) => [...prev, newMessage]);
@@ -186,6 +239,9 @@ export function GameChat({
         throw new Error('API URL not configured');
       }
 
+      // Get the session ID from the first message (which contains the session ID)
+      const sessionId = messages.length > 0 ? messages[0].sessionId : null;
+
       const response = await fetch(`${apiUrl}/api/gameplay/story-response`, {
         method: "POST",
         headers: {
@@ -194,6 +250,7 @@ export function GameChat({
         body: JSON.stringify({
           playerAction: userMessage,
           campaignId: campaign.id,
+          sessionId: sessionId,
           characterContext: `${character.name} - Level ${character.level} ${character.race} ${character.class}`,
           worldState: currentLocation
             ? `You are currently in ${currentLocation.name}. ${currentLocation.description}`
