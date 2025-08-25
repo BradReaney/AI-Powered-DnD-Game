@@ -1,5 +1,5 @@
 import express from 'express';
-import CharacterService from '../services/CharacterService';
+import CharacterService, { CharacterCreationData } from '../services/CharacterService';
 import logger from '../services/LoggerService';
 import crypto from 'crypto';
 
