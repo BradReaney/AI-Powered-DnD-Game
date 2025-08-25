@@ -5,24 +5,7 @@ import logger from '../services/LoggerService';
 const router = express.Router();
 const characterService = new CharacterService();
 
-// Get character by ID
-router.get('/:characterId', async (req, res) => {
-  try {
-    const { characterId } = req.params;
-    const character = await characterService.getCharacter(characterId);
-
-    if (!character) {
-      return res.status(404).json({ error: 'Character not found' });
-    }
-
-    return res.json(character);
-  } catch (error) {
-    logger.error('Error getting character:', error);
-    return res.status(500).json({ error: 'Failed to get character' });
-  }
-});
-
-// Get characters by campaign (query parameter format)
+// Get characters by campaign (query parameter format) - MUST COME FIRST
 router.get('/', async (req, res) => {
   try {
     const { campaignId } = req.query;
@@ -41,7 +24,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get characters by campaign
+// Get characters by campaign (path parameter format)
 router.get('/campaign/:campaignId', async (req, res) => {
   try {
     const { campaignId } = req.params;
@@ -71,6 +54,23 @@ router.get('/session/:sessionId', async (req, res) => {
   } catch (error) {
     logger.error('Error getting characters by session:', error);
     res.status(500).json({ error: 'Failed to get characters by session' });
+  }
+});
+
+// Get character by ID - MUST COME AFTER SPECIFIC ROUTES
+router.get('/:characterId', async (req, res) => {
+  try {
+    const { characterId } = req.params;
+    const character = await characterService.getCharacter(characterId);
+
+    if (!character) {
+      return res.status(404).json({ error: 'Character not found' });
+    }
+
+    return res.json(character);
+  } catch (error) {
+    logger.error('Error getting character:', error);
+    return res.status(500).json({ error: 'Failed to get character' });
   }
 });
 
