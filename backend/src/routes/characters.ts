@@ -324,9 +324,9 @@ router.post('/simple', async (req, res) => {
     };
 
     // Create character data with defaults
-    const simpleCharacterData = {
+    const simpleCharacterData: CharacterCreationData = {
       name: characterData.name,
-      characterType: 'human',
+      characterType: 'human' as const,
       race: characterData.race || 'Human',
       class: characterData.class || 'Fighter',
       attributes: defaultAttributes,
