@@ -70,9 +70,42 @@ export const config: Config = {
     uriProd: process.env['MONGODB_URI_PROD'],
   },
   redis: {
-    host: process.env['REDIS_HOST_INTERNAL'] || process.env['REDIS_HOST'] || 'localhost',
-    port: parseInt(process.env['REDIS_PORT'] || '6379', 10),
-    password: process.env['REDIS_PASSWORD'] || '',
+    host: process.env['REDIS_HOST_INTERNAL'] || process.env['REDIS_HOST'] || (() => {
+      // Parse REDIS_URL if available (Railway format)
+      if (process.env['REDIS_URL']) {
+        try {
+          const url = new URL(process.env['REDIS_URL']);
+          return url.hostname;
+        } catch (error) {
+          return 'localhost';
+        }
+      }
+      return 'localhost';
+    })(),
+    port: parseInt(process.env['REDIS_PORT'] || (() => {
+      // Parse REDIS_URL if available (Railway format)
+      if (process.env['REDIS_URL']) {
+        try {
+          const url = new URL(process.env['REDIS_URL']);
+          return url.port || '6379';
+        } catch (error) {
+          return '6379';
+        }
+      }
+      return '6379';
+    })(), 10),
+    password: process.env['REDIS_PASSWORD'] || (() => {
+      // Parse REDIS_URL if available (Railway format)
+      if (process.env['REDIS_URL']) {
+        try {
+          const url = new URL(process.env['REDIS_URL']);
+          return url.password || '';
+        } catch (error) {
+          return '';
+        }
+      }
+      return '';
+    })(),
     db: parseInt(process.env['REDIS_DB'] || '0', 10),
     maxRetriesPerRequest: 3,
     connectTimeout: 10000,

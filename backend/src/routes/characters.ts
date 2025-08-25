@@ -22,6 +22,25 @@ router.get('/:characterId', async (req, res) => {
   }
 });
 
+// Get characters by campaign (query parameter format)
+router.get('/', async (req, res) => {
+  try {
+    const { campaignId } = req.query;
+
+    // If campaignId is provided as query parameter, get characters by campaign
+    if (campaignId && campaignId !== 'undefined') {
+      const characters = await characterService.getCharactersByCampaign(campaignId as string);
+      return res.json(characters);
+    }
+
+    // If no campaignId, return all characters (or empty array)
+    return res.json([]);
+  } catch (error) {
+    logger.error('Error getting characters:', error);
+    return res.status(500).json({ error: 'Failed to get characters' });
+  }
+});
+
 // Get characters by campaign
 router.get('/campaign/:campaignId', async (req, res) => {
   try {
