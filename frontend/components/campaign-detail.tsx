@@ -73,7 +73,12 @@ export function CampaignDetail({
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const response = await fetch(`http://localhost:5001/api/campaign-settings/${campaign.id}/settings`);
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        if (!apiUrl) {
+          console.error('NEXT_PUBLIC_API_URL environment variable is required');
+          return;
+        }
+        const response = await fetch(`${apiUrl}/api/campaign-settings/${campaign.id}/settings`);
         if (response.ok) {
           const data = await response.json();
           setSettings(data.settings || {});
@@ -141,7 +146,11 @@ export function CampaignDetail({
       setSettingsError(null);
       setSettingsSuccess(null);
 
-      const response = await fetch(`http://localhost:5001/api/campaign-settings/${campaign.id}/settings`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!apiUrl) {
+        throw new Error('NEXT_PUBLIC_API_URL environment variable is required');
+      }
+      const response = await fetch(`${apiUrl}/api/campaign-settings/${campaign.id}/settings`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

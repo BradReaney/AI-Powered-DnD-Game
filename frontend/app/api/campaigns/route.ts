@@ -3,7 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(request: NextRequest) {
   try {
     // Get backend URL for server-side requests (use service name in Docker)
-    const backendUrl = process.env.BACKEND_URL || "http://backend:5001";
+    const backendUrl = process.env.BACKEND_URL;
+    if (!backendUrl) {
+      throw new Error('BACKEND_URL environment variable is required');
+    }
 
     // Forward the request to the backend
     const response = await fetch(`${backendUrl}/api/campaigns`, {
@@ -32,7 +35,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Get backend URL for server-side requests (use service name in Docker)
-    const backendUrl = process.env.BACKEND_URL || "http://backend:5001";
+    const backendUrl = process.env.BACKEND_URL;
+    if (!backendUrl) {
+      throw new Error('BACKEND_URL environment variable is required');
+    }
 
     // Get the request body
     const body = await request.json();

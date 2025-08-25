@@ -54,8 +54,8 @@ export const config: Config = {
     nodeEnv: process.env['NODE_ENV'] || 'development',
   },
   mongodb: {
-    uri: process.env['MONGODB_URI'] || 'mongodb://localhost:27017/ai-dnd-game',
-    uriProd: process.env['MONGODB_URI_PROD'] || 'mongodb://localhost:27017/ai-dnd-game-prod',
+    uri: process.env['MONGODB_URI'],
+    uriProd: process.env['MONGODB_URI_PROD'],
   },
   gemini: {
     apiKey: process.env['GEMINI_API_KEY'] || '',

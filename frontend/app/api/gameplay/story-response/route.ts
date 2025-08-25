@@ -5,7 +5,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // Get backend URL for server-side requests (use service name in Docker)
-    const backendUrl = process.env.BACKEND_URL || "http://backend:5001";
+    const backendUrl = process.env.BACKEND_URL;
+    if (!backendUrl) {
+      throw new Error('BACKEND_URL environment variable is required');
+    }
 
     // Forward the request to the backend (note the /api prefix)
     const response = await fetch(`${backendUrl}/api/gameplay/story-response`, {

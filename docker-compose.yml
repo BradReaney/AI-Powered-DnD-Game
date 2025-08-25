@@ -54,7 +54,7 @@ services:
     networks:
       - dnd-game-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5001/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${PORT:-5001}/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -65,13 +65,14 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: http://localhost:5001
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        BACKEND_URL: ${BACKEND_URL}
     container_name: dnd-game-frontend
     restart: unless-stopped
     environment:
       PORT: 3000
-      NEXT_PUBLIC_API_URL: http://localhost:5001
-      BACKEND_URL: http://backend:5001
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      BACKEND_URL: ${BACKEND_URL}
       NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-"AI-Powered D&D Game"}
     ports:
       - "3000:3000"
