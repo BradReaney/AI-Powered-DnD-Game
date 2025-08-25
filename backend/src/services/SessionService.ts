@@ -141,7 +141,7 @@ export class SessionService {
   ): Promise<boolean> {
     try {
       // Get character from source session
-      const sourceSession = await Session.findById(fromSessionId);
+      const sourceSession = await Session.findOne({_id: fromSessionId});
       if (!sourceSession) {
         throw new Error('Source session not found');
       }
@@ -155,7 +155,7 @@ export class SessionService {
       }
 
       // Get target session
-      const targetSession = await Session.findById(toSessionId);
+      const targetSession = await Session.findOne({_id: toSessionId});
       if (!targetSession) {
         throw new Error('Target session not found');
       }
@@ -169,11 +169,11 @@ export class SessionService {
       }
 
       // Transfer character
-      await Session.findByIdAndUpdate(fromSessionId, {
+      await Session.findOneAndUpdate({_id: fromSessionId}, {
         $pull: { 'gameState.activeCharacters': characterId },
       });
 
-      await Session.findByIdAndUpdate(toSessionId, {
+      await Session.findOneAndUpdate({_id: toSessionId}, {
         $push: { 'gameState.activeCharacters': characterId },
       });
 
@@ -251,7 +251,7 @@ export class SessionService {
         return cached;
       }
 
-      const session = await Session.findById(sessionId);
+      const session = await Session.findOne({_id: sessionId});
       if (!session) {
         return null;
       }
@@ -388,7 +388,7 @@ export class SessionService {
   // Session tagging
   public async addSessionTags(sessionId: string, tags: string[]): Promise<void> {
     try {
-      await Session.findByIdAndUpdate(sessionId, {
+      await Session.findOneAndUpdate({_id: sessionId}, {
         $addToSet: { tags: { $each: tags } },
       });
 
@@ -404,7 +404,7 @@ export class SessionService {
 
   public async removeSessionTags(sessionId: string, tags: string[]): Promise<void> {
     try {
-      await Session.findByIdAndUpdate(sessionId, {
+      await Session.findOneAndUpdate({_id: sessionId}, {
         $pull: { tags: { $in: tags } },
       });
 
@@ -421,7 +421,7 @@ export class SessionService {
   // Advanced archiving
   public async archiveSession(sessionId: string, archiveReason: string): Promise<void> {
     try {
-      const session = await Session.findById(sessionId);
+      const session = await Session.findOne({_id: sessionId});
       if (!session) {
         throw new Error('Session not found');
       }
@@ -439,7 +439,7 @@ export class SessionService {
       };
 
       // Mark session as archived
-      await Session.findByIdAndUpdate(sessionId, {
+      await Session.findOneAndUpdate({_id: sessionId}, {
         $set: {
           status: 'archived',
           'metadata.archivedAt': new Date(),
@@ -478,7 +478,7 @@ export class SessionService {
 
   public async restoreSession(sessionId: string): Promise<void> {
     try {
-      const session = await Session.findById(sessionId);
+      const session = await Session.findOne({_id: sessionId});
       if (!session) {
         throw new Error('Session not found');
       }
@@ -487,7 +487,7 @@ export class SessionService {
         throw new Error('Session is not archived');
       }
 
-      await Session.findByIdAndUpdate(sessionId, {
+      await Session.findOneAndUpdate({_id: sessionId}, {
         status: 'active',
         $unset: { 'metadata.archivedAt': 1, 'metadata.archiveReason': 1 },
       });
@@ -506,7 +506,7 @@ export class SessionService {
     permissions: 'read' | 'write' | 'admin'
   ): Promise<void> {
     try {
-      const session = await Session.findById(sessionId);
+      const session = await Session.findOne({_id: sessionId});
       if (!session) {
         throw new Error('Session not found');
       }
@@ -518,7 +518,7 @@ export class SessionService {
         sharedAt: new Date(),
       }));
 
-      await Session.findByIdAndUpdate(sessionId, {
+      await Session.findOneAndUpdate({_id: sessionId}, {
         $addToSet: { sharedWith: { $each: sharingData } },
       });
 
@@ -776,7 +776,7 @@ export class SessionService {
 
   public async deleteSession(sessionId: string): Promise<void> {
     try {
-      const session = await Session.findById(sessionId);
+      const session = await Session.findOne({_id: sessionId});
       if (!session) {
         throw new Error('Session not found');
       }
@@ -799,7 +799,7 @@ export class SessionService {
         StoryEvent.deleteMany({ sessionId }),
 
         // Finally delete the session itself
-        Session.findByIdAndDelete(sessionId),
+        Session.findOneAndDelete({_id: sessionId}),
       ]);
 
       logger.info(`Deleted session: ${session.name} and all related data`);

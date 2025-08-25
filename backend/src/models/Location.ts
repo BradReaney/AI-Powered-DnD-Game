@@ -32,7 +32,7 @@ export interface ILocation extends Document, ILocationMethods {
     | 'castle'
     | 'other';
   campaignId: mongoose.Types.ObjectId;
-  sessionId?: mongoose.Types.ObjectId;
+  sessionId?: string; // Changed from ObjectId to string to support UUIDs
 
   // Location details
   coordinates?: {
@@ -123,7 +123,7 @@ const LocationSchema = new Schema<ILocation>(
       index: true,
     },
     sessionId: {
-      type: Schema.Types.ObjectId,
+      type: String, // Changed from ObjectId to String to support UUIDs
       ref: 'Session',
       required: false,
       index: true,

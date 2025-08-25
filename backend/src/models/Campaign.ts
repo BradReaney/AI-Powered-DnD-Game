@@ -127,7 +127,7 @@ export interface ICampaign extends Document {
 
   // Session management
   sessions: Array<{
-    sessionId: mongoose.Types.ObjectId;
+    sessionId: string; // Changed from ObjectId to string to support UUIDs
     sessionNumber: number;
     date: Date;
     duration: number; // in minutes
@@ -484,7 +484,7 @@ const CampaignSchema = new Schema<ICampaign>(
     sessions: [
       {
         sessionId: {
-          type: Schema.Types.ObjectId,
+          type: String, // Changed from ObjectId to String to support UUIDs
           ref: 'Session',
         },
         sessionNumber: Number,

@@ -249,7 +249,7 @@ class GameEngineService {
     characterId: string
   ): Promise<void> {
     try {
-      const session = await Session.findById(sessionId).populate('campaignId');
+      const session = await Session.findOne({_id: sessionId}).populate('campaignId');
       if (!session) {
         throw new Error('Session not found');
       }
@@ -428,7 +428,7 @@ class GameEngineService {
     eventData: Omit<StoryEvent, 'timestamp'>
   ): Promise<void> {
     try {
-      const session = await Session.findById(sessionId);
+      const session = await Session.findOne({_id: sessionId});
       if (!session) {
         throw new Error('Session not found');
       }
@@ -460,7 +460,7 @@ class GameEngineService {
 
   private async updateAIContext(sessionId: string, event: StoryEvent): Promise<void> {
     try {
-      const session = await Session.findById(sessionId).populate('campaignId');
+      const session = await Session.findOne({_id: sessionId}).populate('campaignId');
       if (!session) return;
 
       // Generate AI response based on the event
@@ -718,7 +718,7 @@ class GameEngineService {
 
   public async endSession(sessionId: string, summary: string): Promise<void> {
     try {
-      const session = await Session.findById(sessionId);
+      const session = await Session.findOne({_id: sessionId});
       if (!session) {
         throw new Error('Session not found');
       }
@@ -765,7 +765,7 @@ class GameEngineService {
       let gameState = this.sessionGameStates.get(sessionId);
       if (!gameState) {
         logger.info('Session not found in memory, loading from database', { sessionId });
-        const session = await Session.findById(sessionId);
+        const session = await Session.findOne({_id: sessionId});
         if (!session) {
           throw new Error('Session not found in database');
         }
@@ -774,7 +774,7 @@ class GameEngineService {
       }
 
       // Get campaign ID from session to build context for AI
-      const session = await Session.findById(sessionId).populate('campaignId');
+      const session = await Session.findOne({_id: sessionId}).populate('campaignId');
       if (!session) {
         throw new Error('Session not found for context building');
       }
