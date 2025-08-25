@@ -290,6 +290,116 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Simplified character creation endpoint for testing - generates default D&D stats
+router.post('/simple', async (req, res) => {
+  try {
+    const characterData = req.body;
+
+    // Validate required fields
+    if (!characterData.name || !characterData.campaignId) {
+      return res.status(400).json({ 
+        error: 'Missing required fields', 
+        required: ['name', 'campaignId'] 
+      });
+    }
+
+    // Generate default D&D 5e attributes (standard array: 15, 14, 13, 12, 10, 8)
+    const defaultAttributes = {
+      strength: 15,
+      dexterity: 14,
+      constitution: 13,
+      intelligence: 12,
+      wisdom: 10,
+      charisma: 8
+    };
+
+    // Generate default personality based on class
+    const defaultPersonality = {
+      traits: ['Brave', 'Determined'],
+      ideals: ['Honor', 'Duty'],
+      bonds: ['Loyal to companions'],
+      flaws: ['Sometimes too trusting'],
+      background: 'Adventurer',
+      alignment: 'Neutral Good'
+    };
+
+    // Create character data with defaults
+    const simpleCharacterData = {
+      name: characterData.name,
+      characterType: 'human',
+      race: characterData.race || 'Human',
+      class: characterData.class || 'Fighter',
+      attributes: defaultAttributes,
+      personality: defaultPersonality,
+      campaignId: characterData.campaignId,
+      sessionId: characterData.sessionId || null,
+      createdBy: characterData.createdBy || 'user',
+    };
+
+    // If no sessionId provided and campaignId is valid, create a default session first
+    if (!simpleCharacterData.sessionId && simpleCharacterData.campaignId) {
+      try {
+        // Validate that campaignId is a valid ObjectId
+        const mongoose = require('mongoose');
+        if (!mongoose.Types.ObjectId.isValid(simpleCharacterData.campaignId)) {
+          logger.warn(`Invalid campaignId format: ${simpleCharacterData.campaignId}`);
+          // Continue without creating a session
+        } else {
+          const Session = require('../models').Session;
+          const defaultSession = new Session({
+            _id: crypto.randomUUID(), // Generate UUID for session ID
+            name: 'Character Creation Session',
+            campaignId: simpleCharacterData.campaignId,
+            sessionNumber: 1,
+            status: 'active',
+            metadata: {
+              startTime: new Date(),
+              endTime: new Date(),
+              duration: 0,
+              players: [],
+              dm: simpleCharacterData.createdBy || 'user',
+              location: 'Character Creation',
+              weather: 'Clear',
+              timeOfDay: 'afternoon'
+            },
+            gameState: {
+              currentScene: 'Character Creation',
+              sceneDescription: 'Session for creating new characters',
+              activeCharacters: [],
+              currentTurn: 0,
+              initiativeOrder: [],
+              combatState: {
+                isActive: false,
+                round: 0,
+                currentCharacter: null,
+                conditions: []
+              },
+              worldState: {
+                currentLocation: 'Character Creation',
+                discoveredLocations: [],
+                activeEffects: []
+              }
+            },
+            storyEvents: []
+          });
+
+          await defaultSession.save();
+          simpleCharacterData.sessionId = defaultSession._id.toString();
+        }
+      } catch (sessionError) {
+        logger.warn('Failed to create default session for character:', sessionError);
+        // Continue without creating a session
+      }
+    }
+
+    const character = await characterService.createHumanCharacter(simpleCharacterData);
+    return res.status(201).json(character);
+  } catch (error) {
+    logger.error('Error in simple character creation:', error);
+    return res.status(500).json({ error: 'Failed to create character' });
+  }
+});
+
 // Update character
 router.put('/:characterId', async (req, res) => {
   try {
