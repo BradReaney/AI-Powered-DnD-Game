@@ -71,7 +71,15 @@ export const config: Config = {
   },
   redis: {
     host: process.env['REDIS_HOST_INTERNAL'] || process.env['REDIS_HOST'] || (() => {
-      // Parse REDIS_URL if available (Railway format)
+      // Try REDIS_PUBLIC_URL first (Railway proxy), then REDIS_URL (internal), then fallback
+      if (process.env['REDIS_PUBLIC_URL']) {
+        try {
+          const url = new URL(process.env['REDIS_PUBLIC_URL']);
+          return url.hostname;
+        } catch (error) {
+          // Fall through to REDIS_URL
+        }
+      }
       if (process.env['REDIS_URL']) {
         try {
           const url = new URL(process.env['REDIS_URL']);
@@ -83,7 +91,15 @@ export const config: Config = {
       return 'localhost';
     })(),
     port: parseInt(process.env['REDIS_PORT'] || (() => {
-      // Parse REDIS_URL if available (Railway format)
+      // Try REDIS_PUBLIC_URL first (Railway proxy), then REDIS_URL (internal), then fallback
+      if (process.env['REDIS_PUBLIC_URL']) {
+        try {
+          const url = new URL(process.env['REDIS_PUBLIC_URL']);
+          return url.port || '6379';
+        } catch (error) {
+          // Fall through to REDIS_URL
+        }
+      }
       if (process.env['REDIS_URL']) {
         try {
           const url = new URL(process.env['REDIS_URL']);
@@ -95,7 +111,15 @@ export const config: Config = {
       return '6379';
     })(), 10),
     password: process.env['REDIS_PASSWORD'] || (() => {
-      // Parse REDIS_URL if available (Railway format)
+      // Try REDIS_PUBLIC_URL first (Railway proxy), then REDIS_URL (internal), then fallback
+      if (process.env['REDIS_PUBLIC_URL']) {
+        try {
+          const url = new URL(process.env['REDIS_PUBLIC_URL']);
+          return url.password || '';
+        } catch (error) {
+          // Fall through to REDIS_URL
+        }
+      }
       if (process.env['REDIS_URL']) {
         try {
           const url = new URL(process.env['REDIS_URL']);
