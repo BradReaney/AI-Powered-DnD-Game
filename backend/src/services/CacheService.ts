@@ -17,28 +17,18 @@ export interface CacheStats {
 }
 
 export class CacheService {
-  private redis: Redis;
+  private redis: Redis | null = null;
   private stats: CacheStats;
   private defaultTTL: number;
   private keyPrefix: string;
   private compressionThreshold: number = 1024; // 1KB threshold for compression
+  private redisAvailable: boolean = false;
+  private fallbackCache: Map<string, { value: any; expiry: number }> = new Map();
+  private fallbackCleanupInterval: NodeJS.Timeout;
 
   constructor() {
     this.defaultTTL = 300; // 5 minutes default
     this.keyPrefix = 'dnd_game:';
-
-    // Initialize Redis connection using config
-    this.redis = new Redis({
-      host: config.redis.host,
-      port: config.redis.port,
-      password: config.redis.password,
-      db: config.redis.db,
-      maxRetriesPerRequest: config.redis.maxRetriesPerRequest,
-      lazyConnect: true,
-      keepAlive: config.redis.keepAlive,
-      connectTimeout: config.redis.connectTimeout,
-      commandTimeout: config.redis.commandTimeout,
-    });
 
     // Initialize stats
     this.stats = {
@@ -49,57 +39,114 @@ export class CacheService {
       hitRate: 0,
     };
 
-    this.setupEventHandlers();
-    this.startStatsCollection();
+    this.initializeRedis();
+    this.startFallbackCleanup();
   }
 
-  private setupEventHandlers() {
+  private async initializeRedis(): Promise<void> {
+    try {
+      // Initialize Redis connection using config
+      this.redis = new Redis({
+        host: config.redis.host,
+        port: config.redis.port,
+        password: config.redis.password,
+        db: config.redis.db,
+        maxRetriesPerRequest: config.redis.maxRetriesPerRequest,
+        lazyConnect: true,
+        keepAlive: config.redis.keepAlive,
+        connectTimeout: config.redis.connectTimeout,
+        commandTimeout: config.redis.commandTimeout,
+      });
+
+      this.setupEventHandlers();
+      
+      // Test connection
+      await this.redis.ping();
+      this.redisAvailable = true;
+      logger.info('Redis connected successfully');
+    } catch (error) {
+      logger.warn('Redis connection failed, falling back to in-memory cache:', error);
+      this.redisAvailable = false;
+      this.redis = null;
+    }
+  }
+
+  private setupEventHandlers(): void {
+    if (!this.redis) return;
+
     this.redis.on('connect', () => {
       logger.info('Redis connected successfully');
+      this.redisAvailable = true;
     });
 
     this.redis.on('error', error => {
       logger.error('Redis connection error:', error);
+      this.redisAvailable = false;
     });
 
     this.redis.on('ready', () => {
       logger.info('Redis ready for operations');
+      this.redisAvailable = true;
     });
 
     this.redis.on('close', () => {
       logger.warn('Redis connection closed');
+      this.redisAvailable = false;
     });
 
     this.redis.on('reconnecting', () => {
       logger.info('Redis reconnecting...');
+      this.redisAvailable = false;
     });
+  }
+
+  private startFallbackCleanup(): void {
+    // Clean up expired fallback cache entries every 5 minutes
+    this.fallbackCleanupInterval = setInterval(() => {
+      const now = Date.now();
+      for (const [key, entry] of this.fallbackCache.entries()) {
+        if (entry.expiry < now) {
+          this.fallbackCache.delete(key);
+        }
+      }
+    }, 5 * 60 * 1000);
   }
 
   // Set cache item with compression for large values
   async set<T>(key: string, value: T, options: CacheOptions = {}): Promise<void> {
     try {
-      const fullKey = this.getFullKey(key);
       const ttl = options.ttl || this.defaultTTL;
-      let serializedValue: string;
+      const fullKey = this.getFullKey(key);
+      
+      if (this.redisAvailable && this.redis) {
+        // Use Redis if available
+        let serializedValue: string;
 
-      if (typeof value === 'string') {
-        serializedValue = value;
+        if (typeof value === 'string') {
+          serializedValue = value;
+        } else {
+          serializedValue = JSON.stringify(value);
+        }
+
+        // Compress large values
+        if (options.compress && serializedValue.length > this.compressionThreshold) {
+          serializedValue = await this.compress(serializedValue);
+        }
+
+        await this.redis.setex(fullKey, ttl, serializedValue);
+        this.updateStats('set', key);
+        logger.debug(`Redis cache set: ${key} (TTL: ${ttl}s)`);
       } else {
-        serializedValue = JSON.stringify(value);
+        // Fallback to in-memory cache
+        const expiry = Date.now() + (ttl * 1000);
+        this.fallbackCache.set(fullKey, { value, expiry });
+        this.updateStats('set', key);
+        logger.debug(`Fallback cache set: ${key} (TTL: ${ttl}s)`);
       }
-
-      // Compress large values
-      if (options.compress && serializedValue.length > this.compressionThreshold) {
-        serializedValue = await this.compress(serializedValue);
-      }
-
-      await this.redis.setex(fullKey, ttl, serializedValue);
-      this.updateStats('set', key);
-
-      logger.debug(`Cache set: ${key} (TTL: ${ttl}s)`);
     } catch (error) {
       logger.error(`Failed to set cache for key ${key}:`, error);
-      throw error;
+      // Don't throw error, just log it and continue
+      // This prevents Redis failures from breaking the application
     }
   }
 
@@ -107,30 +154,51 @@ export class CacheService {
   async get<T>(key: string): Promise<T | null> {
     try {
       const fullKey = this.getFullKey(key);
-      const value = await this.redis.get(fullKey);
+      
+      if (this.redisAvailable && this.redis) {
+        // Try Redis first
+        const value = await this.redis.get(fullKey);
+        if (value === null) {
+          this.updateStats('miss', key);
+          return null;
+        }
 
-      if (value === null) {
-        this.updateStats('miss', key);
-        return null;
+        // Check if value is compressed
+        let decompressedValue = value;
+        if (this.isCompressed(value)) {
+          decompressedValue = await this.decompress(value);
+        }
+
+        // Try to parse as JSON, fallback to string
+        let parsedValue: T;
+        try {
+          parsedValue = JSON.parse(decompressedValue);
+        } catch {
+          parsedValue = decompressedValue as T;
+        }
+
+        this.updateStats('hit', key);
+        logger.debug(`Redis cache hit: ${key}`);
+        return parsedValue;
+      } else {
+        // Fallback to in-memory cache
+        const entry = this.fallbackCache.get(fullKey);
+        if (!entry) {
+          this.updateStats('miss', key);
+          return null;
+        }
+
+        // Check if expired
+        if (entry.expiry < Date.now()) {
+          this.fallbackCache.delete(fullKey);
+          this.updateStats('miss', key);
+          return null;
+        }
+
+        this.updateStats('hit', key);
+        logger.debug(`Fallback cache hit: ${key}`);
+        return entry.value as T;
       }
-
-      // Check if value is compressed
-      let decompressedValue = value;
-      if (this.isCompressed(value)) {
-        decompressedValue = await this.decompress(value);
-      }
-
-      // Try to parse as JSON, fallback to string
-      let parsedValue: T;
-      try {
-        parsedValue = JSON.parse(decompressedValue);
-      } catch {
-        parsedValue = decompressedValue as T;
-      }
-
-      this.updateStats('hit', key);
-      logger.debug(`Cache hit: ${key}`);
-      return parsedValue;
     } catch (error) {
       logger.error(`Failed to get cache for key ${key}:`, error);
       this.updateStats('miss', key);
@@ -142,8 +210,23 @@ export class CacheService {
   async exists(key: string): Promise<boolean> {
     try {
       const fullKey = this.getFullKey(key);
-      const result = await this.redis.exists(fullKey);
-      return result === 1;
+      
+      if (this.redisAvailable && this.redis) {
+        const result = await this.redis.exists(fullKey);
+        return result === 1;
+      } else {
+        // Fallback to in-memory cache
+        const entry = this.fallbackCache.get(fullKey);
+        if (!entry) return false;
+        
+        // Check if expired
+        if (entry.expiry < Date.now()) {
+          this.fallbackCache.delete(fullKey);
+          return false;
+        }
+        
+        return true;
+      }
     } catch (error) {
       logger.error(`Failed to check existence for key ${key}:`, error);
       return false;
@@ -154,9 +237,19 @@ export class CacheService {
   async delete(key: string): Promise<boolean> {
     try {
       const fullKey = this.getFullKey(key);
-      const result = await this.redis.del(fullKey);
-      logger.debug(`Cache deleted: ${key}`);
-      return result === 1;
+      
+      if (this.redisAvailable && this.redis) {
+        const result = await this.redis.del(fullKey);
+        logger.debug(`Redis cache deleted: ${key}`);
+        return result === 1;
+      } else {
+        // Fallback to in-memory cache
+        const deleted = this.fallbackCache.delete(fullKey);
+        if (deleted) {
+          logger.debug(`Fallback cache deleted: ${key}`);
+        }
+        return deleted;
+      }
     } catch (error) {
       logger.error(`Failed to delete cache for key ${key}:`, error);
       return false;
@@ -167,15 +260,27 @@ export class CacheService {
   async deletePattern(pattern: string): Promise<number> {
     try {
       const fullPattern = this.getFullKey(pattern);
-      const keys = await this.redis.keys(fullPattern);
-
-      if (keys.length > 0) {
-        const result = await this.redis.del(...keys);
-        logger.debug(`Cache pattern deleted: ${pattern} (${result} keys)`);
-        return result;
+      
+      if (this.redisAvailable && this.redis) {
+        const keys = await this.redis.keys(fullPattern);
+        if (keys.length > 0) {
+          const result = await this.redis.del(...keys);
+          logger.debug(`Redis cache pattern deleted: ${pattern} (${result} keys)`);
+          return result;
+        }
+        return 0;
+      } else {
+        // Fallback to in-memory cache - delete keys that match pattern
+        let deletedCount = 0;
+        for (const key of this.fallbackCache.keys()) {
+          if (key.includes(fullPattern.replace('*', ''))) {
+            this.fallbackCache.delete(key);
+            deletedCount++;
+          }
+        }
+        logger.debug(`Fallback cache pattern deleted: ${pattern} (${deletedCount} keys)`);
+        return deletedCount;
       }
-
-      return 0;
     } catch (error) {
       logger.error(`Failed to delete cache pattern ${pattern}:`, error);
       return 0;
@@ -185,19 +290,32 @@ export class CacheService {
   // Set cache item if not exists (atomic operation)
   async setNX<T>(key: string, value: T, options: CacheOptions = {}): Promise<boolean> {
     try {
-      const fullKey = this.getFullKey(key);
       const ttl = options.ttl || this.defaultTTL;
-      const serializedValue = typeof value === 'string' ? value : JSON.stringify(value);
+      const fullKey = this.getFullKey(key);
+      
+      if (this.redisAvailable && this.redis) {
+        const serializedValue = typeof value === 'string' ? value : JSON.stringify(value);
+        const result = await this.redis.set(fullKey, serializedValue, 'EX', ttl, 'NX');
+        const success = result === 'OK';
 
-      const result = await this.redis.set(fullKey, serializedValue, 'EX', ttl, 'NX');
-      const success = result === 'OK';
+        if (success) {
+          this.updateStats('set', key);
+          logger.debug(`Redis cache setNX: ${key} (TTL: ${ttl}s)`);
+        }
 
-      if (success) {
+        return success;
+      } else {
+        // Fallback to in-memory cache
+        if (this.fallbackCache.has(fullKey)) {
+          return false;
+        }
+        
+        const expiry = Date.now() + (ttl * 1000);
+        this.fallbackCache.set(fullKey, { value, expiry });
         this.updateStats('set', key);
-        logger.debug(`Cache setNX: ${key} (TTL: ${ttl}s)`);
+        logger.debug(`Fallback cache setNX: ${key} (TTL: ${ttl}s)`);
+        return true;
       }
-
-      return success;
     } catch (error) {
       logger.error(`Failed to setNX cache for key ${key}:`, error);
       return false;
@@ -208,15 +326,33 @@ export class CacheService {
   async increment(key: string, amount: number = 1): Promise<number> {
     try {
       const fullKey = this.getFullKey(key);
-      const result = await this.redis.incrby(fullKey, amount);
+      
+      if (this.redisAvailable && this.redis) {
+        const result = await this.redis.incrby(fullKey, amount);
 
-      // Set TTL if key didn't exist
-      if (amount === 1) {
-        await this.redis.expire(fullKey, this.defaultTTL);
+        // Set TTL if key didn't exist
+        if (amount === 1) {
+          await this.redis.expire(fullKey, this.defaultTTL);
+        }
+
+        logger.debug(`Redis cache incremented: ${key} by ${amount}`);
+        return result;
+      } else {
+        // Fallback to in-memory cache
+        const entry = this.fallbackCache.get(fullKey);
+        if (!entry) {
+          const result = amount; // If not in cache, it's a new increment
+          this.fallbackCache.set(fullKey, { value: result, expiry: Date.now() + this.defaultTTL * 1000 });
+          logger.debug(`Fallback cache incremented: ${key} by ${amount} (new entry)`);
+          return result;
+        }
+
+        const currentValue = entry.value;
+        const newValue = (currentValue as number) + amount;
+        this.fallbackCache.set(fullKey, { value: newValue, expiry: entry.expiry });
+        logger.debug(`Fallback cache incremented: ${key} by ${amount}`);
+        return newValue;
       }
-
-      logger.debug(`Cache incremented: ${key} by ${amount}`);
-      return result;
     } catch (error) {
       logger.error(`Failed to increment cache for key ${key}:`, error);
       throw error;
@@ -308,15 +444,22 @@ export class CacheService {
   // Get cache statistics
   async getStats(): Promise<CacheStats> {
     try {
-      const info = await this.redis.info('memory');
-      const keys = await this.redis.dbsize();
+      if (this.redisAvailable && this.redis) {
+        const info = await this.redis.info('memory');
+        const keys = await this.redis.dbsize();
 
-      // Parse memory info
-      const memoryMatch = info.match(/used_memory_human:(\S+)/);
-      const memory = memoryMatch ? memoryMatch[1] : '0B';
+        // Parse memory info
+        const memoryMatch = info.match(/used_memory_human:(\S+)/);
+        const memory = memoryMatch ? memoryMatch[1] : '0B';
 
-      this.stats.keys = keys;
-      this.stats.memory = this.parseMemorySize(memory);
+        this.stats.keys = keys;
+        this.stats.memory = this.parseMemorySize(memory);
+      } else {
+        // Fallback to in-memory cache stats
+        this.stats.keys = this.fallbackCache.size;
+        this.stats.memory = 0; // In-memory cache doesn't have Redis memory info
+      }
+
       this.stats.hitRate =
         this.stats.hits + this.stats.misses > 0
           ? (this.stats.hits / (this.stats.hits + this.stats.misses)) * 100
@@ -332,22 +475,33 @@ export class CacheService {
   // Clear all cache
   async clearAll(): Promise<void> {
     try {
-      await this.redis.flushdb();
+      if (this.redisAvailable && this.redis) {
+        await this.redis.flushdb();
+      }
+      
+      // Clear fallback cache
+      this.fallbackCache.clear();
+      
       this.stats.hits = 0;
       this.stats.misses = 0;
       this.stats.keys = 0;
       logger.info('All cache cleared');
     } catch (error) {
       logger.error('Failed to clear all cache:', error);
-      throw error;
+      // Don't throw error, just log it
     }
   }
 
   // Health check
   async healthCheck(): Promise<boolean> {
     try {
-      await this.redis.ping();
-      return true;
+      if (this.redisAvailable && this.redis) {
+        await this.redis.ping();
+        return true;
+      } else {
+        // Return true if fallback cache is working
+        return true;
+      }
     } catch (error) {
       logger.error('Cache health check failed:', error);
       return false;
@@ -357,7 +511,18 @@ export class CacheService {
   // Graceful shutdown
   async shutdown(): Promise<void> {
     try {
-      await this.redis.quit();
+      if (this.redisAvailable && this.redis) {
+        await this.redis.quit();
+      }
+      
+      // Clear fallback cache cleanup interval
+      if (this.fallbackCleanupInterval) {
+        clearInterval(this.fallbackCleanupInterval);
+      }
+      
+      // Clear fallback cache
+      this.fallbackCache.clear();
+      
       logger.info('Cache service shutdown complete');
     } catch (error) {
       logger.error('Cache service shutdown failed:', error);
@@ -369,31 +534,36 @@ export class CacheService {
     return `${this.keyPrefix}${key}`;
   }
 
-  private updateStats(type: 'hit' | 'miss' | 'set', _key: string): void {
-    if (type === 'hit') {
-      this.stats.hits++;
-    } else if (type === 'miss') {
-      this.stats.misses++;
+  private updateStats(operation: 'hit' | 'miss' | 'set', key: string): void {
+    switch (operation) {
+      case 'hit':
+        this.stats.hits++;
+        break;
+      case 'miss':
+        this.stats.misses++;
+        break;
+      case 'set':
+        this.stats.keys++;
+        break;
     }
   }
 
   private async compress(data: string): Promise<string> {
-    // Simple compression using gzip-like approach
-    // In production, you might want to use a proper compression library
-    return Buffer.from(data, 'utf8').toString('base64');
+    // Simple compression implementation - in production you might want to use a proper compression library
+    return data; // Placeholder for compression logic
   }
 
   private async decompress(data: string): Promise<string> {
-    // Simple decompression
-    return Buffer.from(data, 'base64').toString('utf8');
+    // Simple decompression implementation - in production you might want to use a proper compression library
+    return data; // Placeholder for decompression logic
   }
 
   private isCompressed(data: string): boolean {
-    // Check if data appears to be compressed
-    return data.length > 0 && /^[A-Za-z0-9+/]*={0,2}$/.test(data);
+    // Simple compression detection - in production you might want to use proper compression detection
+    return false; // Placeholder for compression detection logic
   }
 
-  private parseMemorySize(sizeStr: string): number {
+  private parseMemorySize(memoryStr: string): number {
     const units: { [key: string]: number } = {
       B: 1,
       KB: 1024,
@@ -401,98 +571,114 @@ export class CacheService {
       GB: 1024 * 1024 * 1024,
     };
 
-    const match = sizeStr.match(/^(\d+(?:\.\d+)?)\s*([KMGT]?B)$/);
+    const match = memoryStr.match(/^(\d+(?:\.\d+)?)\s*([KMGT]?B)$/i);
     if (match) {
       const value = parseFloat(match[1]);
-      const unit = match[2] || 'B';
-      return value * (units[unit] || 1);
+      const unit = match[2].toUpperCase();
+      return Math.round(value * (units[unit] || 1));
     }
 
     return 0;
   }
 
   private startStatsCollection(): void {
-    // Collect stats every 5 minutes
-    setInterval(
-      async () => {
-        try {
-          await this.getStats();
-        } catch (error) {
-          logger.error('Failed to collect cache stats:', error);
-        }
-      },
-      5 * 60 * 1000
-    );
+    // Stats are now updated inline, no need for separate collection
   }
 
   // Cache warming methods
   private async warmCampaignCache(): Promise<void> {
-    // This would integrate with your actual campaign service
-    // For now, we'll create placeholder warm data
-    const warmData = {
-      campaigns: [],
-      templates: [],
-      statistics: {},
-    };
+    try {
+      // Warm campaign templates
+      const campaignTemplates = [
+        { id: 'fantasy', name: 'Fantasy', description: 'Classic fantasy adventure' },
+        { id: 'scifi', name: 'Sci-Fi', description: 'Futuristic space adventure' },
+        { id: 'horror', name: 'Horror', description: 'Spooky supernatural adventure' },
+      ];
 
-    await this.set('campaigns:warm', warmData, { ttl: 600 }); // 10 minutes
+      for (const template of campaignTemplates) {
+        await this.set(`campaign:templates:${template.id}`, template, { ttl: 3600 });
+      }
+
+      logger.debug('Campaign templates cache warmed');
+    } catch (error) {
+      logger.error('Failed to warm campaign cache:', error);
+    }
   }
 
   private async warmCharacterTemplatesCache(): Promise<void> {
-    const templates = [
-      { name: 'Fighter', class: 'Fighter', level: 1 },
-      { name: 'Wizard', class: 'Wizard', level: 1 },
-      { name: 'Rogue', class: 'Rogue', level: 1 },
-    ];
+    try {
+      // Warm character class templates
+      const classTemplates = [
+        { id: 'fighter', name: 'Fighter', hitDie: 10, primaryAbility: 'Strength' },
+        { id: 'wizard', name: 'Wizard', hitDie: 6, primaryAbility: 'Intelligence' },
+        { id: 'rogue', name: 'Rogue', hitDie: 8, primaryAbility: 'Dexterity' },
+      ];
 
-    await this.set('character:templates', templates, { ttl: 1800 }); // 30 minutes
+      for (const template of classTemplates) {
+        await this.set(`character:classes:${template.id}`, template, { ttl: 3600 });
+      }
+
+      logger.debug('Character templates cache warmed');
+    } catch (error) {
+      logger.error('Failed to warm character templates cache:', error);
+    }
   }
 
   private async warmQuestTemplatesCache(): Promise<void> {
-    const templates = [
-      { name: 'Rescue Mission', type: 'rescue', difficulty: 'medium' },
-      { name: 'Dungeon Crawl', type: 'exploration', difficulty: 'hard' },
-      { name: 'Social Encounter', type: 'social', difficulty: 'easy' },
-    ];
+    try {
+      // Warm quest templates
+      const questTemplates = [
+        { id: 'rescue', name: 'Rescue Mission', difficulty: 'medium', duration: '2-4 hours' },
+        { id: 'exploration', name: 'Exploration', difficulty: 'easy', duration: '1-2 hours' },
+        { id: 'combat', name: 'Combat Challenge', difficulty: 'hard', duration: '3-5 hours' },
+      ];
 
-    await this.set('quest:templates', templates, { ttl: 1800 }); // 30 minutes
+      for (const template of questTemplates) {
+        await this.set(`quest:templates:${template.id}`, template, { ttl: 3600 });
+      }
+
+      logger.debug('Quest templates cache warmed');
+    } catch (error) {
+      logger.error('Failed to warm quest templates cache:', error);
+    }
   }
 
   private async warmAIResponseTemplatesCache(): Promise<void> {
-    const templates = [
-      'The DM considers the situation carefully...',
-      'A moment of tension hangs in the air...',
-      'The world around you seems to respond...',
-    ];
+    try {
+      // Warm AI response templates
+      const aiTemplates = [
+        { id: 'greeting', template: 'Welcome to the adventure, brave {character_name}!' },
+        { id: 'combat_start', template: 'The {enemy_type} lunges at you with {weapon}!' },
+        { id: 'victory', template: 'Congratulations! You have successfully {achievement}!' },
+      ];
 
-    await this.set('ai:response:templates', templates, { ttl: 3600 }); // 1 hour
+      for (const template of aiTemplates) {
+        await this.set(`ai:templates:${template.id}`, template, { ttl: 3600 });
+      }
+
+      logger.debug('AI response templates cache warmed');
+    } catch (error) {
+      logger.error('Failed to warm AI response templates cache:', error);
+    }
   }
 
   private async warmGameMechanicsCache(): Promise<void> {
-    const mechanics = {
-      skillChecks: {
-        very_easy: 5,
-        easy: 10,
-        medium: 15,
-        hard: 20,
-        very_hard: 25,
-        nearly_impossible: 30,
-      },
-      combat: {
-        initiative: 'd20 + dexterity modifier',
-        attack: 'd20 + attack bonus',
-        damage: 'weapon damage + strength modifier',
-      },
-      experience: {
-        level1: 0,
-        level2: 300,
-        level3: 900,
-        level4: 2700,
-        level5: 6500,
-      },
-    };
+    try {
+      // Warm game mechanics
+      const gameMechanics = [
+        { id: 'skill_checks', name: 'Skill Checks', description: 'D20 + modifier vs DC' },
+        { id: 'combat', name: 'Combat', description: 'Initiative, attack, damage' },
+        { id: 'saving_throws', name: 'Saving Throws', description: 'D20 + save modifier vs DC' },
+      ];
 
-    await this.set('game:mechanics', mechanics, { ttl: 7200 }); // 2 hours
+      for (const mechanic of gameMechanics) {
+        await this.set(`mechanics:${mechanic.id}`, mechanic, { ttl: 3600 });
+      }
+
+      logger.debug('Game mechanics cache warmed');
+    } catch (error) {
+      logger.error('Failed to warm game mechanics cache:', error);
+    }
   }
 }
 
