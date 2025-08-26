@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { ChatMessage, Character, Location, Campaign } from "@/lib/types";
 import apiService from "@/lib/api";
 import { useSlashCommands } from "@/hooks/useSlashCommands";
-import { CommandAutocomplete } from "./CommandAutocomplete";
+// CommandAutocomplete component removed - functionality integrated elsewhere
 import {
   Send,
   Bot,
@@ -81,18 +81,13 @@ export function GameChat({
         }
       } catch (error) {
         console.error('Failed to initialize campaign:', error);
-        // Fallback to basic welcome message
-        const fallbackMessage: ChatMessage = {
-          id: "1",
-          sessionId: existingSessionId || "current",
-          sender: "dm",
-          content: `Welcome to ${campaign.name}, ${character.name}! You are a Level ${character.level} ${character.race} ${character.class}. ${currentLocation ? `You find yourself in ${currentLocation.name}. ${currentLocation.description}` : "Your adventure begins now..."} What would you like to do?`,
-          timestamp: new Date(),
-          type: "message",
-        };
 
-        setMessages([fallbackMessage]);
+        // Don't use generic fallback - let the specific error handlers deal with it
+        // This prevents the wrong message from being displayed
         setIsInitializing(false);
+
+        // Show user-friendly error message
+        console.error('Campaign initialization failed. Please refresh the page or contact support.');
       }
     };
 
@@ -101,7 +96,14 @@ export function GameChat({
 
   const startNewSession = async (sessionId: string) => {
     try {
-      // Call the campaign initialization API
+      // First, create the session automatically
+      await apiService.createAutomaticSession(
+        campaign.id,
+        character.id,
+        sessionId
+      );
+
+      // Then call the campaign initialization API
       const initialization = await apiService.initializeCampaign(
         campaign.id,
         sessionId,
@@ -111,7 +113,7 @@ export function GameChat({
       // Wait for backend operations to complete
       // This prevents race conditions where the frontend might try to
       // access the session before it's fully initialized
-      await new Promise(resolve => setTimeout(resolve, 100)); // Small delay to ensure backend completion
+      await new Promise(resolve => setTimeout(resolve, 200)); // Increased delay to ensure backend completion
 
       // Create the welcome message with the AI-generated content
       const welcomeMessage: ChatMessage = {
@@ -126,7 +128,50 @@ export function GameChat({
       setMessages([welcomeMessage]);
       setIsInitializing(false);
     } catch (error) {
-      throw error;
+      console.error('Failed to initialize campaign:', error);
+
+      // Instead of a generic fallback, retry the initialization
+      // This handles temporary backend issues
+      try {
+        console.log('Retrying campaign initialization...');
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+
+        const retryInitialization = await apiService.initializeCampaign(
+          campaign.id,
+          sessionId,
+          [character.id]
+        );
+
+        const welcomeMessage: ChatMessage = {
+          id: "1",
+          sessionId: sessionId,
+          sender: "dm",
+          content: retryInitialization.content,
+          timestamp: new Date(),
+          type: "message",
+        };
+
+        setMessages([welcomeMessage]);
+        setIsInitializing(false);
+      } catch (retryError) {
+        console.error('Retry failed, using minimal fallback:', retryError);
+
+        // Only use minimal fallback if retry also fails
+        const minimalFallback: ChatMessage = {
+          id: "1",
+          sessionId: sessionId,
+          sender: "dm",
+          content: `Welcome to ${campaign.name}, ${character.name}! The campaign is initializing...`,
+          timestamp: new Date(),
+          type: "message",
+        };
+
+        setMessages([minimalFallback]);
+        setIsInitializing(false);
+
+        // Show user-friendly error message
+        console.error('Campaign initialization failed after retry. Please refresh the page or contact support.');
+      }
     }
   };
 
@@ -142,12 +187,47 @@ export function GameChat({
       const existingMessages = data.messages || [];
 
       if (existingMessages.length > 0) {
-        // Convert string timestamps to Date objects for existing messages
-        const messagesWithDates = existingMessages.map(msg => ({
-          ...msg,
-          timestamp: new Date(msg.timestamp)
-        }));
-        setMessages(messagesWithDates);
+        // Transform backend messages to frontend format
+        const transformedMessages = existingMessages.map(msg => {
+          // Transform backend message structure to frontend ChatMessage format
+          let transformedSender: "player" | "dm";
+          let transformedType: "message" | "action" | "roll";
+
+          // Map backend sender to frontend sender
+          if (msg.type === 'ai') {
+            transformedSender = "dm";
+          } else if (msg.type === 'player') {
+            transformedSender = "player";
+          } else {
+            // For system, combat, skill-check messages, treat as DM messages
+            transformedSender = "dm";
+          }
+
+          // Map backend type to frontend type
+          if (msg.type === 'player') {
+            transformedType = "action";
+          } else if (msg.type === 'ai') {
+            transformedType = "message";
+          } else {
+            // For other types, default to message
+            transformedType = "message";
+          }
+
+          return {
+            id: msg._id || msg.id || crypto.randomUUID(),
+            sessionId: msg.sessionId,
+            sender: transformedSender,
+            content: msg.content,
+            timestamp: new Date(msg.timestamp),
+            type: transformedType,
+            metadata: {
+              characterId: msg.characterId || character.id,
+              ...msg.metadata
+            }
+          };
+        });
+
+        setMessages(transformedMessages);
       } else {
         // No existing messages, create a welcome back message
         const welcomeBackMessage: ChatMessage = {
@@ -235,6 +315,17 @@ export function GameChat({
         characterId: character.id,
       },
     });
+
+    // Update session activity
+    try {
+      const sessionId = messages.length > 0 ? messages[0].sessionId : null;
+      if (sessionId) {
+        await apiService.updateSessionActivity(sessionId);
+      }
+    } catch (error) {
+      console.warn('Failed to update session activity:', error);
+      // Don't block the message flow if activity update fails
+    }
 
     // Get AI response from backend
     setIsLoading(true);
@@ -502,13 +593,20 @@ export function GameChat({
                   </div>
                 )}
 
-                {/* Command Autocomplete */}
-                <CommandAutocomplete
-                  inputValue={inputMessage}
-                  suggestions={suggestions}
-                  onSelectSuggestion={handleSelectSuggestion}
-                  visible={showAutocomplete}
-                />
+                {/* Command Autocomplete - simplified implementation */}
+                {showAutocomplete && suggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 bg-background border rounded-md shadow-lg z-10 max-h-48 overflow-y-auto">
+                    {suggestions.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleSelectSuggestion(suggestion)}
+                        className="w-full text-left px-3 py-2 hover:bg-muted text-sm"
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <Button
                 onClick={handleSendMessage}
