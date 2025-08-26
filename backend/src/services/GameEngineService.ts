@@ -4,6 +4,7 @@ import { Campaign, Session, ISession, Character, ICharacter } from '../models';
 import LLMClientFactory from './LLMClientFactory';
 import { ContextManager } from './ContextManager';
 import { cacheService } from './CacheService';
+import crypto from 'crypto';
 
 export interface GameState {
   currentScene: string;
@@ -249,7 +250,7 @@ class GameEngineService {
     characterId: string
   ): Promise<void> {
     try {
-      const session = await Session.findOne({_id: sessionId}).populate('campaignId');
+      const session = await Session.findOne({ _id: sessionId }).populate('campaignId');
       if (!session) {
         throw new Error('Session not found');
       }
@@ -344,9 +345,11 @@ class GameEngineService {
       const sessionNumber = lastSession ? lastSession.sessionNumber + 1 : 1;
 
       const session = new Session({
+        _id: crypto.randomUUID(), // Generate UUID for session ID
         campaignId,
         sessionNumber,
         name: sessionData.name,
+        status: 'active', // Add missing status field
         metadata: {
           startTime: new Date(),
           dm: sessionData.dm,
@@ -428,7 +431,7 @@ class GameEngineService {
     eventData: Omit<StoryEvent, 'timestamp'>
   ): Promise<void> {
     try {
-      const session = await Session.findOne({_id: sessionId});
+      const session = await Session.findOne({ _id: sessionId });
       if (!session) {
         throw new Error('Session not found');
       }
@@ -460,7 +463,7 @@ class GameEngineService {
 
   private async updateAIContext(sessionId: string, event: StoryEvent): Promise<void> {
     try {
-      const session = await Session.findOne({_id: sessionId}).populate('campaignId');
+      const session = await Session.findOne({ _id: sessionId }).populate('campaignId');
       if (!session) return;
 
       // Generate AI response based on the event
@@ -718,7 +721,7 @@ class GameEngineService {
 
   public async endSession(sessionId: string, summary: string): Promise<void> {
     try {
-      const session = await Session.findOne({_id: sessionId});
+      const session = await Session.findOne({ _id: sessionId });
       if (!session) {
         throw new Error('Session not found');
       }
@@ -765,7 +768,7 @@ class GameEngineService {
       let gameState = this.sessionGameStates.get(sessionId);
       if (!gameState) {
         logger.info('Session not found in memory, loading from database', { sessionId });
-        const session = await Session.findOne({_id: sessionId});
+        const session = await Session.findOne({ _id: sessionId });
         if (!session) {
           throw new Error('Session not found in database');
         }
@@ -773,8 +776,30 @@ class GameEngineService {
         logger.info('Session loaded from database and initialized in memory', { sessionId });
       }
 
+      // Check if this is a campaign initialization session
+      // Prevent AI responses during initialization to avoid race conditions
+      const { Message } = await import('../models');
+      const initializationMessage = await Message.findOne({
+        sessionId,
+        'metadata.tags': 'campaign-start'
+      });
+
+      if (initializationMessage) {
+        logger.info('Session is still initializing, preventing AI response to avoid race condition', { sessionId });
+        return {
+          content: 'The campaign is still being initialized. Please wait a moment before continuing.',
+          metadata: {
+            contextLength: 0,
+            responseTime: Date.now(),
+            success: false,
+            conversationHistoryLength: 0,
+            reason: 'campaign_initializing'
+          },
+        };
+      }
+
       // Get campaign ID from session to build context for AI
-      const session = await Session.findOne({_id: sessionId}).populate('campaignId');
+      const session = await Session.findOne({ _id: sessionId }).populate('campaignId');
       if (!session) {
         throw new Error('Session not found for context building');
       }
@@ -783,7 +808,6 @@ class GameEngineService {
       const context = await this.contextManager.getContext(campaignId);
 
       // Get recent chat history for conversation context (max 10 messages)
-      const { Message } = await import('../models');
       const chatHistory = await Message.getRecentContext(sessionId, 10, ['player', 'ai', 'system']);
 
       logger.info('Retrieved chat history', {

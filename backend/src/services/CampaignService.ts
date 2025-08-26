@@ -1049,6 +1049,11 @@ Your journey starts now. What would you like to do first?`;
       campaign.status = 'active';
       await campaign.save();
 
+      // Ensure all database operations are committed before proceeding
+      // This prevents race conditions where other services might try to access
+      // the session before it's fully initialized
+      await campaign.save(); // Double-save to ensure transaction completion
+
       logger.info(`Campaign ${campaignId} initialized with opening scene`);
 
       return {

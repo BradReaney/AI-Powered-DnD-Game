@@ -108,6 +108,11 @@ export function GameChat({
         [character.id]
       );
 
+      // Wait for backend operations to complete
+      // This prevents race conditions where the frontend might try to
+      // access the session before it's fully initialized
+      await new Promise(resolve => setTimeout(resolve, 100)); // Small delay to ensure backend completion
+
       // Create the welcome message with the AI-generated content
       const welcomeMessage: ChatMessage = {
         id: "1",

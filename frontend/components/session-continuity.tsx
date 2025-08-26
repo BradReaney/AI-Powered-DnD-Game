@@ -71,7 +71,7 @@ export function SessionContinuity({
         return `${Math.floor(diffInMinutes / 1440)}d ago`;
     };
 
-    const truncateMessage = (message: string, maxLength: number = 100) => {
+    const truncateMessage = (message: string, maxLength: number = 200) => {
         if (message.length <= maxLength) return message;
         return message.substring(0, maxLength) + '...';
     };
