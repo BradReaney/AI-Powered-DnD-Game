@@ -24,6 +24,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Character } from "@/lib/types";
 import { Save, X, Dice6, Loader2 } from "lucide-react";
+import type { Campaign } from "@/lib/types";
+import { Badge } from "@/components/ui/badge";
 
 interface CharacterFormProps {
   character?: Character;
@@ -32,6 +34,7 @@ interface CharacterFormProps {
   campaignId?: string;
   sessionId?: string;
   isSaving?: boolean;
+  campaigns?: Campaign[]; // Add campaigns prop for selection
 }
 
 const RACES = [
@@ -121,6 +124,7 @@ export function CharacterForm({
   campaignId,
   sessionId,
   isSaving,
+  campaigns,
 }: CharacterFormProps) {
   const [formData, setFormData] = useState({
     name: character?.name || "",
@@ -130,8 +134,12 @@ export function CharacterForm({
     background: character?.background || "",
     alignment: character?.alignment || "",
     currentLocation: character?.currentLocation || "",
-    // Use 'attributes' to match backend API
-    attributes: character?.stats || {
+    hitPoints: {
+      current: character?.hitPoints?.current || 8,
+      maximum: character?.hitPoints?.maximum || 8,
+    },
+    armorClass: character?.armorClass || 10,
+    attributes: character?.attributes || {
       strength: 10,
       dexterity: 10,
       constitution: 10,
@@ -139,19 +147,19 @@ export function CharacterForm({
       wisdom: 10,
       charisma: 10,
     },
-    hitPoints: character?.hitPoints || { current: 8, maximum: 8 },
-    armorClass: character?.armorClass || 10,
-    proficiencyBonus: character?.proficiencyBonus || 2,
     skills: character?.skills || [],
+    traits: character?.personality?.traits || [],
+    ideals: character?.personality?.ideals || [],
+    bonds: character?.personality?.bonds || [],
+    flaws: character?.personality?.flaws || [],
     equipment: character?.equipment || [],
-    spells: character?.spells || [],
+    spells: character?.spells || [], // Add missing spells field
     backstory: character?.backstory || "",
-    // Add personality fields required by backend
-    traits: "",
-    ideals: "",
-    bonds: "",
-    flaws: "",
   });
+
+  // Add state for campaign selection when no campaignId is provided
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string>(campaignId || "");
+  const [showCampaignSelector, setShowCampaignSelector] = useState<boolean>(!campaignId && !!campaigns?.length);
 
   const rollStats = () => {
     const rollStat = () => {
@@ -188,6 +196,12 @@ export function CharacterForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate that a campaign is selected
+    if (!selectedCampaignId) {
+      alert("Please select a campaign for your character");
+      return;
+    }
+
     // Transform the data to match backend API structure
     const characterData = {
       ...formData,
@@ -195,7 +209,7 @@ export function CharacterForm({
       createdAt: character?.createdAt || new Date(),
       updatedAt: new Date(),
       // Add required fields for backend
-      campaignId: campaignId || "",
+      campaignId: selectedCampaignId, // Use selected campaign ID
       sessionId: sessionId || "",
       createdBy: "user", // Default value
       // Transform stats to attributes
@@ -228,6 +242,35 @@ export function CharacterForm({
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Campaign Selector - Show when no campaignId is provided */}
+          {showCampaignSelector && campaigns && campaigns.length > 0 && (
+            <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+              <div className="space-y-2">
+                <Label htmlFor="campaign">Select Campaign</Label>
+                <Select value={selectedCampaignId} onValueChange={setSelectedCampaignId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a campaign for your character" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {campaigns.map((campaign) => (
+                      <SelectItem key={campaign.id} value={campaign.id}>
+                        <div className="flex items-center gap-2">
+                          <span>{campaign.name}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {campaign.theme || "Custom"}
+                          </Badge>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  Your character will be created in the selected campaign world.
+                </p>
+              </div>
+            </div>
+          )}
+
           <Tabs defaultValue="basic" className="space-y-4">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="basic">Basic Info</TabsTrigger>
@@ -554,7 +597,7 @@ export function CharacterForm({
                 <Label htmlFor="equipment">Equipment (one per line)</Label>
                 <Textarea
                   id="equipment"
-                  value={formData.equipment.join("\n")}
+                  value={(formData.equipment || []).join("\n")}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
@@ -572,7 +615,7 @@ export function CharacterForm({
                 <Label htmlFor="spells">Spells (one per line)</Label>
                 <Textarea
                   id="spells"
-                  value={formData.spells.join("\n")}
+                  value={(formData.spells || []).join("\n")}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
@@ -605,8 +648,8 @@ export function CharacterForm({
           </Tabs>
 
           <div className="flex gap-3 pt-4">
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="flex-1"
               disabled={isSaving}
             >
@@ -622,9 +665,9 @@ export function CharacterForm({
                 </>
               )}
             </Button>
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={onCancel}
               disabled={isSaving}
             >
