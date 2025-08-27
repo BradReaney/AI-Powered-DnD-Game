@@ -193,11 +193,7 @@ router.post('/:campaignId/locations', async (req, res) => {
     const locationData = req.body;
 
     // Validate required fields
-    if (
-      !locationData.name ||
-      !locationData.type ||
-      !locationData.description
-    ) {
+    if (!locationData.name || !locationData.type || !locationData.description) {
       return res.status(400).json({ error: 'Missing required location fields' });
     }
 

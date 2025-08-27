@@ -1,1 +1,18 @@
-{}
+{
+  "/api/campaigns/[campaignId]/initialize/route": "app/api/campaigns/[campaignId]/initialize/route.js",
+  "/api/campaigns/[campaignId]/route": "app/api/campaigns/[campaignId]/route.js",
+  "/api/characters/campaign/[campaignId]/route": "app/api/characters/campaign/[campaignId]/route.js",
+  "/api/campaigns/route": "app/api/campaigns/route.js",
+  "/api/characters/route": "app/api/characters/route.js",
+  "/api/health/route": "app/api/health/route.js",
+  "/api/characters/simple/route": "app/api/characters/simple/route.js",
+  "/api/locations/campaign/[campaignId]/route": "app/api/locations/campaign/[campaignId]/route.js",
+  "/api/locations/route": "app/api/locations/route.js",
+  "/api/sessions/auto-create/route": "app/api/sessions/auto-create/route.js",
+  "/api/sessions/active/route": "app/api/sessions/active/route.js",
+  "/api/sessions/[sessionId]/messages/route": "app/api/sessions/[sessionId]/messages/route.js",
+  "/api/sessions/route": "app/api/sessions/route.js",
+  "/api/gameplay/story-response/route": "app/api/gameplay/story-response/route.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/page": "app/page.js"
+}

@@ -112,22 +112,22 @@ interface BackendSession {
   updatedAt: Date;
 }
 
-export function adaptCampaign(backendCampaign: BackendCampaign): Campaign {
-  return {
+export function adaptCampaign(backendCampaign: any): Campaign {
+  const result: Campaign = {
     id: backendCampaign._id,
     name: backendCampaign.name,
-    description: backendCampaign.description,
-    theme: backendCampaign.theme || "Adventure",
-    difficulty: backendCampaign.settings?.difficulty || "Medium",
+    description: backendCampaign.description || "",
+    theme: backendCampaign.theme || "fantasy",
+    difficulty: backendCampaign.difficulty || "medium",
     status: backendCampaign.status || "active",
     createdAt: new Date(backendCampaign.createdAt),
     updatedAt: new Date(backendCampaign.updatedAt),
     sessions:
-      backendCampaign.sessions?.map((session) => ({
+      backendCampaign.sessions?.map((session: any) => ({
         id: session.sessionId,
-        campaignId: backendCampaign._id,
+        campaignId: backendCampaign._id?.toString() || backendCampaign._id,
         title: session.title || `Session ${session.sessionNumber}`,
-        name: session.name,
+        name: session.name || `Session ${session.sessionNumber}`,
         description: session.description || `Session ${session.sessionNumber}`,
         date: new Date(session.date),
         isCompleted: session.isCompleted || false,
@@ -136,56 +136,59 @@ export function adaptCampaign(backendCampaign: BackendCampaign): Campaign {
         status: session.status || "In Progress",
         duration: session.duration,
         summary: session.summary,
-        createdAt: new Date(session.createdAt),
-        updatedAt: new Date(session.updatedAt),
+        createdAt: new Date(session.createdAt || session.date),
+        updatedAt: new Date(session.updatedAt || session.date),
       })) || [],
     // Add the additional fields from backend model
     settings: backendCampaign.settings,
     worldState: backendCampaign.worldState,
-    progress: undefined, // Will be added if available
-    characters: undefined, // Will be added if available
-    storyContext: undefined, // Will be added if available
-    createdBy: undefined, // Will be added if available
-    lastPlayed: undefined, // Will be added if available
-    totalPlayTime: undefined, // Will be added if available
+    progress: backendCampaign.progress,
+    characters: backendCampaign.characters,
+    storyContext: backendCampaign.storyContext,
+    createdBy: backendCampaign.createdBy,
+    lastPlayed: backendCampaign.lastPlayed,
+    totalPlayTime: backendCampaign.totalPlayTime,
   };
+
+  return result;
 }
 
-export function adaptCharacter(backendCharacter: BackendCharacter): Character {
+export function adaptCharacter(backendCharacter: any): Character {
   return {
-    id: backendCharacter._id,
-    campaignId: backendCharacter.campaignId,
+    id: backendCharacter._id?.toString() || backendCharacter._id,
+    campaignId:
+      backendCharacter.campaignId?.toString() || backendCharacter.campaignId,
     name: backendCharacter.name,
     race: backendCharacter.race,
     class: backendCharacter.class,
     level: backendCharacter.level,
-    alignment: backendCharacter.personality.alignment,
-    background: backendCharacter.personality.background,
+    alignment: backendCharacter.personality?.alignment || "Neutral",
+    background: backendCharacter.personality?.background || "Adventurer",
     hitPoints: {
-      current: backendCharacter.hitPoints.current,
-      maximum: backendCharacter.hitPoints.maximum,
+      current: backendCharacter.hitPoints?.current || 0,
+      maximum: backendCharacter.hitPoints?.maximum || 0,
     },
-    armorClass: backendCharacter.armorClass,
+    armorClass: backendCharacter.armorClass || 10,
     proficiencyBonus: Math.floor((backendCharacter.level - 1) / 4) + 2,
     stats: {
-      strength: backendCharacter.attributes.strength,
-      dexterity: backendCharacter.attributes.dexterity,
-      constitution: backendCharacter.attributes.constitution,
-      intelligence: backendCharacter.attributes.intelligence,
-      wisdom: backendCharacter.attributes.wisdom,
-      charisma: backendCharacter.attributes.charisma,
+      strength: backendCharacter.attributes?.strength || 10,
+      dexterity: backendCharacter.attributes?.dexterity || 10,
+      constitution: backendCharacter.attributes?.constitution || 10,
+      intelligence: backendCharacter.attributes?.intelligence || 10,
+      wisdom: backendCharacter.attributes?.wisdom || 10,
+      charisma: backendCharacter.attributes?.charisma || 10,
     },
-    skills: Object.keys(backendCharacter.skills).filter(
-      (skill) => backendCharacter.skills[skill].proficient,
+    skills: Object.keys(backendCharacter.skills || {}).filter(
+      (skill) => backendCharacter.skills[skill]?.proficient,
     ),
     equipment: [
-      ...(backendCharacter.equipment?.weapons?.map((w) => w.name) || []),
+      ...(backendCharacter.equipment?.weapons?.map((w: any) => w.name) || []),
       ...(backendCharacter.equipment?.armor
         ? [backendCharacter.equipment.armor.name]
         : []),
-      ...(backendCharacter.equipment?.items?.map((i) => i.name) || []),
+      ...(backendCharacter.equipment?.items?.map((i: any) => i.name) || []),
     ],
-    backstory: backendCharacter.personality.traits?.join(", ") || "",
+    backstory: backendCharacter.personality?.traits?.join(", ") || "",
     createdAt: new Date(backendCharacter.createdAt),
     updatedAt: new Date(backendCharacter.updatedAt),
   };
@@ -193,14 +196,19 @@ export function adaptCharacter(backendCharacter: BackendCharacter): Character {
 
 export function adaptLocation(backendLocation: BackendLocation): Location {
   return {
-    id: backendLocation._id,
-    campaignId: backendLocation.campaignId,
+    id: backendLocation._id?.toString() || backendLocation._id,
+    campaignId:
+      backendLocation.campaignId?.toString() || backendLocation.campaignId,
     name: backendLocation.name,
     type: backendLocation.type as
-      | "city"
+      | "settlement"
       | "dungeon"
       | "wilderness"
-      | "building"
+      | "landmark"
+      | "shop"
+      | "tavern"
+      | "temple"
+      | "castle"
       | "other",
     description: backendLocation.description,
     difficulty: backendLocation.difficulty || "Medium",
@@ -213,8 +221,9 @@ export function adaptLocation(backendLocation: BackendLocation): Location {
 
 export function adaptSession(backendSession: BackendSession): Session {
   return {
-    id: backendSession._id,
-    campaignId: backendSession.campaignId,
+    id: backendSession._id?.toString() || backendSession._id,
+    campaignId:
+      backendSession.campaignId?.toString() || backendSession.campaignId,
     title: backendSession.title || `Session ${backendSession.sessionNumber}`,
     name: backendSession.name,
     description:

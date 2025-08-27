@@ -3,7 +3,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IMessage extends Document {
   sessionId: string; // Changed from ObjectId to string to support UUIDs
   campaignId: mongoose.Types.ObjectId;
-  type: 'player' | 'ai' | 'system' | 'combat' | 'skill-check';
+  type: 'player' | 'ai' | 'system' | 'combat' | 'skill-check' | 'system-discovery';
   sender: string; // Character name or 'Dungeon Master' for AI
   characterId?: mongoose.Types.ObjectId; // For player messages
   content: string;
@@ -27,6 +27,12 @@ export interface IMessage extends Document {
     location?: string;
     importance?: 'minor' | 'moderate' | 'major' | 'critical';
     tags?: string[];
+    // Discovery message metadata
+    discoveryType?: 'character' | 'location';
+    entityId?: string;
+    confidence?: number;
+    extractionMethod?: 'llm' | 'pattern' | 'hybrid';
+    isNew?: boolean;
   };
   reactions?: Array<{
     characterId: mongoose.Types.ObjectId;
@@ -52,6 +58,7 @@ export interface IMessageModel extends mongoose.Model<IMessage> {
     _limit?: number,
     _includeTypes?: string[]
   ): Promise<IMessage[]>;
+  getRecentAIContext(_sessionId: string, _limit?: number): Promise<IMessage[]>;
 }
 
 const MessageSchema = new Schema<IMessage>(
@@ -69,7 +76,7 @@ const MessageSchema = new Schema<IMessage>(
     },
     type: {
       type: String,
-      enum: ['player', 'ai', 'system', 'combat', 'skill-check'],
+      enum: ['player', 'ai', 'system', 'combat', 'skill-check', 'system-discovery'],
       required: true,
       index: true,
     },
@@ -222,6 +229,19 @@ MessageSchema.statics.getRecentContext = function (
     .sort({ timestamp: 1 }) // Changed to ascending order for conversation context
     .limit(limit)
     .populate('characterId', 'name race class level')
+    .lean();
+};
+
+// Static method to get recent messages for AI context (simplified)
+MessageSchema.statics.getRecentAIContext = function (sessionId: string, limit: number = 10) {
+  return this.find({
+    sessionId,
+    type: { $in: ['player', 'ai'] },
+    deleted: { $ne: true },
+  })
+    .sort({ timestamp: -1 }) // Most recent first
+    .limit(limit)
+    .select('content type timestamp')
     .lean();
 };
 

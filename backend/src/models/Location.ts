@@ -178,13 +178,10 @@ const LocationSchema = new Schema<ILocation>(
     resources: [String],
     pointsOfInterest: [
       {
-        name: String,
-        description: String,
-        type: String,
-        isExplored: {
-          type: Boolean,
-          default: false,
-        },
+        name: { type: String, required: true },
+        description: { type: String, required: true },
+        type: { type: String, required: true },
+        isExplored: { type: Boolean, default: false },
       },
     ],
 

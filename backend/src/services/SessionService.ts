@@ -57,7 +57,7 @@ export class SessionService {
   private gameEngineService: GameEngineService | null = null;
   private io: SocketIOServer | null = null;
 
-  private constructor() { }
+  private constructor() {}
 
   public static getInstance(): SessionService {
     if (!SessionService.instance) {
@@ -141,7 +141,7 @@ export class SessionService {
   ): Promise<boolean> {
     try {
       // Get character from source session
-      const sourceSession = await Session.findOne({_id: fromSessionId});
+      const sourceSession = await Session.findOne({ _id: fromSessionId });
       if (!sourceSession) {
         throw new Error('Source session not found');
       }
@@ -155,7 +155,7 @@ export class SessionService {
       }
 
       // Get target session
-      const targetSession = await Session.findOne({_id: toSessionId});
+      const targetSession = await Session.findOne({ _id: toSessionId });
       if (!targetSession) {
         throw new Error('Target session not found');
       }
@@ -169,13 +169,19 @@ export class SessionService {
       }
 
       // Transfer character
-      await Session.findOneAndUpdate({_id: fromSessionId}, {
-        $pull: { 'gameState.activeCharacters': characterId },
-      });
+      await Session.findOneAndUpdate(
+        { _id: fromSessionId },
+        {
+          $pull: { 'gameState.activeCharacters': characterId },
+        }
+      );
 
-      await Session.findOneAndUpdate({_id: toSessionId}, {
-        $push: { 'gameState.activeCharacters': characterId },
-      });
+      await Session.findOneAndUpdate(
+        { _id: toSessionId },
+        {
+          $push: { 'gameState.activeCharacters': characterId },
+        }
+      );
 
       logger.info(
         `Character ${characterId} transferred from session ${fromSessionId} to ${toSessionId}`
@@ -251,7 +257,7 @@ export class SessionService {
         return cached;
       }
 
-      const session = await Session.findOne({_id: sessionId});
+      const session = await Session.findOne({ _id: sessionId });
       if (!session) {
         return null;
       }
@@ -259,8 +265,8 @@ export class SessionService {
       // Calculate analytics based on session data
       const duration = session.metadata.endTime
         ? (new Date(session.metadata.endTime).getTime() -
-          new Date(session.metadata.startTime).getTime()) /
-        (1000 * 60) // minutes
+            new Date(session.metadata.startTime).getTime()) /
+          (1000 * 60) // minutes
         : 0;
 
       const storyEventsCount = session.storyEvents?.length || 0;
@@ -388,9 +394,12 @@ export class SessionService {
   // Session tagging
   public async addSessionTags(sessionId: string, tags: string[]): Promise<void> {
     try {
-      await Session.findOneAndUpdate({_id: sessionId}, {
-        $addToSet: { tags: { $each: tags } },
-      });
+      await Session.findOneAndUpdate(
+        { _id: sessionId },
+        {
+          $addToSet: { tags: { $each: tags } },
+        }
+      );
 
       // Invalidate related cache
       await this.invalidateSessionCache(sessionId);
@@ -404,9 +413,12 @@ export class SessionService {
 
   public async removeSessionTags(sessionId: string, tags: string[]): Promise<void> {
     try {
-      await Session.findOneAndUpdate({_id: sessionId}, {
-        $pull: { tags: { $in: tags } },
-      });
+      await Session.findOneAndUpdate(
+        { _id: sessionId },
+        {
+          $pull: { tags: { $in: tags } },
+        }
+      );
 
       // Invalidate related cache
       await this.invalidateSessionCache(sessionId);
@@ -421,7 +433,7 @@ export class SessionService {
   // Advanced archiving
   public async archiveSession(sessionId: string, archiveReason: string): Promise<void> {
     try {
-      const session = await Session.findOne({_id: sessionId});
+      const session = await Session.findOne({ _id: sessionId });
       if (!session) {
         throw new Error('Session not found');
       }
@@ -439,13 +451,16 @@ export class SessionService {
       };
 
       // Mark session as archived
-      await Session.findOneAndUpdate({_id: sessionId}, {
-        $set: {
-          status: 'archived',
-          'metadata.archivedAt': new Date(),
-          'metadata.archiveReason': archiveReason,
-        },
-      });
+      await Session.findOneAndUpdate(
+        { _id: sessionId },
+        {
+          $set: {
+            status: 'archived',
+            'metadata.archivedAt': new Date(),
+            'metadata.archiveReason': archiveReason,
+          },
+        }
+      );
 
       // Invalidate related cache
       await this.invalidateSessionCache(sessionId);
@@ -478,7 +493,7 @@ export class SessionService {
 
   public async restoreSession(sessionId: string): Promise<void> {
     try {
-      const session = await Session.findOne({_id: sessionId});
+      const session = await Session.findOne({ _id: sessionId });
       if (!session) {
         throw new Error('Session not found');
       }
@@ -487,10 +502,13 @@ export class SessionService {
         throw new Error('Session is not archived');
       }
 
-      await Session.findOneAndUpdate({_id: sessionId}, {
-        status: 'active',
-        $unset: { 'metadata.archivedAt': 1, 'metadata.archiveReason': 1 },
-      });
+      await Session.findOneAndUpdate(
+        { _id: sessionId },
+        {
+          status: 'active',
+          $unset: { 'metadata.archivedAt': 1, 'metadata.archiveReason': 1 },
+        }
+      );
 
       logger.info(`Restored archived session ${sessionId}`);
     } catch (error) {
@@ -506,7 +524,7 @@ export class SessionService {
     permissions: 'read' | 'write' | 'admin'
   ): Promise<void> {
     try {
-      const session = await Session.findOne({_id: sessionId});
+      const session = await Session.findOne({ _id: sessionId });
       if (!session) {
         throw new Error('Session not found');
       }
@@ -518,9 +536,12 @@ export class SessionService {
         sharedAt: new Date(),
       }));
 
-      await Session.findOneAndUpdate({_id: sessionId}, {
-        $addToSet: { sharedWith: { $each: sharingData } },
-      });
+      await Session.findOneAndUpdate(
+        { _id: sessionId },
+        {
+          $addToSet: { sharedWith: { $each: sharingData } },
+        }
+      );
 
       logger.info(`Shared session ${sessionId} with ${shareWith.length} users`);
     } catch (error) {
@@ -776,7 +797,7 @@ export class SessionService {
 
   public async deleteSession(sessionId: string): Promise<void> {
     try {
-      const session = await Session.findOne({_id: sessionId});
+      const session = await Session.findOne({ _id: sessionId });
       if (!session) {
         throw new Error('Session not found');
       }
@@ -799,12 +820,164 @@ export class SessionService {
         StoryEvent.deleteMany({ sessionId }),
 
         // Finally delete the session itself
-        Session.findOneAndDelete({_id: sessionId}),
+        Session.findOneAndDelete({ _id: sessionId }),
       ]);
 
       logger.info(`Deleted session: ${session.name} and all related data`);
     } catch (error) {
       logger.error('Error deleting session:', error);
+      throw error;
+    }
+  }
+
+  // Create a new session automatically for gameplay
+  public async createAutomaticSession(
+    campaignId: string,
+    characterId: string,
+    sessionId: string
+  ): Promise<any> {
+    try {
+      // Get the next session number for this campaign
+      const lastSession = await Session.findOne({ campaignId })
+        .sort({ sessionNumber: -1 })
+        .limit(1);
+
+      const nextSessionNumber = lastSession ? lastSession.sessionNumber + 1 : 1;
+
+      // Create a new session with minimal required data
+      const newSession = new Session({
+        _id: sessionId,
+        campaignId,
+        sessionNumber: nextSessionNumber,
+        name: `Session ${nextSessionNumber}`,
+        status: 'active',
+        createdBy: 'AI Dungeon Master',
+        createdAt: new Date(),
+        metadata: {
+          dm: 'AI Dungeon Master',
+          location: 'Starting Location',
+          weather: 'Clear',
+          timeOfDay: 'morning',
+          startTime: new Date(),
+          players: [
+            {
+              playerId: 'ai-dm', // Use a default player ID for AI-created sessions
+              characterId,
+              joinedAt: new Date(),
+            },
+          ],
+          tags: ['auto-created', 'gameplay'],
+          difficulty: 'medium',
+          sessionType: 'mixed',
+        },
+        gameState: {
+          currentScene: 'Starting Location',
+          sceneDescription: 'Your adventure begins here...',
+          activeCharacters: [characterId],
+          currentTurn: 1,
+          initiativeOrder: [],
+          combatState: {
+            isActive: false,
+            round: 0,
+            currentCharacter: null,
+            conditions: [],
+          },
+          worldState: {
+            currentLocation: 'Starting Location',
+            discoveredLocations: [],
+            activeEffects: [],
+          },
+        },
+        storyEvents: [],
+      });
+
+      await newSession.save();
+      logger.info(`Created automatic session ${sessionId} for campaign ${campaignId}`);
+
+      // Invalidate cache
+      await this.invalidateSessionCache(sessionId);
+
+      return newSession;
+    } catch (error) {
+      logger.error('Error creating automatic session:', error);
+      throw error;
+    }
+  }
+
+  // Update session activity timestamp
+  public async updateSessionActivity(sessionId: string): Promise<void> {
+    try {
+      await Session.findByIdAndUpdate(sessionId, {
+        lastActivity: new Date(),
+      });
+      logger.debug(`Updated activity for session: ${sessionId}`);
+    } catch (error) {
+      logger.error('Error updating session activity:', error);
+      throw error;
+    }
+  }
+
+  // Close inactive sessions after 1 hour of inactivity
+  public async closeInactiveSessions(): Promise<number> {
+    try {
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+
+      const inactiveSessions = await Session.find({
+        status: 'active',
+        lastActivity: { $lt: oneHourAgo },
+      });
+
+      let closedCount = 0;
+      for (const session of inactiveSessions) {
+        try {
+          // Update session status and metadata directly
+          session.status = 'inactive';
+          session.metadata.endTime = new Date();
+
+          // Calculate duration based on start and end times
+          if (session.metadata.startTime && session.metadata.endTime) {
+            session.metadata.duration = Math.floor(
+              (session.metadata.endTime.getTime() - session.metadata.startTime.getTime()) /
+                (1000 * 60)
+            );
+          }
+
+          await session.save();
+
+          closedCount++;
+          logger.info(`Closed inactive session: ${session.name} (${session._id})`);
+
+          // Invalidate cache for closed session
+          await this.invalidateSessionCache(session._id);
+        } catch (error) {
+          logger.error(`Error closing session ${session._id}:`, error);
+        }
+      }
+
+      if (closedCount > 0) {
+        logger.info(`Closed ${closedCount} inactive sessions`);
+      }
+
+      return closedCount;
+    } catch (error) {
+      logger.error('Error closing inactive sessions:', error);
+      throw error;
+    }
+  }
+
+  // Get sessions that are approaching inactivity threshold (for monitoring)
+  public async getSessionsApproachingInactivity(thresholdMinutes: number = 45): Promise<any[]> {
+    try {
+      const thresholdTime = new Date(Date.now() - thresholdMinutes * 60 * 1000);
+
+      const sessions = await Session.find({
+        status: 'active',
+        lastActivity: { $lt: thresholdTime },
+      }).select('_id name campaignId lastActivity status');
+
+      return sessions;
+    } catch (error) {
+      logger.error('Error getting sessions approaching inactivity:', error);
       throw error;
     }
   }

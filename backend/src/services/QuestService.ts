@@ -102,13 +102,13 @@ export interface WorldExplorationData {
 export interface FactionData {
   name: string;
   type:
-  | 'guild'
-  | 'noble house'
-  | 'religious order'
-  | 'mercenary company'
-  | 'criminal syndicate'
-  | 'government'
-  | 'academy';
+    | 'guild'
+    | 'noble house'
+    | 'religious order'
+    | 'mercenary company'
+    | 'criminal syndicate'
+    | 'government'
+    | 'academy';
   alignment: string;
   influence: number; // 0-100
   territory: string[];
@@ -922,7 +922,7 @@ Format as JSON with the structure:
         averageExperiencePerQuest:
           completedQuests.length > 0
             ? completedQuests.reduce((sum, q) => sum + q.experienceReward, 0) /
-            completedQuests.length
+              completedQuests.length
             : 0,
         totalExperienceRewarded: completedQuests.reduce((sum, q) => sum + q.experienceReward, 0),
         totalGoldRewarded: 0, // Campaign model doesn't store gold rewards

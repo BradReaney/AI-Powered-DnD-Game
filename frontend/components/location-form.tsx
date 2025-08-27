@@ -37,8 +37,8 @@ interface LocationFormProps {
 
 const LOCATION_TYPES = [
   {
-    value: "city",
-    label: "City",
+    value: "settlement",
+    label: "Settlement",
     description: "Towns, villages, and urban settlements",
   },
   {
@@ -52,9 +52,29 @@ const LOCATION_TYPES = [
     description: "Forests, mountains, and natural areas",
   },
   {
-    value: "building",
-    label: "Building",
-    description: "Taverns, shops, and specific structures",
+    value: "landmark",
+    label: "Landmark",
+    description: "Notable natural or constructed features",
+  },
+  {
+    value: "shop",
+    label: "Shop",
+    description: "Merchant establishments and markets",
+  },
+  {
+    value: "tavern",
+    label: "Tavern",
+    description: "Inns, pubs, and social gathering places",
+  },
+  {
+    value: "temple",
+    label: "Temple",
+    description: "Religious buildings and sacred sites",
+  },
+  {
+    value: "castle",
+    label: "Castle",
+    description: "Fortresses, palaces, and strongholds",
   },
   {
     value: "other",
@@ -74,7 +94,7 @@ export function LocationForm({
 }: LocationFormProps) {
   const [formData, setFormData] = useState({
     name: location?.name || "",
-    type: location?.type || ("settlement" as const),
+    type: location?.type || ("settlement" as const), // Fix: use "settlement" to match backend
     description: location?.description || "",
     inhabitants: location?.inhabitants || [],
     connections: location?.connections || [],
@@ -173,23 +193,19 @@ export function LocationForm({
             <Label htmlFor="type">Location Type</Label>
             <Select
               value={formData.type}
-              onValueChange={(value: any) =>
-                setFormData({ ...formData, type: value })
+              onValueChange={(value) =>
+                setFormData({ ...formData, type: value as any })
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select location type" />
+                <SelectValue placeholder="Choose location type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="settlement">Settlement</SelectItem>
-                <SelectItem value="dungeon">Dungeon</SelectItem>
-                <SelectItem value="wilderness">Wilderness</SelectItem>
-                <SelectItem value="landmark">Landmark</SelectItem>
-                <SelectItem value="shop">Shop</SelectItem>
-                <SelectItem value="tavern">Tavern</SelectItem>
-                <SelectItem value="temple">Temple</SelectItem>
-                <SelectItem value="castle">Castle</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+                {LOCATION_TYPES.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -322,9 +338,9 @@ export function LocationForm({
                 </>
               )}
             </Button>
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={onCancel}
               disabled={isSaving}
             >

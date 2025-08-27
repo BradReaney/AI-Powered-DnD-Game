@@ -4,49 +4,85 @@ export interface Campaign {
   description: string;
   theme: string; // Changed from setting to match backend
   difficulty: string;
-  status: 'active' | 'paused' | 'completed' | 'archived'; // Changed from isActive to match backend
+  status: "active" | "paused" | "completed" | "archived"; // Changed from isActive to match backend
   imageUrl?: string;
   createdAt: Date;
   updatedAt: Date;
   sessions: Session[];
   // Add missing fields from backend model
   settings?: {
-    difficulty: 'easy' | 'medium' | 'hard' | 'deadly';
+    difficulty: "easy" | "medium" | "hard" | "deadly";
     maxLevel: number;
     startingLevel: number;
-    experienceRate: 'slow' | 'normal' | 'fast';
-    magicLevel: 'low' | 'medium' | 'high';
-    technologyLevel: 'primitive' | 'medieval' | 'renaissance' | 'modern' | 'futuristic';
+    experienceRate: "slow" | "normal" | "fast";
+    magicLevel: "low" | "medium" | "high";
+    technologyLevel:
+    | "primitive"
+    | "medieval"
+    | "renaissance"
+    | "modern"
+    | "futuristic";
+    aiBehavior?: {
+      creativity: "low" | "medium" | "high";
+      detailLevel: "minimal" | "moderate" | "detailed";
+      pacing: "slow" | "normal" | "fast";
+      combatStyle: "defensive" | "balanced" | "aggressive";
+    };
+    playerSettings?: {
+      maxPlayers: number;
+      allowNewPlayers: boolean;
+      playerPermissions: {
+        canCreateCharacters: boolean;
+        canModifyWorld: boolean;
+        canManageSessions: boolean;
+      };
+    };
   };
   worldState?: {
     currentLocation: string;
     knownLocations: Array<{
       name: string;
-      type: 'city' | 'town' | 'village' | 'dungeon' | 'wilderness' | 'other';
+      type: "city" | "town" | "village" | "dungeon" | "wilderness" | "other";
       description: string;
       discovered: boolean;
       visited: boolean;
     }>;
     factions: Array<{
       name: string;
-      type: 'guild' | 'noble house' | 'religious order' | 'mercenary company' | 'criminal syndicate' | 'other';
+      type:
+      | "guild"
+      | "noble house"
+      | "religious order"
+      | "mercenary company"
+      | "criminal syndicate"
+      | "other";
       alignment: string;
       influence: number;
-      relationship: 'hostile' | 'unfriendly' | 'neutral' | 'friendly' | 'allied';
+      relationship:
+      | "hostile"
+      | "unfriendly"
+      | "neutral"
+      | "friendly"
+      | "allied";
       description: string;
     }>;
     activeThreats: Array<{
       name: string;
-      type: 'monster' | 'organization' | 'natural disaster' | 'political' | 'other';
-      threatLevel: 'low' | 'medium' | 'high' | 'critical';
+      type:
+      | "monster"
+      | "organization"
+      | "natural disaster"
+      | "political"
+      | "other";
+      threatLevel: "low" | "medium" | "high" | "critical";
       description: string;
       location: string;
-      status: 'active' | 'defeated' | 'resolved';
+      status: "active" | "defeated" | "resolved";
     }>;
     worldEvents: Array<{
       title: string;
       description: string;
-      impact: 'minor' | 'moderate' | 'major' | 'catastrophic';
+      impact: "minor" | "moderate" | "major" | "catastrophic";
       resolved: boolean;
       timestamp: Date;
     }>;
@@ -68,7 +104,7 @@ export interface Campaign {
         description: string;
         completed: boolean;
       }>;
-      difficulty: 'easy' | 'medium' | 'hard' | 'deadly';
+      difficulty: "easy" | "medium" | "hard" | "deadly";
       experienceReward: number;
       timeLimit?: Date;
     }>;
@@ -80,7 +116,7 @@ export interface Campaign {
   };
   characters?: Array<{
     characterId: string;
-    role: 'player' | 'dm' | 'npc';
+    role: "player" | "dm" | "npc";
     joinedAt: Date;
     isActive: boolean;
   }>;
@@ -92,7 +128,7 @@ export interface Campaign {
       event: string;
       characters: string[];
       location: string;
-      importance: 'minor' | 'moderate' | 'major' | 'critical';
+      importance: "minor" | "moderate" | "major" | "critical";
     }>;
     npcDatabase: Array<{
       name: string;
@@ -108,7 +144,7 @@ export interface Campaign {
       title: string;
       content: string;
       discoveredBy: string[];
-      importance: 'common' | 'uncommon' | 'rare' | 'legendary';
+      importance: "common" | "uncommon" | "rare" | "legendary";
     }>;
   };
   createdBy?: string;
@@ -162,16 +198,52 @@ export interface Character {
   equipment: string[];
   spells?: string[];
   backstory?: string;
+  description?: string;
   imageUrl?: string;
   createdAt: Date;
   updatedAt: Date;
+  // Additional fields for slash command updates
+  speed?: number;
+  initiative?: number;
+  goals?: string[];
+  fears?: string[];
+  traits?: string[];
+  tags?: string[];
+  status?: "active" | "inactive" | "deceased";
+  // Additional properties used in forms
+  attributes?: {
+    strength: number;
+    dexterity: number;
+    constitution: number;
+    intelligence: number;
+    wisdom: number;
+    charisma: number;
+  };
+  personality?: {
+    alignment: string;
+    background: string;
+    traits: string[];
+    ideals: string[];
+    bonds: string[];
+    flaws: string[];
+  };
 }
 
 export interface Location {
   id: string;
   campaignId: string;
   name: string;
-  type: "city" | "dungeon" | "wilderness" | "building" | "other";
+  type:
+  | "settlement"
+  | "dungeon"
+  | "wilderness"
+  | "landmark"
+  | "shop"
+  | "tavern"
+  | "temple"
+  | "castle"
+  | "city"
+  | "other";
   description: string;
   difficulty: string;
   inhabitants?: string[];
@@ -179,21 +251,44 @@ export interface Location {
   imageUrl?: string;
   createdAt: Date;
   updatedAt: Date;
+  // Additional fields for slash command updates
+  importance?: "minor" | "moderate" | "major" | "critical";
+  tags?: string[];
+  climate?: string;
+  terrain?: string;
+  lighting?: string;
+  weather?: string;
+  isExplored?: boolean;
+  isSafe?: boolean;
+  pointsOfInterest?: Array<{
+    name: string;
+    description: string;
+    type: string;
+    isExplored: boolean;
+  }>;
 }
 
 export interface ChatMessage {
   id: string;
   sessionId: string;
-  sender: "player" | "dm";
+  sender: "player" | "dm" | "system";
   content: string;
   timestamp: Date;
-  type: "message" | "action" | "roll";
+  type: "message" | "action" | "roll" | "system-discovery";
   metadata?: {
     characterId?: string;
     diceRoll?: {
       dice: string;
       result: number;
       modifier: number;
+    };
+    discovery?: {
+      discoveryType: "character" | "location";
+      entityId: string;
+      confidence: number;
+      extractionMethod: "llm" | "pattern" | "hybrid";
+      entityDetails: any;
+      isNew: boolean;
     };
   };
 }
@@ -242,7 +337,11 @@ export interface CommandHandler {
   usage: string;
   examples: string[];
   category: "character" | "dice" | "combat" | "utility";
-  execute: (args: string[], character: Character, campaign: Campaign) => CommandResponse;
+  execute: (
+    args: string[],
+    character: Character,
+    campaign: Campaign,
+  ) => CommandResponse;
 }
 
 export interface CommandHelp {

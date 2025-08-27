@@ -6,10 +6,9 @@ export const mockCampaigns: Campaign[] = [
     name: "The Lost Mines of Phandelver",
     description:
       "A classic adventure for new heroes seeking fame and fortune in the dangerous ruins of an ancient dwarven mine.",
-    setting: "Forgotten Realms",
     theme: "Fantasy Adventure",
     difficulty: "Beginner",
-    isActive: true,
+    status: "active",
     createdAt: new Date("2024-01-15"),
     updatedAt: new Date("2024-01-20"),
     sessions: [
@@ -66,10 +65,9 @@ export const mockCampaigns: Campaign[] = [
     name: "Curse of Strahd",
     description:
       "A gothic horror adventure in the mist-shrouded realm of Barovia, ruled by the vampire lord Strahd von Zarovich.",
-    setting: "Ravenloft",
     theme: "Gothic Horror",
     difficulty: "Advanced",
-    isActive: true,
+    status: "active",
     createdAt: new Date("2024-02-01"),
     updatedAt: new Date("2024-02-01"),
     sessions: [
@@ -96,10 +94,9 @@ export const mockCampaigns: Campaign[] = [
     name: "Dragon Heist",
     description:
       "Urban intrigue and treasure hunting in the great city of Waterdeep.",
-    setting: "Waterdeep",
     theme: "Urban Intrigue",
     difficulty: "Intermediate",
-    isActive: false,
+    status: "paused",
     createdAt: new Date("2024-01-01"),
     updatedAt: new Date("2024-01-10"),
     sessions: [],
@@ -222,7 +219,7 @@ export const mockLocations: Location[] = [
     id: "1",
     campaignId: "1",
     name: "Phandelver",
-    type: "city",
+    type: "settlement",
     description:
       "A small mining town nestled in the foothills of the Sword Mountains.",
     difficulty: "Safe",
@@ -248,7 +245,7 @@ export const mockLocations: Location[] = [
     id: "3",
     campaignId: "2",
     name: "Village of Barovia",
-    type: "city",
+    type: "settlement",
     description:
       "A gloomy village surrounded by mist, with dark secrets lurking in every shadow.",
     difficulty: "Dangerous",

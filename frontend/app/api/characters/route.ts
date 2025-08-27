@@ -5,7 +5,7 @@ export async function GET(request: NextRequest) {
     // Get backend URL for server-side requests (use service name in Docker)
     const backendUrl = process.env.BACKEND_URL;
     if (!backendUrl) {
-      throw new Error('BACKEND_URL environment variable is required');
+      throw new Error("BACKEND_URL environment variable is required");
     }
 
     // Get the campaign ID from the query parameters
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     // Get backend URL for server-side requests (use service name in Docker)
     const backendUrl = process.env.BACKEND_URL;
     if (!backendUrl) {
-      throw new Error('BACKEND_URL environment variable is required');
+      throw new Error("BACKEND_URL environment variable is required");
     }
 
     // Get the request body

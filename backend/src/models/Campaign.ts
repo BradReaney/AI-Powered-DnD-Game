@@ -68,12 +68,12 @@ export interface ICampaign extends Document {
     factions: Array<{
       name: string;
       type:
-      | 'guild'
-      | 'noble house'
-      | 'religious order'
-      | 'mercenary company'
-      | 'criminal syndicate'
-      | 'other';
+        | 'guild'
+        | 'noble house'
+        | 'religious order'
+        | 'mercenary company'
+        | 'criminal syndicate'
+        | 'other';
       alignment: string;
       influence: number; // 0-100
       relationship: 'hostile' | 'unfriendly' | 'neutral' | 'friendly' | 'allied';

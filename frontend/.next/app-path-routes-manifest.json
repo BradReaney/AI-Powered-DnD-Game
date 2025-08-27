@@ -1,1 +1,18 @@
-{"/_not-found/page":"/_not-found","/page":"/"}
+{
+  "/api/campaigns/[campaignId]/initialize/route": "/api/campaigns/[campaignId]/initialize",
+  "/api/campaigns/[campaignId]/route": "/api/campaigns/[campaignId]",
+  "/api/characters/campaign/[campaignId]/route": "/api/characters/campaign/[campaignId]",
+  "/api/campaigns/route": "/api/campaigns",
+  "/api/characters/route": "/api/characters",
+  "/api/health/route": "/api/health",
+  "/api/characters/simple/route": "/api/characters/simple",
+  "/api/locations/campaign/[campaignId]/route": "/api/locations/campaign/[campaignId]",
+  "/api/locations/route": "/api/locations",
+  "/api/sessions/auto-create/route": "/api/sessions/auto-create",
+  "/api/sessions/active/route": "/api/sessions/active",
+  "/api/sessions/[sessionId]/messages/route": "/api/sessions/[sessionId]/messages",
+  "/api/sessions/route": "/api/sessions",
+  "/api/gameplay/story-response/route": "/api/gameplay/story-response",
+  "/_not-found/page": "/_not-found",
+  "/page": "/"
+}

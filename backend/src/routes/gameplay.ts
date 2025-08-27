@@ -270,148 +270,6 @@ router.post('/story-response', async (req, res) => {
       });
     }
 
-    // Save the player message to the database if sessionId is provided
-    let userMessageId = null;
-    if (sessionId) {
-      try {
-        const { Message: MessageModel } = await import('../models');
-        const userMessage = new MessageModel({
-          sessionId,
-          campaignId,
-          type: 'player',
-          sender: 'You',
-          content: playerAction,
-          timestamp: new Date(),
-          metadata: {
-            aiResponse: false,
-            originalMessage: playerAction,
-          },
-        });
-        await userMessage.save();
-        userMessageId = userMessage._id;
-      } catch (saveError) {
-        logger.warn('Failed to save player message to database:', saveError);
-        // Continue with the response even if saving fails
-      }
-    }
-
-    // Save the AI response to the database if sessionId is provided
-    let aiMessageId = null;
-    if (sessionId) {
-      try {
-        const { Message: MessageModel } = await import('../models');
-        const aiMessage = new MessageModel({
-          sessionId,
-          campaignId,
-          type: 'ai',
-          sender: 'AI Game Master',
-          content: response.content,
-          timestamp: new Date(),
-          metadata: {
-            aiResponse: true,
-            originalMessage: playerAction,
-            usage: response.usage,
-          },
-        });
-        await aiMessage.save();
-        aiMessageId = aiMessage._id;
-      } catch (saveError) {
-        logger.warn('Failed to save AI response to database:', saveError);
-        // Continue with the response even if saving fails
-      }
-    }
-
-    // Add the player action and AI response to context
-    contextManager.addContextLayer(campaignId, 'immediate', `Player Action: ${playerAction}`, 8);
-
-    contextManager.addContextLayer(campaignId, 'immediate', `AI Response: ${response.content}`, 7);
-
-    return res.json({
-      success: true,
-      aiResponse: response.content,
-      usage: response.usage,
-      message: 'Story response generated successfully',
-      userMessageId,
-      aiMessageId,
-    });
-  } catch (error) {
-    logger.error('Error generating story response:', error);
-    return res.status(500).json({
-      error: 'Failed to generate story response',
-      details: error instanceof Error ? error.message : 'Unknown error',
-    });
-  }
-});
-
-// Generate AI story with character extraction
-router.post('/story-generate', async (req, res) => {
-  try {
-    const { prompt, campaignId, sessionId } = req.body;
-
-    // Validate required fields
-    if (!prompt || !campaignId || !sessionId) {
-      return res.status(400).json({
-        error: 'Missing required fields: prompt, campaignId, sessionId',
-      });
-    }
-
-    // Get campaign context
-    const campaignContext = await contextManager.getContext(campaignId);
-
-    // Get recent chat history for conversation context (max 10 messages)
-    const { Message: MessageModel } = await import('../models');
-    const chatHistory = await MessageModel.getRecentContext(sessionId, 10, [
-      'player',
-      'ai',
-      'system',
-    ]);
-
-    // Build conversation context for AI
-    const conversationContext: Array<{
-      role: 'user' | 'model';
-      parts: Array<{ text: string }>;
-    }> = [];
-
-    // Limit conversation history to prevent context overflow
-    const maxHistoryMessages = 8;
-    const recentHistory = chatHistory.slice(-maxHistoryMessages);
-
-    // Add chat history messages in chronological order
-    recentHistory.forEach(msg => {
-      if (msg.type === 'player') {
-        conversationContext.push({
-          role: 'user',
-          parts: [{ text: msg.content }],
-        });
-      } else if (msg.type === 'ai') {
-        conversationContext.push({
-          role: 'model',
-          parts: [{ text: msg.content }],
-        });
-      }
-    });
-
-    // Add the current message
-    conversationContext.push({
-      role: 'user',
-      parts: [{ text: prompt }],
-    });
-
-    // STEP 1: Generate AI response with conversation history
-    const response = await geminiClient.sendPrompt({
-      prompt: prompt,
-      context: campaignContext,
-      taskType: 'story_response',
-      conversationHistory: conversationContext,
-    });
-
-    if (!response.success) {
-      return res.status(500).json({
-        error: 'Failed to generate AI response',
-        details: response.error,
-      });
-    }
-
     // Get the story content (remove any existing character markers)
     let storyContent = response.content;
 
@@ -430,7 +288,7 @@ router.post('/story-generate', async (req, res) => {
     try {
       const characterExtractionResponse = await geminiClient.extractCharacterInformation(
         storyContent,
-        prompt
+        playerAction
       );
 
       if (characterExtractionResponse.success) {
@@ -465,7 +323,7 @@ router.post('/story-generate', async (req, res) => {
     try {
       const locationExtractionResponse = await geminiClient.extractLocationInformation(
         storyContent,
-        prompt
+        playerAction
       );
 
       if (locationExtractionResponse.success) {
@@ -497,7 +355,7 @@ router.post('/story-generate', async (req, res) => {
 
     // If no locations found through LLM extraction, try fallback method
     if (locationsData.length === 0) {
-      locationsData = extractLocationsFromText(storyContent, prompt);
+      locationsData = extractLocationsFromText(storyContent, playerAction);
       logger.info('Fallback location extraction found locations:', {
         locationCount: locationsData.length,
         locationNames: locationsData.map(l => l.name),
@@ -506,7 +364,7 @@ router.post('/story-generate', async (req, res) => {
 
     // If no characters found through LLM extraction, fall back to the old method
     if (charactersData.length === 0) {
-      charactersData = extractCharactersFromText(storyContent, prompt);
+      charactersData = extractCharactersFromText(storyContent, playerAction);
       logger.info('Fallback character extraction found characters:', {
         characterCount: charactersData.length,
         characterNames: charactersData.map(c => c.name),
@@ -560,14 +418,26 @@ router.post('/story-generate', async (req, res) => {
 
     const filteredCharacters = charactersData.filter(char => {
       const charName = char.name.toLowerCase();
-      // Check if the character name contains location keywords
-      const isLocation = locationKeywords.some(
-        keyword =>
-          charName.includes(keyword) ||
-          charName.includes('the ') ||
-          charName.includes('an ') ||
-          charName.includes('a ')
-      );
+
+      // More intelligent filtering: only filter out if the name is clearly a location
+      // Check for exact matches or very specific location patterns
+      const isLocation = locationKeywords.some(keyword => {
+        // Only filter if the keyword is a significant part of the name
+        // and not just a common word that might appear in character names
+        if (keyword === 'wind' || keyword === 'stone' || keyword === 'iron' || keyword === 'gold') {
+          // These are common in character names, don't filter them out
+          return false;
+        }
+
+        // Check if the name starts with or ends with the keyword
+        // This helps avoid filtering out names like "Sylvan Whisperwind" where "wind" is part of a surname
+        return (
+          charName === keyword ||
+          charName.startsWith(keyword + ' ') ||
+          charName.endsWith(' ' + keyword) ||
+          charName.includes(' ' + keyword + ' ')
+        );
+      });
 
       if (isLocation) {
         logger.info('Filtered out potential location name as character:', char.name);
@@ -589,8 +459,8 @@ router.post('/story-generate', async (req, res) => {
 
     // Process characters if any were mentioned
     const processedCharacters: any[] = [];
-    if (charactersData.length > 0) {
-      const CharacterService = require('../services/CharacterService').default;
+    if (charactersData.length > 0 && sessionId) {
+      const CharacterService = (await import('../services/CharacterService')).default;
       const characterService = new CharacterService();
 
       for (const charData of charactersData) {
@@ -604,7 +474,7 @@ router.post('/story-generate', async (req, res) => {
           if (existingCharacter) {
             // Update existing character if needed
             const updatedCharacter = await characterService.updateCharacter(
-              existingCharacter._id,
+              existingCharacter._id.toString(),
               charData
             );
             processedCharacters.push(updatedCharacter);
@@ -627,15 +497,15 @@ router.post('/story-generate', async (req, res) => {
 
     // Process locations if any were mentioned
     const processedLocations: any[] = [];
-    if (locationsData.length > 0) {
-      const LocationService = require('../services/LocationService').default;
+    if (locationsData.length > 0 && sessionId) {
+      const LocationService = (await import('../services/LocationService')).default;
       const locationService = new LocationService();
 
       for (const locData of locationsData) {
         try {
           // Validate and clean location data
           const cleanLocationData = {
-            name: locData.name || 'Unknown Location',
+            name: cleanLocationName(locData.name) || 'Unknown Location',
             description: locData.description || 'Location discovered during adventure',
             type: locData.type || 'other',
             importance: locData.importance || 'moderate',
@@ -647,12 +517,27 @@ router.post('/story-generate', async (req, res) => {
             weather: locData.weather || undefined,
             resources: Array.isArray(locData.resources) ? locData.resources : [],
             pointsOfInterest: Array.isArray(locData.pointsOfInterest)
-              ? locData.pointsOfInterest.map(poi => ({
-                name: poi.name || 'Unknown POI',
-                description: poi.description || 'Point of interest',
-                type: poi.type || 'unknown',
-                isExplored: Boolean(poi.isExplored),
-              }))
+              ? locData.pointsOfInterest.map(poi => {
+                  // Handle both object and string formats
+                  if (typeof poi === 'string') {
+                    // If poi is a string like "Great Hall - Massive chamber with high vaulted ceilings"
+                    const parts = poi.split(' - ');
+                    return {
+                      name: parts[0] || 'Unknown POI',
+                      description: parts[1] || 'Point of interest',
+                      type: 'unknown',
+                      isExplored: false,
+                    };
+                  } else {
+                    // If poi is already an object
+                    return {
+                      name: poi.name || 'Unknown POI',
+                      description: poi.description || 'Point of interest',
+                      type: poi.type || 'unknown',
+                      isExplored: Boolean(poi.isExplored),
+                    };
+                  }
+                })
               : [],
             campaignId,
             sessionId,
@@ -669,7 +554,7 @@ router.post('/story-generate', async (req, res) => {
           if (existingLocation) {
             // Update existing location if needed
             const updatedLocation = await locationService.updateLocation(
-              existingLocation._id,
+              existingLocation._id.toString(),
               cleanLocationData
             );
             processedLocations.push(updatedLocation);
@@ -690,64 +575,207 @@ router.post('/story-generate', async (req, res) => {
       }
     }
 
-    // Save the user message to the database
-    const Message = require('../models').Message;
-    const userMessage = new Message({
-      sessionId,
-      campaignId,
-      type: 'player',
-      sender: 'You',
-      content: prompt,
-      timestamp: new Date(),
-      metadata: {
-        aiResponse: false,
-        originalMessage: prompt,
-      },
-    });
-    await userMessage.save();
+    // Save the player message to the database if sessionId is provided
+    let userMessageId = null;
+    if (sessionId) {
+      try {
+        const { Message: MessageModel } = await import('../models');
+        const userMessage = new MessageModel({
+          sessionId,
+          campaignId,
+          type: 'player',
+          sender: 'You',
+          content: playerAction,
+          timestamp: new Date(),
+          metadata: {
+            aiResponse: false,
+            originalMessage: playerAction,
+          },
+        });
+        await userMessage.save();
+        userMessageId = userMessage._id;
+      } catch (saveError) {
+        logger.warn('Failed to save player message to database:', saveError);
+        // Continue with the response even if saving fails
+      }
+    }
 
-    // Save the AI response to the database
-    const aiMessage = new Message({
-      sessionId,
-      campaignId,
-      type: 'ai',
-      sender: 'AI Game Master',
-      content: storyContent,
-      timestamp: new Date(),
-      metadata: {
-        aiResponse: true,
-        originalMessage: prompt,
-        charactersExtracted: processedCharacters.length,
-        locationsExtracted: processedLocations.length,
-        usage: response.usage,
-        characterExtractionMethod:
-          charactersData.length > 0 ? 'llm_extraction' : 'fallback_extraction',
-        locationExtractionMethod: locationsData.length > 0 ? 'llm_extraction' : 'none',
-      },
-    });
-    await aiMessage.save();
+    // Save the AI response to the database if sessionId is provided
+    let aiMessageId = null;
+    if (sessionId) {
+      try {
+        const { Message: MessageModel } = await import('../models');
+        const aiMessage = new MessageModel({
+          sessionId,
+          campaignId,
+          type: 'ai',
+          sender: 'AI Game Master',
+          content: response.content,
+          timestamp: new Date(),
+          metadata: {
+            aiResponse: true,
+            originalMessage: playerAction,
+            usage: response.usage,
+          },
+        });
+        await aiMessage.save();
+        aiMessageId = aiMessage._id;
+      } catch (saveError) {
+        logger.warn('Failed to save AI response to database:', saveError);
+        // Continue with the response even if saving fails
+      }
+    }
 
-    // Add the story generation to context
-    contextManager.addContextLayer(campaignId, 'immediate', `Story Generated: ${prompt}`, 8);
+    // Update AI message metadata with extraction results if sessionId is provided
+    if (sessionId && aiMessageId) {
+      try {
+        const { Message: MessageModel } = await import('../models');
+        await MessageModel.findByIdAndUpdate(aiMessageId, {
+          $set: {
+            'metadata.charactersExtracted': processedCharacters.length,
+            'metadata.locationsExtracted': processedLocations.length,
+            'metadata.characterExtractionMethod':
+              charactersData.length > 0 ? 'llm_extraction' : 'fallback_extraction',
+            'metadata.locationExtractionMethod':
+              locationsData.length > 0 ? 'llm_extraction' : 'fallback_extraction',
+          },
+        });
+      } catch (updateError) {
+        logger.warn('Failed to update AI message metadata with extraction results:', updateError);
+      }
+    }
+
+    // Generate discovery messages for newly discovered entities
+    let discoveryMessages: any[] = [];
+
+    if ((processedCharacters.length > 0 || processedLocations.length > 0) && sessionId) {
+      try {
+        const DiscoveryMessageService = (await import('../services/DiscoveryMessageService'))
+          .default;
+        const discoveryService = new DiscoveryMessageService();
+
+        const extractionMethods = {
+          characters: charactersData.length > 0 ? 'llm_extraction' : 'fallback_extraction',
+          locations: locationsData.length > 0 ? 'llm_extraction' : 'fallback_extraction',
+        };
+
+        discoveryMessages = discoveryService.generateDiscoveryMessages(
+          processedCharacters,
+          processedLocations,
+          extractionMethods
+        );
+
+        // Save discovery messages to database
+        const { Message: MessageModel } = await import('../models');
+        for (const messageData of discoveryMessages) {
+          const message = new MessageModel({
+            sessionId,
+            campaignId,
+            type: 'system-discovery',
+            sender: 'System',
+            content: messageData.content,
+            timestamp: new Date(),
+            metadata: messageData.metadata,
+          });
+          await message.save();
+        }
+
+        logger.info('Discovery messages saved to database', {
+          messageCount: discoveryMessages.length,
+          campaignId,
+          sessionId,
+        });
+      } catch (discoveryError) {
+        logger.error('Error generating discovery messages:', discoveryError);
+        discoveryMessages = [];
+      }
+    }
+
+    // Add the player action and AI response to context
+    contextManager.addContextLayer(campaignId, 'immediate', `Player Action: ${playerAction}`, 8);
+
+    contextManager.addContextLayer(campaignId, 'immediate', `AI Response: ${response.content}`, 7);
 
     return res.json({
       success: true,
-      content: storyContent,
+      aiResponse: response.content,
       characters: processedCharacters,
       locations: processedLocations,
+      discoveryMessages: discoveryMessages,
       usage: response.usage,
-      message: 'Story generated successfully',
-      userMessageId: userMessage._id,
-      aiMessageId: aiMessage._id,
+      message: 'Story response generated successfully',
+      userMessageId,
+      aiMessageId,
     });
   } catch (error) {
-    logger.error('Error generating story:', error);
+    logger.error('Error generating story response:', error);
     return res.status(500).json({
-      error: 'Failed to generate story',
+      error: 'Failed to generate story response',
       details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });
+// Helper function to clean location names by removing common words and articles
+function cleanLocationName(name: string): string {
+  if (!name) return name;
+
+  // Common words to remove from location names
+  const wordsToRemove = [
+    'its',
+    'the',
+    'a',
+    'an',
+    'this',
+    'that',
+    'these',
+    'those',
+    'my',
+    'your',
+    'his',
+    'her',
+    'their',
+    'our',
+    'some',
+    'any',
+    'every',
+    'each',
+    'all',
+    'both',
+    'near',
+    'at',
+    'in',
+    'on',
+    'by',
+    'from',
+    'to',
+    'of',
+  ];
+
+  // Split the name into words
+  const words = name.trim().split(/\s+/);
+
+  // Remove common words from the beginning and end
+  while (words.length > 0 && wordsToRemove.includes(words[0].toLowerCase())) {
+    words.shift();
+  }
+
+  while (words.length > 0 && wordsToRemove.includes(words[words.length - 1].toLowerCase())) {
+    words.pop();
+  }
+
+  // If we have no words left, return the original name
+  if (words.length === 0) {
+    return name;
+  }
+
+  // Capitalize the first letter of each remaining word
+  const cleanedWords = words.map(word => {
+    if (word.length === 0) return word;
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  });
+
+  return cleanedWords.join(' ');
+}
 
 // Helper function to extract character names from text
 function extractCharactersFromText(storyContent: string, originalPrompt: string): any[] {
@@ -786,6 +814,16 @@ function extractCharactersFromText(storyContent: string, originalPrompt: string)
     'That',
     'They',
     'Their',
+    'Every',
+    'Each',
+    'All',
+    'Some',
+    'Many',
+    'Few',
+    'Several',
+    'Any',
+    'No',
+    'None',
     'Oakhaven',
     'Silverstream',
     'Whisperwind',
@@ -1123,6 +1161,9 @@ function extractLocationsFromText(storyContent: string, originalPrompt: string):
   // Create basic location records for each unique name
   for (const name of uniqueNames.slice(0, 3)) {
     // Limit to 3 locations
+    // Clean the location name to remove common words
+    const cleanedName = cleanLocationName(name);
+
     // Try to infer type and description from the story context
     let inferredType = 'other';
     const inferredDescription = 'Recently discovered location';
@@ -1192,11 +1233,19 @@ function extractLocationsFromText(storyContent: string, originalPrompt: string):
     }
 
     locations.push({
-      name: name,
+      name: cleanedName,
       type: inferredType,
       description: inferredDescription,
       importance: 'moderate',
       tags: [inferredType, 'discovered'],
+      pointsOfInterest: [
+        {
+          name: 'Main Area',
+          description: 'Primary area of interest',
+          type: 'area',
+          isExplored: false,
+        },
+      ],
       discoveredBy: ['AI System'],
       createdBy: 'ai-system',
     });

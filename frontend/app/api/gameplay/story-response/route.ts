@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
     // Get backend URL for server-side requests (use service name in Docker)
     const backendUrl = process.env.BACKEND_URL;
     if (!backendUrl) {
-      throw new Error('BACKEND_URL environment variable is required');
+      throw new Error("BACKEND_URL environment variable is required");
     }
 
     // Forward the request to the backend (note the /api prefix)

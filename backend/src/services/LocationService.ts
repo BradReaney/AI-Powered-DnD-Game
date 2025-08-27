@@ -7,15 +7,15 @@ export interface LocationCreationData {
   name: string;
   description: string;
   type:
-  | 'settlement'
-  | 'dungeon'
-  | 'wilderness'
-  | 'landmark'
-  | 'shop'
-  | 'tavern'
-  | 'temple'
-  | 'castle'
-  | 'other';
+    | 'settlement'
+    | 'dungeon'
+    | 'wilderness'
+    | 'landmark'
+    | 'shop'
+    | 'tavern'
+    | 'temple'
+    | 'castle'
+    | 'other';
   campaignId: string;
   sessionId?: string;
   discoveredBy: string[];
@@ -34,15 +34,15 @@ export interface ExtractedLocationData {
   name: string;
   description: string;
   type:
-  | 'settlement'
-  | 'dungeon'
-  | 'wilderness'
-  | 'landmark'
-  | 'shop'
-  | 'tavern'
-  | 'temple'
-  | 'castle'
-  | 'other';
+    | 'settlement'
+    | 'dungeon'
+    | 'wilderness'
+    | 'landmark'
+    | 'shop'
+    | 'tavern'
+    | 'temple'
+    | 'castle'
+    | 'other';
   importance?: 'minor' | 'moderate' | 'major' | 'critical';
   tags?: string[];
   coordinates?: {
@@ -67,15 +67,15 @@ export interface LocationUpdateData {
   name?: string;
   description?: string;
   type?:
-  | 'settlement'
-  | 'dungeon'
-  | 'wilderness'
-  | 'landmark'
-  | 'shop'
-  | 'tavern'
-  | 'temple'
-  | 'castle'
-  | 'other';
+    | 'settlement'
+    | 'dungeon'
+    | 'wilderness'
+    | 'landmark'
+    | 'shop'
+    | 'tavern'
+    | 'temple'
+    | 'castle'
+    | 'other';
   coordinates?: {
     x: number;
     y: number;
@@ -238,7 +238,10 @@ export class LocationService {
       }
 
       // If not in cache, get from database
-      const locations = await Location.find({ sessionId }).sort({ lastVisited: -1 }).skip(offset).limit(limit);
+      const locations = await Location.find({ sessionId })
+        .sort({ lastVisited: -1 })
+        .skip(offset)
+        .limit(limit);
 
       // Cache the result for 3 minutes
       await cacheService.set(cacheKey, locations, { ttl: 180 });
@@ -267,7 +270,11 @@ export class LocationService {
 
       if (updatedLocation) {
         // Invalidate related cache
-        await this.invalidateLocationCache(locationId, updatedLocation.campaignId.toString(), updatedLocation.sessionId?.toString());
+        await this.invalidateLocationCache(
+          locationId,
+          updatedLocation.campaignId.toString(),
+          updatedLocation.sessionId?.toString()
+        );
 
         logger.info('Location updated successfully', {
           locationId: updatedLocation._id,
@@ -307,7 +314,11 @@ export class LocationService {
       await location.save();
 
       // Invalidate related cache
-      await this.invalidateLocationCache(locationId, location.campaignId.toString(), location.sessionId?.toString());
+      await this.invalidateLocationCache(
+        locationId,
+        location.campaignId.toString(),
+        location.sessionId?.toString()
+      );
 
       logger.info(`Location ${location.name} marked as visited by ${characterName}`);
       return location;
@@ -318,7 +329,11 @@ export class LocationService {
   }
 
   // Private method to invalidate location-related cache
-  private async invalidateLocationCache(locationId: string, campaignId: string, sessionId?: string): Promise<void> {
+  private async invalidateLocationCache(
+    locationId: string,
+    campaignId: string,
+    sessionId?: string
+  ): Promise<void> {
     try {
       const patterns = [
         `location:${locationId}`,

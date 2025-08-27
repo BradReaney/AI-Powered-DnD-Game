@@ -1,6 +1,108 @@
 import logger from './LoggerService';
 import { ContextManager } from './ContextManager';
-import { CombatEncounter, ICombatEncounter } from '../models/CombatEncounter';
+import { CombatEncounter } from '../models/CombatEncounter';
+
+// Plain interface for service layer (without Mongoose Document properties)
+interface CombatEncounterData {
+  id: string;
+  campaignId: string;
+  sessionId: string;
+  name: string;
+  description: string;
+  location: string;
+  difficulty: 'easy' | 'medium' | 'hard' | 'deadly';
+  participants: Array<{
+    id: string;
+    name: string;
+    type: 'character' | 'npc' | 'enemy';
+    initiative: number;
+    initiativeModifier: number;
+    currentHP: number;
+    maxHP: number;
+    armorClass: number;
+    status: 'active' | 'unconscious' | 'dead' | 'fleeing';
+    conditions: string[];
+    position: {
+      x: number;
+      y: number;
+      z?: number;
+    };
+    actions: {
+      action: boolean;
+      bonusAction: boolean;
+      reaction: boolean;
+      movement: number;
+    };
+  }>;
+  rounds: Array<{
+    roundNumber: number;
+    currentTurn: number;
+    participants: Array<{
+      id: string;
+      name: string;
+      type: 'character' | 'npc' | 'enemy';
+      initiative: number;
+      initiativeModifier: number;
+      currentHP: number;
+      maxHP: number;
+      armorClass: number;
+      status: 'active' | 'unconscious' | 'dead' | 'fleeing';
+      conditions: string[];
+      position: {
+        x: number;
+        y: number;
+        z?: number;
+      };
+      actions: {
+        action: boolean;
+        bonusAction: boolean;
+        reaction: boolean;
+        movement: number;
+      };
+    }>;
+    turnOrder: string[];
+    actions: Array<{
+      id: string;
+      roundNumber: number;
+      turnNumber: number;
+      actorId: string;
+      targetId?: string;
+      actionType:
+      | 'attack'
+      | 'spell'
+      | 'move'
+      | 'dash'
+      | 'dodge'
+      | 'help'
+      | 'hide'
+      | 'ready'
+      | 'search'
+      | 'use-object';
+      description: string;
+      attackRoll?: number;
+      attackModifier?: number;
+      damageRoll?: number;
+      damageType?: string;
+      success: boolean;
+      critical: boolean;
+      consequences: string[];
+      timestamp: Date;
+    }>;
+    environmentalEffects: string[];
+    roundStartTime: Date;
+    roundEndTime?: Date;
+  }>;
+  currentRound: number;
+  currentTurn: number;
+  status: 'preparing' | 'active' | 'paused' | 'completed';
+  startTime: Date;
+  endTime?: Date;
+  environmentalFactors: string[];
+  victoryConditions: string[];
+  defeatConditions: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export interface CombatParticipant {
   id: string;
@@ -65,26 +167,6 @@ export interface CombatAction {
   timestamp: Date;
 }
 
-export interface CombatEncounter {
-  id: string;
-  campaignId: string;
-  sessionId: string;
-  name: string;
-  description: string;
-  location: string;
-  difficulty: 'easy' | 'medium' | 'hard' | 'deadly';
-  participants: CombatParticipant[];
-  rounds: CombatRound[];
-  currentRound: number;
-  currentTurn: number;
-  status: 'preparing' | 'active' | 'paused' | 'completed';
-  startTime: Date;
-  endTime?: Date;
-  environmentalFactors: string[];
-  victoryConditions: string[];
-  defeatConditions: string[];
-}
-
 export interface AttackResult {
   success: boolean;
   critical: boolean;
@@ -107,10 +189,17 @@ export class CombatService {
    */
   async createEncounter(
     encounterData: Omit<
-      CombatEncounter,
-      'id' | 'rounds' | 'currentRound' | 'currentTurn' | 'status' | 'startTime'
+      CombatEncounterData,
+      | 'id'
+      | 'rounds'
+      | 'currentRound'
+      | 'currentTurn'
+      | 'status'
+      | 'startTime'
+      | 'createdAt'
+      | 'updatedAt'
     >
-  ): Promise<CombatEncounter> {
+  ): Promise<CombatEncounterData> {
     try {
       const encounter = new CombatEncounter({
         ...encounterData,
@@ -130,7 +219,7 @@ export class CombatService {
         participantCount: encounter.participants.length,
       });
 
-      return encounter.toObject() as CombatEncounter;
+      return encounter.toObject() as CombatEncounterData;
     } catch (error) {
       logger.error('Error creating combat encounter:', error);
       throw error;
@@ -140,7 +229,7 @@ export class CombatService {
   /**
    * Start combat encounter
    */
-  async startEncounter(encounterId: string): Promise<CombatEncounter> {
+  async startEncounter(encounterId: string): Promise<CombatEncounterData> {
     try {
       // First try to get existing encounter
       let encounter = await this.getEncounterById(encounterId);
@@ -164,6 +253,8 @@ export class CombatService {
           environmentalFactors: [],
           victoryConditions: [],
           defeatConditions: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
         };
       }
 
@@ -234,7 +325,7 @@ export class CombatService {
    * Create a new combat round
    */
   private async createCombatRound(
-    encounter: CombatEncounter,
+    encounter: CombatEncounterData,
     roundNumber: number
   ): Promise<CombatRound> {
     try {
@@ -787,17 +878,15 @@ export class CombatService {
   /**
    * Get encounter by ID (helper method)
    */
-  private async getEncounterById(encounterId: string): Promise<CombatEncounter | null> {
+  private async getEncounterById(encounterId: string): Promise<CombatEncounterData | null> {
     try {
       const encounter = await CombatEncounter.findById(encounterId);
-      return encounter ? encounter.toObject() as CombatEncounter : null;
+      return encounter ? (encounter.toObject() as CombatEncounterData) : null;
     } catch (error) {
       logger.error('Error getting encounter by ID:', error);
       return null;
     }
   }
-
-
 
   /**
    * Apply condition to participant
@@ -1041,7 +1130,7 @@ export class CombatService {
       additionalParticipants?: any[];
       modifiedDifficulty?: 'easy' | 'medium' | 'hard' | 'deadly';
     } = {}
-  ): Promise<CombatEncounter> {
+  ): Promise<CombatEncounterData> {
     try {
       // In real implementation, this would:
       // 1. Fetch template from database
@@ -1364,7 +1453,7 @@ export class CombatService {
   /**
    * Get encounter by ID
    */
-  async getEncounter(encounterId: string): Promise<CombatEncounter | null> {
+  async getEncounter(encounterId: string): Promise<CombatEncounterData | null> {
     try {
       logger.info('Getting encounter', { encounterId });
       return await this.getEncounterById(encounterId);
@@ -1379,8 +1468,8 @@ export class CombatService {
    */
   async updateEncounter(
     encounterId: string,
-    updateData: Partial<CombatEncounter>
-  ): Promise<CombatEncounter> {
+    updateData: Partial<CombatEncounterData>
+  ): Promise<CombatEncounterData> {
     try {
       logger.info('Updating encounter', { encounterId, updateData });
       // In a real implementation, this would update the database
@@ -1404,7 +1493,7 @@ export class CombatService {
   /**
    * Add participant to encounter
    */
-  async addParticipant(encounterId: string, participantData: any): Promise<CombatEncounter> {
+  async addParticipant(encounterId: string, participantData: any): Promise<CombatEncounterData> {
     try {
       logger.info('Adding participant to encounter', { encounterId, participantData });
       // In a real implementation, this would update the database
@@ -1435,7 +1524,10 @@ export class CombatService {
   /**
    * Remove participant from encounter
    */
-  async removeParticipant(encounterId: string, participantId: string): Promise<CombatEncounter> {
+  async removeParticipant(
+    encounterId: string,
+    participantId: string
+  ): Promise<CombatEncounterData> {
     try {
       logger.info('Removing participant from encounter', { encounterId, participantId });
       // In a real implementation, this would update the database
@@ -1463,7 +1555,7 @@ export class CombatService {
     encounterId: string,
     participantId: string,
     updateData: any
-  ): Promise<CombatEncounter> {
+  ): Promise<CombatEncounterData> {
     try {
       logger.info('Updating participant', { encounterId, participantId, updateData });
       // In a real implementation, this would update the database
@@ -1697,7 +1789,10 @@ export class CombatService {
   /**
    * Save combat state changes to database
    */
-  private async saveCombatState(encounterId: string, updates: Partial<CombatEncounter>): Promise<void> {
+  private async saveCombatState(
+    encounterId: string,
+    updates: Partial<CombatEncounterData>
+  ): Promise<void> {
     try {
       await CombatEncounter.findByIdAndUpdate(encounterId, updates, { new: true });
       logger.info('Combat state saved to database', { encounterId, updates: Object.keys(updates) });
@@ -1710,11 +1805,11 @@ export class CombatService {
   /**
    * Get active encounters for a session
    */
-  async getSessionEncounters(sessionId: string): Promise<CombatEncounter[]> {
+  async getSessionEncounters(sessionId: string): Promise<CombatEncounterData[]> {
     try {
       const encounters = await CombatEncounter.find({
         sessionId,
-        status: { $in: ['preparing', 'active', 'paused'] }
+        status: { $in: ['preparing', 'active', 'paused'] },
       }).lean();
       return encounters;
     } catch (error) {
@@ -1726,7 +1821,7 @@ export class CombatService {
   /**
    * Resume combat encounter from saved state
    */
-  async resumeEncounter(encounterId: string): Promise<CombatEncounter | null> {
+  async resumeEncounter(encounterId: string): Promise<CombatEncounterData | null> {
     try {
       const encounter = await this.getEncounterById(encounterId);
       if (!encounter) {

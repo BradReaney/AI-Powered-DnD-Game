@@ -158,8 +158,12 @@ export function CharacterForm({
   });
 
   // Add state for campaign selection when no campaignId is provided
-  const [selectedCampaignId, setSelectedCampaignId] = useState<string>(campaignId || "");
-  const [showCampaignSelector, setShowCampaignSelector] = useState<boolean>(!campaignId && !!campaigns?.length);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string>(
+    campaignId || "",
+  );
+  const [showCampaignSelector, setShowCampaignSelector] = useState<boolean>(
+    !campaignId && !!campaigns?.length,
+  );
 
   const rollStats = () => {
     const rollStat = () => {
@@ -247,7 +251,10 @@ export function CharacterForm({
             <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
               <div className="space-y-2">
                 <Label htmlFor="campaign">Select Campaign</Label>
-                <Select value={selectedCampaignId} onValueChange={setSelectedCampaignId}>
+                <Select
+                  value={selectedCampaignId}
+                  onValueChange={setSelectedCampaignId}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Choose a campaign for your character" />
                   </SelectTrigger>
@@ -492,7 +499,7 @@ export function CharacterForm({
                         type="number"
                         min="1"
                         max="20"
-                        value={value}
+                        value={value as number}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
@@ -505,8 +512,8 @@ export function CharacterForm({
                         className="flex-1"
                       />
                       <div className="w-16 flex items-center justify-center bg-muted rounded-md text-sm font-medium">
-                        {getModifier(value) >= 0 ? "+" : ""}
-                        {getModifier(value)}
+                        {getModifier(value as number) >= 0 ? "+" : ""}
+                        {getModifier(value as number)}
                       </div>
                     </div>
                   </div>
@@ -543,7 +550,7 @@ export function CharacterForm({
                     id="traits"
                     value={formData.traits}
                     onChange={(e) =>
-                      setFormData({ ...formData, traits: e.target.value })
+                      setFormData({ ...formData, traits: e.target.value.split(',').map(t => t.trim()).filter(t => t) })
                     }
                     placeholder="Describe your character's personality traits..."
                     rows={3}
@@ -556,7 +563,7 @@ export function CharacterForm({
                     id="ideals"
                     value={formData.ideals}
                     onChange={(e) =>
-                      setFormData({ ...formData, ideals: e.target.value })
+                      setFormData({ ...formData, ideals: e.target.value.split(',').map(t => t.trim()).filter(t => t) })
                     }
                     placeholder="What ideals drive your character?"
                     rows={3}
@@ -569,7 +576,7 @@ export function CharacterForm({
                     id="bonds"
                     value={formData.bonds}
                     onChange={(e) =>
-                      setFormData({ ...formData, bonds: e.target.value })
+                      setFormData({ ...formData, bonds: e.target.value.split(',').map(t => t.trim()).filter(t => t) })
                     }
                     placeholder="What bonds connect your character to the world?"
                     rows={3}
@@ -582,7 +589,7 @@ export function CharacterForm({
                     id="flaws"
                     value={formData.flaws}
                     onChange={(e) =>
-                      setFormData({ ...formData, flaws: e.target.value })
+                      setFormData({ ...formData, flaws: e.target.value.split(',').map(t => t.trim()).filter(t => t) })
                     }
                     placeholder="What flaws or weaknesses does your character have?"
                     rows={3}
@@ -648,11 +655,7 @@ export function CharacterForm({
           </Tabs>
 
           <div className="flex gap-3 pt-4">
-            <Button
-              type="submit"
-              className="flex-1"
-              disabled={isSaving}
-            >
+            <Button type="submit" className="flex-1" disabled={isSaving}>
               {isSaving ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />

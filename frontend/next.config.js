@@ -20,7 +20,7 @@ const nextConfig = {
   trailingSlash: false,
   // Force dynamic rendering for all pages
   generateBuildId: async () => {
-    return 'build-' + Date.now();
+    return "build-" + Date.now();
   },
 };
 

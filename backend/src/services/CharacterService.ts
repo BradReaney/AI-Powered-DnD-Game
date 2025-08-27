@@ -137,7 +137,7 @@ class CharacterService {
         throw new Error('Campaign not found');
       }
 
-      const session = await Session.findOne({_id: data.sessionId});
+      const session = await Session.findOne({ _id: data.sessionId });
       if (!session) {
         throw new Error('Session not found');
       }
@@ -213,7 +213,7 @@ class CharacterService {
         throw new Error('Campaign not found');
       }
 
-      const session = await Session.findOne({_id: data.sessionId});
+      const session = await Session.findOne({ _id: data.sessionId });
       if (!session) {
         throw new Error('Session not found');
       }
@@ -339,7 +339,7 @@ class CharacterService {
         throw new Error('Campaign not found');
       }
 
-      const session = await Session.findOne({_id: data.sessionId});
+      const session = await Session.findOne({ _id: data.sessionId });
       if (!session) {
         throw new Error('Session not found');
       }
@@ -967,7 +967,11 @@ class CharacterService {
       await character.save();
 
       // Invalidate related cache
-      await this.invalidateCharacterCache(characterId, character.campaignId.toString(), character.sessionId.toString());
+      await this.invalidateCharacterCache(
+        characterId,
+        character.campaignId.toString(),
+        character.sessionId.toString()
+      );
 
       logger.info(`Updated character: ${character.name}`);
       return character;
@@ -1020,7 +1024,11 @@ class CharacterService {
       await character.save();
 
       // Invalidate related cache
-      await this.invalidateCharacterCache(characterId, character.campaignId.toString(), character.sessionId.toString());
+      await this.invalidateCharacterCache(
+        characterId,
+        character.campaignId.toString(),
+        character.sessionId.toString()
+      );
 
       logger.info(`Updated character progress: ${character.name}`);
       return character;
@@ -1031,7 +1039,11 @@ class CharacterService {
   }
 
   // Private method to invalidate character-related cache
-  private async invalidateCharacterCache(characterId: string, campaignId: string, sessionId: string): Promise<void> {
+  private async invalidateCharacterCache(
+    characterId: string,
+    campaignId: string,
+    sessionId: string
+  ): Promise<void> {
     try {
       const patterns = [
         `character:${characterId}`,

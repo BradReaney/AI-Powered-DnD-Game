@@ -292,6 +292,8 @@ class BackgroundJobService extends EventEmitter {
         return await this.executeReportGeneration(job);
       case 'analyticsProcessing':
         return await this.executeAnalyticsProcessing(job);
+      case 'sessionCleanup':
+        return await this.executeSessionCleanup(job);
       default:
         throw new Error(`Unknown job type: ${job.type}`);
     }
@@ -337,6 +339,37 @@ class BackgroundJobService extends EventEmitter {
     }
 
     return { insights: ['insight1', 'insight2', 'insight3'] };
+  }
+
+  /**
+   * Execute session cleanup job
+   */
+  private async executeSessionCleanup(job: Job): Promise<any> {
+    try {
+      // Import SessionService dynamically to avoid circular dependencies
+      const { SessionService } = await import('./SessionService');
+      const sessionService = SessionService.getInstance();
+
+      // Update progress
+      job.progress = 25;
+      this.emit('jobProgress', job);
+      await this.delay(100);
+
+      // Close inactive sessions
+      const closedCount = await sessionService.closeInactiveSessions();
+
+      job.progress = 75;
+      this.emit('jobProgress', job);
+      await this.delay(100);
+
+      job.progress = 100;
+      this.emit('jobProgress', job);
+
+      return { closedSessions: closedCount };
+    } catch (error) {
+      logger.error('Error executing session cleanup job:', error);
+      throw error;
+    }
   }
 
   /**

@@ -70,66 +70,75 @@ export const config: Config = {
     uriProd: process.env['MONGODB_URI_PROD'],
   },
   redis: {
-    host: process.env['REDIS_HOST_INTERNAL'] || process.env['REDIS_HOST'] || (() => {
-      // Try REDIS_PUBLIC_URL first (Railway proxy), then REDIS_URL (internal), then fallback
-      if (process.env['REDIS_PUBLIC_URL']) {
-        try {
-          const url = new URL(process.env['REDIS_PUBLIC_URL']);
-          return url.hostname;
-        } catch (error) {
-          // Fall through to REDIS_URL
+    host:
+      process.env['REDIS_HOST_INTERNAL'] ||
+      process.env['REDIS_HOST'] ||
+      (() => {
+        // Try REDIS_PUBLIC_URL first (Railway proxy), then REDIS_URL (internal), then fallback
+        if (process.env['REDIS_PUBLIC_URL']) {
+          try {
+            const url = new URL(process.env['REDIS_PUBLIC_URL']);
+            return url.hostname;
+          } catch (error) {
+            // Fall through to REDIS_URL
+          }
         }
-      }
-      if (process.env['REDIS_URL']) {
-        try {
-          const url = new URL(process.env['REDIS_URL']);
-          return url.hostname;
-        } catch (error) {
-          return 'localhost';
+        if (process.env['REDIS_URL']) {
+          try {
+            const url = new URL(process.env['REDIS_URL']);
+            return url.hostname;
+          } catch (error) {
+            return 'localhost';
+          }
         }
-      }
-      return 'localhost';
-    })(),
-    port: parseInt(process.env['REDIS_PORT'] || (() => {
-      // Try REDIS_PUBLIC_URL first (Railway proxy), then REDIS_URL (internal), then fallback
-      if (process.env['REDIS_PUBLIC_URL']) {
-        try {
-          const url = new URL(process.env['REDIS_PUBLIC_URL']);
-          return url.port || '6379';
-        } catch (error) {
-          // Fall through to REDIS_URL
-        }
-      }
-      if (process.env['REDIS_URL']) {
-        try {
-          const url = new URL(process.env['REDIS_URL']);
-          return url.port || '6379';
-        } catch (error) {
+        return 'localhost';
+      })(),
+    port: parseInt(
+      process.env['REDIS_PORT'] ||
+        (() => {
+          // Try REDIS_PUBLIC_URL first (Railway proxy), then REDIS_URL (internal), then fallback
+          if (process.env['REDIS_PUBLIC_URL']) {
+            try {
+              const url = new URL(process.env['REDIS_PUBLIC_URL']);
+              return url.port || '6379';
+            } catch (error) {
+              // Fall through to REDIS_URL
+            }
+          }
+          if (process.env['REDIS_URL']) {
+            try {
+              const url = new URL(process.env['REDIS_URL']);
+              return url.port || '6379';
+            } catch (error) {
+              return '6379';
+            }
+          }
           return '6379';
+        })(),
+      10
+    ),
+    password:
+      process.env['REDIS_PASSWORD'] ||
+      (() => {
+        // Try REDIS_PUBLIC_URL first (Railway proxy), then REDIS_URL (internal), then fallback
+        if (process.env['REDIS_PUBLIC_URL']) {
+          try {
+            const url = new URL(process.env['REDIS_PUBLIC_URL']);
+            return url.password || '';
+          } catch (error) {
+            // Fall through to REDIS_URL
+          }
         }
-      }
-      return '6379';
-    })(), 10),
-    password: process.env['REDIS_PASSWORD'] || (() => {
-      // Try REDIS_PUBLIC_URL first (Railway proxy), then REDIS_URL (internal), then fallback
-      if (process.env['REDIS_PUBLIC_URL']) {
-        try {
-          const url = new URL(process.env['REDIS_PUBLIC_URL']);
-          return url.password || '';
-        } catch (error) {
-          // Fall through to REDIS_URL
+        if (process.env['REDIS_URL']) {
+          try {
+            const url = new URL(process.env['REDIS_URL']);
+            return url.password || '';
+          } catch (error) {
+            return '';
+          }
         }
-      }
-      if (process.env['REDIS_URL']) {
-        try {
-          const url = new URL(process.env['REDIS_URL']);
-          return url.password || '';
-        } catch (error) {
-          return '';
-        }
-      }
-      return '';
-    })(),
+        return '';
+      })(),
     db: parseInt(process.env['REDIS_DB'] || '0', 10),
     maxRetriesPerRequest: 3,
     connectTimeout: 10000,
@@ -159,7 +168,14 @@ export const config: Config = {
   },
   security: {
     jwtSecret: process.env['JWT_SECRET'] || 'default-secret-change-in-production',
-    corsOrigin: process.env['CORS_ORIGIN'] || 'http://localhost:3000',
+    corsOrigin:
+      process.env['CORS_ORIGIN'] ||
+      (() => {
+        if (process.env['NODE_ENV'] === 'production') {
+          return process.env['FRONTEND_URL'] || 'https://your-frontend-service.railway.app';
+        }
+        return 'http://localhost:3000';
+      })(),
   },
   logging: {
     level: process.env['LOG_LEVEL'] || 'info',

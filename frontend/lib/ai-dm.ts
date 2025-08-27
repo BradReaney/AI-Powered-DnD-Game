@@ -90,7 +90,7 @@ Respond as a Dungeon Master:`,
         system: systemPrompt,
         prompt: `The player has arrived at ${location.name}, which is ${location.description}.
 
-This is a ${location.type} in the ${context.campaign.setting} setting. ${location.inhabitants ? `Notable inhabitants include: ${location.inhabitants.join(", ")}.` : ""}
+This is a ${location.type} in the ${context.campaign.theme} setting. ${location.inhabitants ? `Notable inhabitants include: ${location.inhabitants.join(", ")}.` : ""}
 
 Provide an immersive description of what the character sees, hears, and experiences upon arriving here. Make it atmospheric and engaging:`,
         temperature: 0.8,
@@ -104,7 +104,7 @@ Provide an immersive description of what the character sees, hears, and experien
   }
 
   private buildSystemPrompt(context: GameContext): string {
-    return `You are an expert Dungeon Master running a D&D 5e campaign called "${context.campaign.name}" set in ${context.campaign.setting}.
+    return `You are an expert Dungeon Master running a D&D 5e campaign called "${context.campaign.name}" set in ${context.campaign.theme}.
 
 Campaign: ${context.campaign.description}
 

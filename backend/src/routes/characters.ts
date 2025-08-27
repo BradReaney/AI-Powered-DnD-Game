@@ -251,7 +251,7 @@ router.post('/', async (req, res) => {
               dm: humanCharacterData.createdBy || 'user',
               location: 'Character Creation',
               weather: 'Clear',
-              timeOfDay: 'afternoon'
+              timeOfDay: 'afternoon',
             },
             gameState: {
               currentScene: 'Character Creation',
@@ -263,15 +263,15 @@ router.post('/', async (req, res) => {
                 isActive: false,
                 round: 0,
                 currentCharacter: null,
-                conditions: []
+                conditions: [],
               },
               worldState: {
                 currentLocation: 'Character Creation',
                 discoveredLocations: [],
-                activeEffects: []
-              }
+                activeEffects: [],
+              },
             },
-            storyEvents: []
+            storyEvents: [],
           });
 
           await defaultSession.save();
@@ -300,7 +300,7 @@ router.post('/simple', async (req, res) => {
     if (!characterData.name || !characterData.campaignId) {
       return res.status(400).json({
         error: 'Missing required fields',
-        required: ['name', 'campaignId']
+        required: ['name', 'campaignId'],
       });
     }
 
@@ -311,7 +311,7 @@ router.post('/simple', async (req, res) => {
       constitution: 13,
       intelligence: 12,
       wisdom: 10,
-      charisma: 8
+      charisma: 8,
     };
 
     // Generate default personality based on class
@@ -321,7 +321,7 @@ router.post('/simple', async (req, res) => {
       bonds: ['Loyal to companions'],
       flaws: ['Sometimes too trusting'],
       background: 'Adventurer',
-      alignment: 'Neutral Good'
+      alignment: 'Neutral Good',
     };
 
     // Create character data with defaults
@@ -338,6 +338,7 @@ router.post('/simple', async (req, res) => {
     };
 
     // If no sessionId provided and campaignId is valid, create a default session first
+    // Note: These sessions are marked as 'inactive' to avoid cluttering the active sessions list
     if (!simpleCharacterData.sessionId && simpleCharacterData.campaignId) {
       try {
         // Validate that campaignId is a valid ObjectId
@@ -352,7 +353,7 @@ router.post('/simple', async (req, res) => {
             name: 'Character Creation Session',
             campaignId: simpleCharacterData.campaignId,
             sessionNumber: 1,
-            status: 'active',
+            status: 'inactive', // Mark as inactive immediately
             createdBy: simpleCharacterData.createdBy || 'user', // Add the missing required field
             metadata: {
               startTime: new Date(),
@@ -362,7 +363,7 @@ router.post('/simple', async (req, res) => {
               dm: simpleCharacterData.createdBy || 'user',
               location: 'Character Creation',
               weather: 'Clear',
-              timeOfDay: 'afternoon'
+              timeOfDay: 'afternoon',
             },
             gameState: {
               currentScene: 'Character Creation',
@@ -374,15 +375,15 @@ router.post('/simple', async (req, res) => {
                 isActive: false,
                 round: 0,
                 currentCharacter: null,
-                conditions: []
+                conditions: [],
               },
               worldState: {
                 currentLocation: 'Character Creation',
                 discoveredLocations: [],
-                activeEffects: []
-              }
+                activeEffects: [],
+              },
             },
-            storyEvents: []
+            storyEvents: [],
           });
 
           await defaultSession.save();

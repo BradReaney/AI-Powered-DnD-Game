@@ -7,9 +7,12 @@ import {
 } from "./adapters";
 
 // Use relative URLs for Next.js API routes in production
-const API_BASE_URL = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL;
-if (!API_BASE_URL && typeof window === 'undefined') {
-  throw new Error('NEXT_PUBLIC_API_URL environment variable is required for server-side requests');
+const API_BASE_URL =
+  typeof window !== "undefined" ? "" : process.env.NEXT_PUBLIC_API_URL;
+if (!API_BASE_URL && typeof window === "undefined") {
+  throw new Error(
+    "NEXT_PUBLIC_API_URL environment variable is required for server-side requests",
+  );
 }
 
 class ApiService {
@@ -18,14 +21,15 @@ class ApiService {
     options: RequestInit = {},
   ): Promise<T> {
     // Use relative URL for client-side requests, full URL for server-side
-    const url = typeof window !== 'undefined' 
-      ? `/api${endpoint}` 
-      : `${API_BASE_URL}/api${endpoint}`;
+    const url =
+      typeof window !== "undefined"
+        ? `/api${endpoint}`
+        : `${API_BASE_URL}/api${endpoint}`;
 
     const headers: Record<string, string> = {
       "Cache-Control": "no-cache",
       Pragma: "no-cache",
-      ...options.headers,
+      ...(options.headers as Record<string, string> || {}),
     };
 
     // Only set Content-Type for requests with a body
@@ -55,23 +59,23 @@ class ApiService {
 
   // Campaigns
   async getCampaigns(): Promise<Campaign[]> {
-    // Call backend directly since we're using standalone output
-    const backendCampaigns = await this.request<any[]>('/campaigns');
-    return backendCampaigns.map(adaptCampaign);
+    // Call Next.js API route which now handles transformation
+    const campaigns = await this.request<Campaign[]>("/campaigns");
+    return campaigns;
   }
 
   async getCampaign(campaignId: string): Promise<Campaign> {
-    const backendCampaign = await this.request<any>(`/campaigns/${campaignId}`);
-    return adaptCampaign(backendCampaign);
+    const campaign = await this.request<Campaign>(`/campaigns/${campaignId}`);
+    return campaign;
   }
 
   async createCampaign(campaignData: Partial<Campaign>): Promise<Campaign> {
-    // Call backend directly since we're using standalone output
-    const backendCampaign = await this.request<any>('/campaigns', {
-      method: 'POST',
+    // Call Next.js API route which now handles transformation
+    const campaign = await this.request<Campaign>("/campaigns", {
+      method: "POST",
       body: JSON.stringify(campaignData),
     });
-    return adaptCampaign(backendCampaign);
+    return campaign;
   }
 
   async updateCampaign(
@@ -93,7 +97,7 @@ class ApiService {
   async initializeCampaign(
     campaignId: string,
     sessionId: string,
-    characterIds?: string[]
+    characterIds?: string[],
   ): Promise<{
     message: string;
     content: string;
@@ -117,16 +121,18 @@ class ApiService {
   }
 
   async getCharactersByCampaign(campaignId: string): Promise<Character[]> {
-    // Call backend directly since we're using standalone output
-    const backendCharacters = await this.request<any[]>(`/characters?campaignId=${campaignId}`);
-    return backendCharacters.map(adaptCharacter);
+    // Call Next.js API route which now handles transformation
+    const characters = await this.request<Character[]>(
+      `/characters/campaign/${campaignId}`,
+    );
+    return characters;
   }
 
   async getCharacter(characterId: string): Promise<Character> {
-    const backendCharacter = await this.request<any>(
+    const character = await this.request<Character>(
       `/characters/${characterId}`,
     );
-    return adaptCharacter(backendCharacter);
+    return character;
   }
 
   async createCharacter(characterData: Partial<Character>): Promise<Character> {
@@ -140,10 +146,33 @@ class ApiService {
     characterId: string,
     characterData: Partial<Character>,
   ): Promise<Character> {
-    return this.request<Character>(`/characters/${characterId}`, {
-      method: "PUT",
-      body: JSON.stringify(characterData),
-    });
+    // Call backend directly since Next.js API routes don't exist for character updates
+    const backendUrl =
+      process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL;
+    if (!backendUrl) {
+      throw new Error(
+        "BACKEND_URL or NEXT_PUBLIC_API_URL environment variable is required",
+      );
+    }
+
+    const response = await fetch(
+      `${backendUrl}/api/characters/${characterId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+        body: JSON.stringify(characterData),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
   }
 
   async deleteCharacter(characterId: string): Promise<void> {
@@ -188,6 +217,34 @@ class ApiService {
     });
   }
 
+  async createAutomaticSession(
+    campaignId: string,
+    characterId: string,
+    sessionId: string,
+  ): Promise<any> {
+    return this.request<any>("/sessions/auto-create", {
+      method: "POST",
+      body: JSON.stringify({
+        campaignId,
+        characterId,
+        sessionId,
+      }),
+    });
+  }
+
+  async updateSessionActivity(sessionId: string): Promise<any> {
+    return this.request<any>(`/sessions/${sessionId}/activity`, {
+      method: "POST",
+    });
+  }
+
+  // Manual session cleanup (for testing or immediate needs)
+  async closeInactiveSessions(): Promise<any> {
+    return this.request<any>("/sessions/close-inactive", {
+      method: "POST",
+    });
+  }
+
   // Locations
   async getLocations(): Promise<Location[]> {
     // Since there's no general get all locations endpoint, we'll need to get them by campaign
@@ -197,8 +254,10 @@ class ApiService {
 
   async getLocationsByCampaign(campaignId: string): Promise<Location[]> {
     // Call backend directly since we're using standalone output
-    const backendLocations = await this.request<any[]>(`/locations?campaignId=${campaignId}`);
-    return backendLocations.map(adaptLocation);
+    const backendLocations = await this.request<any>(
+      `/locations/campaign/${campaignId}`,
+    );
+    return backendLocations.locations?.map(adaptLocation) || [];
   }
 
   async getLocation(locationId: string): Promise<Location> {
@@ -217,10 +276,30 @@ class ApiService {
     locationId: string,
     locationData: Partial<Location>,
   ): Promise<Location> {
-    return this.request<Location>(`/locations/${locationId}`, {
+    // Call backend directly since Next.js API routes don't exist for location updates
+    const backendUrl =
+      process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL;
+    if (!backendUrl) {
+      throw new Error(
+        "BACKEND_URL or NEXT_PUBLIC_API_URL environment variable is required",
+      );
+    }
+
+    const response = await fetch(`${backendUrl}/api/locations/${locationId}`, {
       method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      },
       body: JSON.stringify(locationData),
     });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
   }
 
   async deleteLocation(locationId: string): Promise<void> {
