@@ -222,6 +222,24 @@ class App {
       }
     });
 
+    // Deployment-specific cache clearing endpoint
+    this.app.post('/api/cache/clear-deployment', async (_req, res) => {
+      try {
+        await cacheService.clearDeploymentCache();
+        res.status(200).json({
+          status: 'success',
+          message: 'Deployment cache cleared successfully',
+          timestamp: new Date().toISOString(),
+        });
+      } catch (error) {
+        logger.error('Failed to clear deployment cache:', error);
+        res.status(500).json({
+          status: 'error',
+          error: 'Failed to clear deployment cache',
+        });
+      }
+    });
+
     // Cache performance monitoring endpoint
     this.app.get('/api/cache/performance', async (_req, res) => {
       try {

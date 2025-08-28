@@ -1,0 +1,114 @@
+name: Railway Post-Deployment Cache Management
+
+on:
+  deployment_status:
+    states: [success]
+    environments: [production]
+
+jobs:
+  cache-management:
+    runs-on: ubuntu-latest
+    if: github.event.deployment.environment == 'production'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          npm ci
+
+      - name: Get Railway service URL
+        id: railway-url
+        run: |
+          # Extract Railway service URL from environment or deployment context
+          if [ -n "${{ secrets.RAILWAY_BACKEND_URL }}" ]; then
+            echo "url=${{ secrets.RAILWAY_BACKEND_URL }}" >> $GITHUB_OUTPUT
+          elif [ -n "${{ github.event.deployment.payload.railway_url }}" ]; then
+            echo "url=${{ github.event.deployment.payload.railway_url }}" >> $GITHUB_OUTPUT
+          else
+            echo "url=https://backend-production-d223.up.railway.app" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Wait for backend to be ready
+        run: |
+          echo "Waiting for backend to be ready..."
+          for i in {1..30}; do
+            if curl -f -s "${{ steps.railway-url.outputs.url }}/health" > /dev/null; then
+              echo "Backend is ready!"
+              break
+            fi
+            echo "Attempt $i: Backend not ready yet, waiting..."
+            sleep 10
+          done
+
+      - name: Clear deployment cache
+        run: |
+          echo "Clearing deployment-specific cache..."
+          response=$(curl -s -X POST "${{ steps.railway-url.outputs.url }}/api/cache/clear-deployment")
+          echo "Response: $response"
+
+          if echo "$response" | grep -q '"status":"success"'; then
+            echo "✅ Deployment cache cleared successfully"
+          else
+            echo "❌ Failed to clear deployment cache"
+            echo "$response"
+            exit 1
+          fi
+
+      - name: Warm cache
+        run: |
+          echo "Warming cache with common data..."
+          response=$(curl -s -X POST "${{ steps.railway-url.outputs.url }}/api/cache/warm")
+          echo "Response: $response"
+
+          if echo "$response" | grep -q '"status":"success"'; then
+            echo "✅ Cache warming completed successfully"
+          else
+            echo "❌ Failed to warm cache"
+            echo "$response"
+            exit 1
+          fi
+
+      - name: Verify cache status
+        run: |
+          echo "Verifying cache status..."
+          response=$(curl -s "${{ steps.railway-url.outputs.url }}/api/cache/stats")
+          echo "Cache stats: $response"
+
+          if echo "$response" | grep -q '"status":"success"'; then
+            echo "✅ Cache verification successful"
+          else
+            echo "❌ Cache verification failed"
+            echo "$response"
+            exit 1
+          fi
+
+      - name: Cache performance check
+        run: |
+          echo "Checking cache performance..."
+          response=$(curl -s "${{ steps.railway-url.outputs.url }}/api/cache/performance")
+          echo "Performance data: $response"
+
+          if echo "$response" | grep -q '"status":"success"'; then
+            echo "✅ Cache performance check completed"
+          else
+            echo "❌ Cache performance check failed"
+            echo "$response"
+            exit 1
+          fi
+
+      - name: Notify completion
+        run: |
+          echo "🎉 Railway post-deployment cache management completed successfully!"
+          echo "Backend URL: ${{ steps.railway-url.outputs.url }}"
+          echo "Deployment ID: ${{ github.event.deployment.id }}"
+          echo "Environment: ${{ github.event.deployment.environment }}"
