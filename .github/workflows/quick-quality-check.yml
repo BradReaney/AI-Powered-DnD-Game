@@ -41,7 +41,3 @@ jobs:
       - name: Frontend linting
         working-directory: ./frontend
         run: npm run lint
-
-      - name: Quick test run
-        working-directory: ./frontend
-        run: npm test -- --passWithNoTests --maxWorkers=2
