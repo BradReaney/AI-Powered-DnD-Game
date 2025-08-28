@@ -41,6 +41,9 @@ export class CacheService {
 
     this.initializeRedis();
     this.startFallbackCleanup();
+
+    // Check if cache should be cleared on startup
+    this.checkStartupCacheClear();
   }
 
   private async initializeRedis(): Promise<void> {
@@ -684,6 +687,74 @@ export class CacheService {
       logger.debug('Game mechanics cache warmed');
     } catch (error) {
       logger.error('Failed to warm game mechanics cache:', error);
+    }
+  }
+
+  // Check if cache should be cleared on startup based on environment variables
+  private async checkStartupCacheClear(): Promise<void> {
+    try {
+      const shouldClearOnStartup = process.env.CACHE_CLEAR_ON_STARTUP === 'true';
+      const shouldClearOnDeploy = process.env.CLEAR_CACHE_ON_DEPLOY === 'true';
+
+      if (shouldClearOnStartup || shouldClearOnDeploy) {
+        logger.info('Cache clear on startup/deploy enabled, clearing cache...');
+        await this.clearAll();
+
+        if (shouldClearOnStartup) {
+          logger.info('Cache cleared on startup as per CACHE_CLEAR_ON_STARTUP setting');
+        }
+        if (shouldClearOnDeploy) {
+          logger.info('Cache cleared on startup as per CLEAR_CACHE_ON_DEPLOY setting');
+        }
+      }
+    } catch (error) {
+      logger.error('Failed to check startup cache clear settings:', error);
+    }
+  }
+
+  // Check if we're in a Railway deployment environment
+  private isRailwayDeployment(): boolean {
+    return !!(
+      process.env.RAILWAY_ENVIRONMENT ||
+      process.env.RAILWAY_PROJECT_ID ||
+      process.env.RAILWAY_SERVICE_ID
+    );
+  }
+
+  // Clear cache based on deployment patterns
+  async clearDeploymentCache(): Promise<void> {
+    try {
+      if (!this.isRailwayDeployment()) {
+        logger.info('Not in Railway deployment environment, skipping deployment cache clear');
+        return;
+      }
+
+      const clearPatterns = process.env.CACHE_CLEAR_PATTERNS?.split(',') || [];
+
+      if (clearPatterns.length === 0) {
+        // If no specific patterns, clear all cache
+        await this.clearAll();
+        logger.info('Deployment cache clear: All cache cleared');
+        return;
+      }
+
+      let clearedCount = 0;
+
+      // Clear cache based on patterns
+      for (const pattern of clearPatterns) {
+        const trimmedPattern = pattern.trim();
+        if (trimmedPattern) {
+          const count = await this.deletePattern(trimmedPattern);
+          clearedCount += count;
+          logger.debug(
+            `Deployment cache clear: Cleared ${count} keys matching pattern: ${trimmedPattern}`
+          );
+        }
+      }
+
+      logger.info(`Deployment cache clear: Cleared ${clearedCount} keys total`);
+    } catch (error) {
+      logger.error('Failed to clear deployment cache:', error);
     }
   }
 }

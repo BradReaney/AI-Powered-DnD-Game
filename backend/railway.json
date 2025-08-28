@@ -9,6 +9,14 @@
     "healthcheckPath": "/health",
     "healthcheckTimeout": 120,
     "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 3
+    "restartPolicyMaxRetries": 3,
+    "overlapSeconds": 30,
+    "drainingSeconds": 10
+  },
+  "variables": {
+    "CACHE_CLEAR_ON_STARTUP": "true",
+    "CLEAR_CACHE_ON_DEPLOY": "true",
+    "CACHE_CLEAR_PATTERNS": "user-sessions:*,game-state:*,ai:response:*,campaign:*,character:*,session:*,quest:*,location:*",
+    "CACHE_PRESERVE_PATTERNS": "mechanics:*,templates:*,system:*"
   }
 }

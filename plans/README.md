@@ -12,8 +12,52 @@ This directory contains development plans, testing strategies, and project docum
 - Location and world building
 - Mock LLM service for testing
 - Comprehensive testing framework
+- **Redis cache clearing for Railway deployments** 🆕
 
 ### 🔄 Recent Refactoring (August 28, 2025)
+
+#### Redis Cache Clearing Implementation
+**Status**: ✅ COMPLETED
+
+**Problem**: The application needed a method to automatically clear Redis cache during Railway deployments to ensure data consistency and optimal performance after code updates.
+
+**Solution**: Implemented comprehensive Redis cache clearing functionality with automatic startup clearing, deployment-specific clearing, and pattern-based cache invalidation.
+
+**Changes Made**:
+1. **CacheService Updates**: Added environment variable integration and Railway deployment detection
+2. **New API Endpoints**: Created `/api/cache/clear-deployment` for selective cache clearing
+3. **Railway Configuration**: Updated `backend/railway.json` with cache management variables
+4. **Deployment Script**: Created `scripts/railway-cache-clear.sh` for manual cache management
+5. **GitHub Actions**: Added workflow for post-deployment cache management
+
+**Key Features**:
+- **Automatic Startup Clearing**: Cache clears when `CACHE_CLEAR_ON_STARTUP=true`
+- **Deployment Clearing**: Cache clears when `CLEAR_CACHE_ON_DEPLOY=true`
+- **Pattern-Based Clearing**: Selective cache invalidation with configurable patterns
+- **Railway Integration**: Automatically detects Railway deployment environment
+- **Cache Warming**: Restores common data after clearing for optimal performance
+
+**Benefits**:
+- Ensures data consistency after deployments
+- Improves application performance with fresh cache
+- Reduces database load through intelligent caching
+- Provides multiple deployment strategies (automatic, manual, script-based)
+- Maintains optimal cache performance during Railway deployments
+
+**Testing Results**:
+- ✅ All cache endpoints working correctly
+- ✅ Cache clearing and warming functionality verified
+- ✅ Deployment script executes successfully
+- ✅ Railway configuration properly updated
+- ✅ Local testing completed successfully
+
+**Files Modified**:
+- `backend/src/services/CacheService.ts`
+- `backend/src/app.ts`
+- `backend/railway.json`
+- `scripts/railway-cache-clear.sh`
+- `.github/workflows/railway-post-deploy.yml`
+- `plans/redis-cache-clearing-implementation.md` (new)
 
 #### Character-Campaign Linking Refactor
 **Status**: ✅ COMPLETED

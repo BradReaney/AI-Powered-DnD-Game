@@ -52,7 +52,7 @@ describe('ModelSelectionService', () => {
     };
 
     const selection = await service.selectOptimalModel(task);
-    expect(selection.model).toBe('flash');
+    expect(selection.model).toBe('flash-lite'); // Short prompt = ultra-simple = flash-lite
   });
 
   it('should select Pro for creative and reasoning tasks', async () => {

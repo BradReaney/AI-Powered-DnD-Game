@@ -14,7 +14,7 @@ const nextConfig = {
   experimental: {
     // Force all pages to be dynamic
     workerThreads: false,
-    cpus: 1,
+    cpus: 2,
   },
   // Disable static optimization
   trailingSlash: false,
