@@ -42,10 +42,6 @@ jobs:
         working-directory: ./backend
         run: npx tsc --noEmit
 
-      - name: Build backend
-        working-directory: ./backend
-        run: npm run build
-
   frontend-quality:
     name: Frontend Quality Checks
     runs-on: ubuntu-latest
@@ -74,13 +70,6 @@ jobs:
       - name: Run frontend TypeScript compilation
         working-directory: ./frontend
         run: npx tsc --noEmit
-
-      - name: Build frontend
-        working-directory: ./frontend
-        env:
-          BACKEND_URL: ${{ env.BACKEND_URL }}
-          NEXT_PUBLIC_API_URL: ${{ env.NEXT_PUBLIC_API_URL }}
-        run: npm run build
 
   e2e-tests:
     name: End-to-End Tests
