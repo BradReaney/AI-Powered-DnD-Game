@@ -289,6 +289,8 @@ export interface ChatMessage {
       extractionMethod: "llm" | "pattern" | "hybrid";
       entityDetails: any;
       isNew: boolean;
+      isUpdate?: boolean;
+      changes?: string[];
     };
   };
 }
