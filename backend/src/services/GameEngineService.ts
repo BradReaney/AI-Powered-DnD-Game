@@ -419,6 +419,9 @@ class GameEngineService {
       });
       await campaign.save();
 
+      // Add session to active sessions Map for tracking
+      this.addActiveSession(session);
+
       logger.info(`Created new session ${session._id} for campaign ${campaignId}`);
       return session;
     } catch (error) {
@@ -988,6 +991,22 @@ class GameEngineService {
         error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
+  }
+
+  /**
+   * Add a session to the active sessions Map
+   */
+  public addActiveSession(session: ISession): void {
+    this.activeSessions.set(session._id, session);
+    logger.info(`Added session to active sessions: ${session._id}`);
+  }
+
+  /**
+   * Remove a session from the active sessions Map
+   */
+  public removeActiveSession(sessionId: string): void {
+    this.activeSessions.delete(sessionId);
+    logger.info(`Removed session from active sessions: ${sessionId}`);
   }
 }
 
