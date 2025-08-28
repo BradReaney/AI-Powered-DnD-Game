@@ -488,7 +488,7 @@ router.post('/story-response', async (req, res) => {
             processedCharacters.push({
               current: updatedCharacter,
               previous: previousData,
-              isNew: false
+              isNew: false,
             });
           } else {
             // Create new character
@@ -500,7 +500,7 @@ router.post('/story-response', async (req, res) => {
             });
             processedCharacters.push({
               current: newCharacter,
-              isNew: true
+              isNew: true,
             });
           }
         } catch (charError) {
@@ -533,26 +533,26 @@ router.post('/story-response', async (req, res) => {
             resources: Array.isArray(locData.resources) ? locData.resources : [],
             pointsOfInterest: Array.isArray(locData.pointsOfInterest)
               ? locData.pointsOfInterest.map(poi => {
-                // Handle both object and string formats
-                if (typeof poi === 'string') {
-                  // If poi is a string like "Great Hall - Massive chamber with high vaulted ceilings"
-                  const parts = poi.split(' - ');
-                  return {
-                    name: parts[0] || 'Unknown POI',
-                    description: parts[1] || 'Point of interest',
-                    type: 'unknown',
-                    isExplored: false,
-                  };
-                } else {
-                  // If poi is already an object
-                  return {
-                    name: poi.name || 'Unknown POI',
-                    description: poi.description || 'Point of interest',
-                    type: poi.type || 'unknown',
-                    isExplored: Boolean(poi.isExplored),
-                  };
-                }
-              })
+                  // Handle both object and string formats
+                  if (typeof poi === 'string') {
+                    // If poi is a string like "Great Hall - Massive chamber with high vaulted ceilings"
+                    const parts = poi.split(' - ');
+                    return {
+                      name: parts[0] || 'Unknown POI',
+                      description: parts[1] || 'Point of interest',
+                      type: 'unknown',
+                      isExplored: false,
+                    };
+                  } else {
+                    // If poi is already an object
+                    return {
+                      name: poi.name || 'Unknown POI',
+                      description: poi.description || 'Point of interest',
+                      type: poi.type || 'unknown',
+                      isExplored: Boolean(poi.isExplored),
+                    };
+                  }
+                })
               : [],
             campaignId,
             sessionId,
@@ -583,14 +583,14 @@ router.post('/story-response', async (req, res) => {
             processedLocations.push({
               current: updatedLocation,
               previous: previousData,
-              isNew: false
+              isNew: false,
             });
           } else {
             // Create new location
             const newLocation = await locationService.createLocation(cleanLocationData);
             processedLocations.push({
               current: newLocation,
-              isNew: true
+              isNew: true,
             });
           }
         } catch (locError) {
@@ -845,57 +845,396 @@ function extractCharactersFromText(storyContent: string, originalPrompt: string)
 
   // Filter out common words that aren't names
   const commonWordsToExclude = [
-    'The', 'This', 'That', 'These', 'Those', 'Here', 'There', 'Where', 'When', 'Why', 'How',
-    'What', 'Which', 'Who', 'Whom', 'Whose', 'If', 'Then', 'Else', 'While', 'For', 'And',
-    'But', 'Or', 'Nor', 'Yet', 'So', 'Because', 'Since', 'Although', 'Unless', 'Until',
-    'Before', 'After', 'During', 'Through', 'Throughout', 'Above', 'Below', 'Under', 'Over',
-    'Between', 'Among', 'Around', 'Across', 'Along', 'Behind', 'Beside', 'Beyond', 'Inside',
-    'Outside', 'Within', 'Without', 'Against', 'Toward', 'Towards', 'Upon', 'About', 'Above',
-    'Across', 'After', 'Against', 'Along', 'Among', 'Around', 'At', 'Before', 'Behind',
-    'Below', 'Beneath', 'Beside', 'Between', 'Beyond', 'By', 'Down', 'During', 'Except',
-    'For', 'From', 'In', 'Inside', 'Into', 'Like', 'Near', 'Of', 'Off', 'On', 'Out',
-    'Outside', 'Over', 'Past', 'Since', 'Through', 'Throughout', 'To', 'Toward', 'Under',
-    'Underneath', 'Until', 'Up', 'Upon', 'With', 'Within', 'Without', 'Learned', 'His',
-    'Perhaps', 'Her', 'Welcome', 'Ancient', 'Massive', 'Grand', 'Hidden', 'Main', 'Primary',
+    'The',
+    'This',
+    'That',
+    'These',
+    'Those',
+    'Here',
+    'There',
+    'Where',
+    'When',
+    'Why',
+    'How',
+    'What',
+    'Which',
+    'Who',
+    'Whom',
+    'Whose',
+    'If',
+    'Then',
+    'Else',
+    'While',
+    'For',
+    'And',
+    'But',
+    'Or',
+    'Nor',
+    'Yet',
+    'So',
+    'Because',
+    'Since',
+    'Although',
+    'Unless',
+    'Until',
+    'Before',
+    'After',
+    'During',
+    'Through',
+    'Throughout',
+    'Above',
+    'Below',
+    'Under',
+    'Over',
+    'Between',
+    'Among',
+    'Around',
+    'Across',
+    'Along',
+    'Behind',
+    'Beside',
+    'Beyond',
+    'Inside',
+    'Outside',
+    'Within',
+    'Without',
+    'Against',
+    'Toward',
+    'Towards',
+    'Upon',
+    'About',
+    'Above',
+    'Across',
+    'After',
+    'Against',
+    'Along',
+    'Among',
+    'Around',
+    'At',
+    'Before',
+    'Behind',
+    'Below',
+    'Beneath',
+    'Beside',
+    'Between',
+    'Beyond',
+    'By',
+    'Down',
+    'During',
+    'Except',
+    'For',
+    'From',
+    'In',
+    'Inside',
+    'Into',
+    'Like',
+    'Near',
+    'Of',
+    'Off',
+    'On',
+    'Out',
+    'Outside',
+    'Over',
+    'Past',
+    'Since',
+    'Through',
+    'Throughout',
+    'To',
+    'Toward',
+    'Under',
+    'Underneath',
+    'Until',
+    'Up',
+    'Upon',
+    'With',
+    'Within',
+    'Without',
+    'Learned',
+    'His',
+    'Perhaps',
+    'Her',
+    'Welcome',
+    'Ancient',
+    'Massive',
+    'Grand',
+    'Hidden',
+    'Main',
+    'Primary',
     // Additional common words that are often capitalized but aren't character names
-    'Deep', 'Goblin', 'Forest', 'Castle', 'Inn', 'Tavern', 'Temple', 'Shrine', 'Church',
-    'Monastery', 'Sanctuary', 'Shop', 'Market', 'Bazaar', 'Forge', 'Keep', 'Citadel',
-    'Palace', 'Town', 'City', 'Village', 'Settlement', 'Hamlet', 'Borough', 'Mountain',
-    'Hill', 'Valley', 'Desert', 'Swamp', 'Dungeon', 'Tower', 'Fortress', 'Bridge',
-    'Gate', 'Wall', 'Door', 'Window', 'Room', 'Hall', 'Chamber', 'Passage', 'Corridor',
-    'Stair', 'Floor', 'Ceiling', 'Roof', 'Garden', 'Courtyard', 'Square', 'Street',
-    'Road', 'Path', 'Trail', 'River', 'Lake', 'Ocean', 'Sea', 'Island', 'Cave',
-    'Mine', 'Quarry', 'Field', 'Meadow', 'Glade', 'Clearing', 'Thicket', 'Bush',
-    'Tree', 'Flower', 'Grass', 'Stone', 'Rock', 'Crystal', 'Gem', 'Metal', 'Wood',
-    'Water', 'Fire', 'Earth', 'Air', 'Light', 'Dark', 'Shadow', 'Sun', 'Moon',
-    'Star', 'Cloud', 'Rain', 'Snow', 'Wind', 'Storm', 'Thunder', 'Lightning',
-    'Magic', 'Spell', 'Scroll', 'Book', 'Potion', 'Ring', 'Amulet', 'Staff',
-    'Wand', 'Sword', 'Shield', 'Armor', 'Helmet', 'Boot', 'Glove', 'Cloak',
-    'Belt', 'Bag', 'Pouch', 'Chest', 'Box', 'Crate', 'Barrel', 'Bottle',
-    'Cup', 'Plate', 'Bowl', 'Knife', 'Fork', 'Spoon', 'Chair', 'Table',
-    'Bed', 'Mirror', 'Candle', 'Lamp', 'Torch', 'Fireplace', 'Hearth', 'Oven',
-    'Stove', 'Well', 'Fountain', 'Statue', 'Painting', 'Tapestry', 'Banner',
-    'Flag', 'Sign', 'Bell', 'Clock', 'Hourglass', 'Compass', 'Map', 'Key',
-    'Lock', 'Chain', 'Rope', 'Ladder', 'Wheel', 'Axle', 'Gear', 'Pulley',
-    'Lever', 'Button', 'Switch', 'Handle', 'Knob', 'Hinge', 'Nail', 'Screw',
-    'Bolt', 'Nut', 'Washer', 'Spring', 'Coil', 'Wire', 'Cable', 'Pipe',
-    'Tube', 'Hose', 'Funnel', 'Filter', 'Pump', 'Valve', 'Gauge', 'Meter',
-    'Sensor', 'Detector', 'Alarm', 'Siren', 'Whistle', 'Horn', 'Drum',
-    'Flute', 'Harp', 'Lute', 'Violin', 'Trumpet', 'Trombone', 'Clarinet',
-    'Saxophone', 'Piano', 'Organ', 'Guitar', 'Banjo', 'Mandolin', 'Harmonica',
-    'Accordion', 'Bagpipe', 'Tambourine', 'Maraca', 'Triangle', 'Cymbal',
-    'Gong', 'Bell', 'Chime', 'Xylophone', 'Vibraphone', 'Marimba', 'Steel',
-    'Iron', 'Copper', 'Silver', 'Gold', 'Platinum', 'Bronze', 'Brass',
-    'Aluminum', 'Titanium', 'Nickel', 'Zinc', 'Lead', 'Tin', 'Mercury',
-    'Sulfur', 'Carbon', 'Nitrogen', 'Oxygen', 'Hydrogen', 'Helium', 'Neon',
-    'Argon', 'Krypton', 'Xenon', 'Radon', 'Uranium', 'Plutonium', 'Thorium',
-    'Radium', 'Polonium', 'Astatine', 'Francium', 'Radon', 'Actinium',
-    'Protactinium', 'Neptunium', 'Americium', 'Curium', 'Berkelium',
-    'Californium', 'Einsteinium', 'Fermium', 'Mendelevium', 'Nobelium',
-    'Lawrencium', 'Rutherfordium', 'Dubnium', 'Seaborgium', 'Bohrium',
-    'Hassium', 'Meitnerium', 'Darmstadtium', 'Roentgenium', 'Copernicium',
-    'Nihonium', 'Flerovium', 'Moscovium', 'Livermorium', 'Tennessine',
-    'Oganesson'
+    'Deep',
+    'Goblin',
+    'Forest',
+    'Castle',
+    'Inn',
+    'Tavern',
+    'Temple',
+    'Shrine',
+    'Church',
+    'Monastery',
+    'Sanctuary',
+    'Shop',
+    'Market',
+    'Bazaar',
+    'Forge',
+    'Keep',
+    'Citadel',
+    'Palace',
+    'Town',
+    'City',
+    'Village',
+    'Settlement',
+    'Hamlet',
+    'Borough',
+    'Mountain',
+    'Hill',
+    'Valley',
+    'Desert',
+    'Swamp',
+    'Dungeon',
+    'Tower',
+    'Fortress',
+    'Bridge',
+    'Gate',
+    'Wall',
+    'Door',
+    'Window',
+    'Room',
+    'Hall',
+    'Chamber',
+    'Passage',
+    'Corridor',
+    'Stair',
+    'Floor',
+    'Ceiling',
+    'Roof',
+    'Garden',
+    'Courtyard',
+    'Square',
+    'Street',
+    'Road',
+    'Path',
+    'Trail',
+    'River',
+    'Lake',
+    'Ocean',
+    'Sea',
+    'Island',
+    'Cave',
+    'Mine',
+    'Quarry',
+    'Field',
+    'Meadow',
+    'Glade',
+    'Clearing',
+    'Thicket',
+    'Bush',
+    'Tree',
+    'Flower',
+    'Grass',
+    'Stone',
+    'Rock',
+    'Crystal',
+    'Gem',
+    'Metal',
+    'Wood',
+    'Water',
+    'Fire',
+    'Earth',
+    'Air',
+    'Light',
+    'Dark',
+    'Shadow',
+    'Sun',
+    'Moon',
+    'Star',
+    'Cloud',
+    'Rain',
+    'Snow',
+    'Wind',
+    'Storm',
+    'Thunder',
+    'Lightning',
+    'Magic',
+    'Spell',
+    'Scroll',
+    'Book',
+    'Potion',
+    'Ring',
+    'Amulet',
+    'Staff',
+    'Wand',
+    'Sword',
+    'Shield',
+    'Armor',
+    'Helmet',
+    'Boot',
+    'Glove',
+    'Cloak',
+    'Belt',
+    'Bag',
+    'Pouch',
+    'Chest',
+    'Box',
+    'Crate',
+    'Barrel',
+    'Bottle',
+    'Cup',
+    'Plate',
+    'Bowl',
+    'Knife',
+    'Fork',
+    'Spoon',
+    'Chair',
+    'Table',
+    'Bed',
+    'Mirror',
+    'Candle',
+    'Lamp',
+    'Torch',
+    'Fireplace',
+    'Hearth',
+    'Oven',
+    'Stove',
+    'Well',
+    'Fountain',
+    'Statue',
+    'Painting',
+    'Tapestry',
+    'Banner',
+    'Flag',
+    'Sign',
+    'Bell',
+    'Clock',
+    'Hourglass',
+    'Compass',
+    'Map',
+    'Key',
+    'Lock',
+    'Chain',
+    'Rope',
+    'Ladder',
+    'Wheel',
+    'Axle',
+    'Gear',
+    'Pulley',
+    'Lever',
+    'Button',
+    'Switch',
+    'Handle',
+    'Knob',
+    'Hinge',
+    'Nail',
+    'Screw',
+    'Bolt',
+    'Nut',
+    'Washer',
+    'Spring',
+    'Coil',
+    'Wire',
+    'Cable',
+    'Pipe',
+    'Tube',
+    'Hose',
+    'Funnel',
+    'Filter',
+    'Pump',
+    'Valve',
+    'Gauge',
+    'Meter',
+    'Sensor',
+    'Detector',
+    'Alarm',
+    'Siren',
+    'Whistle',
+    'Horn',
+    'Drum',
+    'Flute',
+    'Harp',
+    'Lute',
+    'Violin',
+    'Trumpet',
+    'Trombone',
+    'Clarinet',
+    'Saxophone',
+    'Piano',
+    'Organ',
+    'Guitar',
+    'Banjo',
+    'Mandolin',
+    'Harmonica',
+    'Accordion',
+    'Bagpipe',
+    'Tambourine',
+    'Maraca',
+    'Triangle',
+    'Cymbal',
+    'Gong',
+    'Bell',
+    'Chime',
+    'Xylophone',
+    'Vibraphone',
+    'Marimba',
+    'Steel',
+    'Iron',
+    'Copper',
+    'Silver',
+    'Gold',
+    'Platinum',
+    'Bronze',
+    'Brass',
+    'Aluminum',
+    'Titanium',
+    'Nickel',
+    'Zinc',
+    'Lead',
+    'Tin',
+    'Mercury',
+    'Sulfur',
+    'Carbon',
+    'Nitrogen',
+    'Oxygen',
+    'Hydrogen',
+    'Helium',
+    'Neon',
+    'Argon',
+    'Krypton',
+    'Xenon',
+    'Radon',
+    'Uranium',
+    'Plutonium',
+    'Thorium',
+    'Radium',
+    'Polonium',
+    'Astatine',
+    'Francium',
+    'Radon',
+    'Actinium',
+    'Protactinium',
+    'Neptunium',
+    'Americium',
+    'Curium',
+    'Berkelium',
+    'Californium',
+    'Einsteinium',
+    'Fermium',
+    'Mendelevium',
+    'Nobelium',
+    'Lawrencium',
+    'Rutherfordium',
+    'Dubnium',
+    'Seaborgium',
+    'Bohrium',
+    'Hassium',
+    'Meitnerium',
+    'Darmstadtium',
+    'Roentgenium',
+    'Copernicium',
+    'Nihonium',
+    'Flerovium',
+    'Moscovium',
+    'Livermorium',
+    'Tennessine',
+    'Oganesson',
   ];
 
   // Additional filtering to ensure we only get actual character names
@@ -904,25 +1243,26 @@ function extractCharactersFromText(storyContent: string, originalPrompt: string)
     .filter(name => !commonWordsToExclude.includes(name)) // Filter out common words
     .filter(name => name.split(' ').length <= 3) // Allow up to 3-word names
     .filter(name => !/^(The|A|An)\s/i.test(name)) // Filter out articles at start
-    .filter(name => !/^(Castle|Fortress|Tower|Keep|Citadel|Palace|Town|City|Village|Settlement|Hamlet|Borough|Forest|Mountain|Hill|Valley|Desert|Swamp|Temple|Shrine|Church|Monastery|Sanctuary|Inn|Tavern|Shop|Market|Bazaar|Forge)/i.test(name)) // Filter out location types
+    .filter(
+      name =>
+        !/^(Castle|Fortress|Tower|Keep|Citadel|Palace|Town|City|Village|Settlement|Hamlet|Borough|Forest|Mountain|Hill|Valley|Desert|Swamp|Temple|Shrine|Church|Monastery|Sanctuary|Inn|Tavern|Shop|Market|Bazaar|Forge)/i.test(
+          name
+        )
+    ) // Filter out location types
     .filter(name => {
       // Filter out individual words that are part of compound names
       const words = name.split(' ');
       if (words.length === 1) {
         // For single words, check if they're part of any compound name
-        return !potentialNames.some(otherName =>
-          otherName !== name &&
-          otherName.includes(name) &&
-          otherName.split(' ').length > 1
+        return !potentialNames.some(
+          otherName =>
+            otherName !== name && otherName.includes(name) && otherName.split(' ').length > 1
         );
       }
       return true; // Keep compound names
     })
     .filter(name => {
       // Additional context-based filtering
-      const lowerName = name.toLowerCase();
-      const lowerStory = storyContent.toLowerCase();
-
       // Check if the name appears in a context that suggests it's a character
       const nameRegex = new RegExp(`\\b${name}\\b`, 'gi');
       const matches = storyContent.match(nameRegex);
@@ -940,17 +1280,39 @@ function extractCharactersFromText(storyContent: string, originalPrompt: string)
 
         // Check for character-related context
         if (
-          context.includes('said') || context.includes('says') || context.includes('speaks') ||
-          context.includes('greets') || context.includes('approaches') || context.includes('meets') ||
-          context.includes('encounters') || context.includes('sees') || context.includes('notices') ||
-          context.includes('named') || context.includes('called') || context.includes('known as') ||
-          context.includes('sage') || context.includes('wizard') || context.includes('warrior') ||
-          context.includes('ranger') || context.includes('rogue') || context.includes('cleric') ||
-          context.includes('dwarf') || context.includes('elf') || context.includes('human') ||
-          context.includes('goblin') || context.includes('orc') || context.includes('halfling') ||
-          context.includes('dragon') || context.includes('monster') || context.includes('creature') ||
-          context.includes('npc') || context.includes('character') || context.includes('person') ||
-          context.includes('figure') || context.includes('being') || context.includes('individual')
+          context.includes('said') ||
+          context.includes('says') ||
+          context.includes('speaks') ||
+          context.includes('greets') ||
+          context.includes('approaches') ||
+          context.includes('meets') ||
+          context.includes('encounters') ||
+          context.includes('sees') ||
+          context.includes('notices') ||
+          context.includes('named') ||
+          context.includes('called') ||
+          context.includes('known as') ||
+          context.includes('sage') ||
+          context.includes('wizard') ||
+          context.includes('warrior') ||
+          context.includes('ranger') ||
+          context.includes('rogue') ||
+          context.includes('cleric') ||
+          context.includes('dwarf') ||
+          context.includes('elf') ||
+          context.includes('human') ||
+          context.includes('goblin') ||
+          context.includes('orc') ||
+          context.includes('halfling') ||
+          context.includes('dragon') ||
+          context.includes('monster') ||
+          context.includes('creature') ||
+          context.includes('npc') ||
+          context.includes('character') ||
+          context.includes('person') ||
+          context.includes('figure') ||
+          context.includes('being') ||
+          context.includes('individual')
         ) {
           hasCharacterContext = true;
           break;

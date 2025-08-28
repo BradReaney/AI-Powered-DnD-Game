@@ -137,9 +137,10 @@ export class DiscoveryMessageService {
         ? backgroundLines.map((line, index) => (index === 0 ? line : `   ${line}`)).join('\n')
         : background;
 
-    const changesList = changes.length > 0
-      ? changes.map(change => `   • ${change}`).join('\n')
-      : '   • General information updated';
+    const changesList =
+      changes.length > 0
+        ? changes.map(change => `   • ${change}`).join('\n')
+        : '   • General information updated';
 
     const content = `🔄 Character Updated: ${character.name}
    • Race: ${character.race || 'Unknown'}
@@ -233,9 +234,10 @@ ${poiList}`;
         ? location.pointsOfInterest.map(poi => `   • ${poi.name}: ${poi.description}`).join('\n')
         : '   • No specific points of interest identified';
 
-    const changesList = changes.length > 0
-      ? changes.map(change => `   • ${change}`).join('\n')
-      : '   • General information updated';
+    const changesList =
+      changes.length > 0
+        ? changes.map(change => `   • ${change}`).join('\n')
+        : '   • General information updated';
 
     const content = `🔄 Location Updated: ${cleanedName}
    • Type: ${location.type || 'Unknown'}
@@ -354,15 +356,21 @@ ${changesList}`;
     const changes: string[] = [];
 
     if (previous.race !== current.race) {
-      changes.push(`Race changed from "${previous.race || 'Unknown'}" to "${current.race || 'Unknown'}"`);
+      changes.push(
+        `Race changed from "${previous.race || 'Unknown'}" to "${current.race || 'Unknown'}"`
+      );
     }
 
     if (previous.class !== current.class) {
-      changes.push(`Class changed from "${previous.class || 'Unknown'}" to "${current.class || 'Unknown'}"`);
+      changes.push(
+        `Class changed from "${previous.class || 'Unknown'}" to "${current.class || 'Unknown'}"`
+      );
     }
 
     if (previous.level !== current.level) {
-      changes.push(`Level changed from ${previous.level || 'Unknown'} to ${current.level || 'Unknown'}`);
+      changes.push(
+        `Level changed from ${previous.level || 'Unknown'} to ${current.level || 'Unknown'}`
+      );
     }
 
     if (previous.personality?.background !== current.personality?.background) {
@@ -385,7 +393,9 @@ ${changesList}`;
     const changes: string[] = [];
 
     if (previous.type !== current.type) {
-      changes.push(`Type changed from "${previous.type || 'Unknown'}" to "${current.type || 'Unknown'}"`);
+      changes.push(
+        `Type changed from "${previous.type || 'Unknown'}" to "${current.type || 'Unknown'}"`
+      );
     }
 
     if (previous.description !== current.description) {
@@ -393,7 +403,9 @@ ${changesList}`;
     }
 
     if (previous.importance !== current.importance) {
-      changes.push(`Importance changed from "${previous.importance || 'Unknown'}" to "${current.importance || 'Unknown'}"`);
+      changes.push(
+        `Importance changed from "${previous.importance || 'Unknown'}" to "${current.importance || 'Unknown'}"`
+      );
     }
 
     if (previous.pointsOfInterest?.length !== current.pointsOfInterest?.length) {
