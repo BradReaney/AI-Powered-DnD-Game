@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_URL = process.env.BACKEND_URL;
-if (!BACKEND_URL) {
-  throw new Error("BACKEND_URL environment variable is required");
-}
+// Environment variable will be checked at runtime
 
 export async function GET(request: NextRequest) {
   try {
+    const BACKEND_URL = process.env.BACKEND_URL;
+    if (!BACKEND_URL) {
+      return NextResponse.json(
+        { error: "BACKEND_URL environment variable is required" },
+        { status: 500 },
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const campaignId = searchParams.get("campaignId");
     const sessionId = searchParams.get("sessionId");
@@ -63,6 +68,14 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const BACKEND_URL = process.env.BACKEND_URL;
+    if (!BACKEND_URL) {
+      return NextResponse.json(
+        { error: "BACKEND_URL environment variable is required" },
+        { status: 500 },
+      );
+    }
+
     const body = await request.json();
 
     const response = await fetch(`${BACKEND_URL}/api/sessions`, {
@@ -92,6 +105,14 @@ export async function POST(request: NextRequest) {
 // Handle individual session operations
 export async function PUT(request: NextRequest) {
   try {
+    const BACKEND_URL = process.env.BACKEND_URL;
+    if (!BACKEND_URL) {
+      return NextResponse.json(
+        { error: "BACKEND_URL environment variable is required" },
+        { status: 500 },
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get("sessionId");
 
@@ -130,6 +151,14 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const BACKEND_URL = process.env.BACKEND_URL;
+    if (!BACKEND_URL) {
+      return NextResponse.json(
+        { error: "BACKEND_URL environment variable is required" },
+        { status: 500 },
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get("sessionId");
 
@@ -166,6 +195,14 @@ export async function DELETE(request: NextRequest) {
 // Handle session cleanup operations
 export async function PATCH(request: NextRequest) {
   try {
+    const BACKEND_URL = process.env.BACKEND_URL;
+    if (!BACKEND_URL) {
+      return NextResponse.json(
+        { error: "BACKEND_URL environment variable is required" },
+        { status: 500 },
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
 

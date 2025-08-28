@@ -233,9 +233,26 @@ class ApiService {
   }
 
   async updateSessionActivity(sessionId: string): Promise<any> {
-    return this.request<any>(`/sessions/${sessionId}/activity`, {
+    // Call backend directly since Next.js API route is not working
+    const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL;
+    if (!backendUrl) {
+      throw new Error("BACKEND_URL or NEXT_PUBLIC_API_URL environment variable is required");
+    }
+
+    const response = await fetch(`${backendUrl}/api/sessions/${sessionId}/activity`, {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      },
     });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
   }
 
   // Manual session cleanup (for testing or immediate needs)

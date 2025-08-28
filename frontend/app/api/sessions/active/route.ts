@@ -4,7 +4,10 @@ export async function GET(request: NextRequest) {
   try {
     const BACKEND_URL = process.env.BACKEND_URL;
     if (!BACKEND_URL) {
-      throw new Error("BACKEND_URL environment variable is required");
+      return NextResponse.json(
+        { error: "BACKEND_URL environment variable is required" },
+        { status: 500 },
+      );
     }
 
     const { searchParams } = new URL(request.url);

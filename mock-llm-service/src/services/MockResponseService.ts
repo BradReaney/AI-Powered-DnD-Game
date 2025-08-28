@@ -103,47 +103,162 @@ export class MockResponseService {
     const race = races[Math.floor(Math.random() * races.length)] || 'Human';
     const className = classes[Math.floor(Math.random() * classes.length)] || 'Fighter';
 
-    return `**${name}** - ${race} ${className}
-
-**Personality:** Brave and determined, always ready to face danger head-on
-
-**Background:** Former adventurer who left their homeland to seek fortune and glory
-
-**Campaign Fit:** This character is perfectly suited for a fantasy campaign. Their ${className.toLowerCase()} abilities and ${race.toLowerCase()} heritage provide unique advantages in this setting.
-
-**Roleplay Style:** Direct and action-oriented, preferring deeds over words
-
-**Key Abilities:** Combat mastery, tactical thinking, and physical resilience
-
-**Motivation:** To become a legendary hero and protect the realm`;
+    return `{
+  "name": "${name}",
+  "race": "${race}",
+  "class": "${className}",
+  "archetype": "${className}",
+  "attributes": {
+    "strength": 14,
+    "dexterity": 16,
+    "constitution": 12,
+    "intelligence": 10,
+    "wisdom": 14,
+    "charisma": 8
+  },
+  "personality": {
+    "traits": ["Brave", "Determined", "Loyal"],
+    "ideals": ["Protection", "Justice", "Honor"],
+    "bonds": ["Homeland", "Companions", "Oath"],
+    "flaws": ["Impatient", "Stubborn", "Reckless"],
+    "background": "Former adventurer who left their homeland to seek fortune and glory. This character is perfectly suited for a fantasy campaign with their ${className.toLowerCase()} abilities and ${race.toLowerCase()} heritage providing unique advantages.",
+    "alignment": "Lawful Good"
+  }
+}`;
   }
 
   /**
    * Generate campaign scenario response
    */
   private generateScenarioResponse(): string {
-    return `**The Lost Artifact of the Ancients** - A fantasy scenario for 4 level 5 characters
-
-**Setting:** A mystical forest where ancient magic still lingers
-
-**Main Objective:** Recover a powerful artifact before it falls into evil hands
-
-**Key NPCs:**
-- **Elder Thorne**: A wise druid who knows the forest's secrets
-- **Captain Valeria**: A noble knight leading the artifact hunt
-
-**Challenges & Encounters:**
-- Navigate the enchanted forest
-- Solve ancient puzzles
-- Face corrupted guardians
-
-**Character Engagement Hooks:**
-- The artifact's power could save the realm
-- Ancient knowledge awaits discovery
-
-**Expected Duration:** 2-3 sessions
-
-**Difficulty:** Challenging for a party of this level`;
+    return `{
+  "summary": "A mystical fantasy campaign where ancient magic lingers in an enchanted forest. Players must recover a powerful artifact before it falls into evil hands, navigating through corrupted guardians and solving ancient puzzles.",
+  "startingLocation": "The village of Eldertree, nestled at the edge of the Whispering Woods. This ancient settlement serves as the last bastion of civilization before the enchanted forest, with its mystical aura and mysterious inhabitants.",
+  "factions": [
+    {
+      "name": "Circle of the Ancient Oak",
+      "type": "religious order",
+      "alignment": "Neutral Good",
+      "influence": 85,
+      "relationship": "friendly",
+      "description": "A druidic order dedicated to preserving the natural balance and ancient knowledge of the forest."
+    },
+    {
+      "name": "House Valerian",
+      "type": "noble house",
+      "alignment": "Lawful Good",
+      "influence": 75,
+      "relationship": "allied",
+      "description": "A noble family that has protected the realm for generations, now leading the artifact hunt."
+    },
+    {
+      "name": "The Shadow Syndicate",
+      "type": "criminal syndicate",
+      "alignment": "Chaotic Evil",
+      "influence": 60,
+      "relationship": "hostile",
+      "description": "A secretive organization seeking the artifact's power for their own dark purposes."
+    },
+    {
+      "name": "Mercenaries of the Iron Fist",
+      "type": "mercenary company",
+      "alignment": "Neutral",
+      "influence": 45,
+      "relationship": "neutral",
+      "description": "A professional fighting force that can be hired for protection or hired by enemies."
+    }
+  ],
+  "threats": [
+    {
+      "name": "Corrupted Guardian Spirits",
+      "type": "monster",
+      "threatLevel": "high",
+      "description": "Ancient forest spirits corrupted by dark magic, now serving as guardians of the artifact's location.",
+      "location": "Deep within the Whispering Woods",
+      "status": "active"
+    },
+    {
+      "name": "The Shadow Lord's Cult",
+      "type": "organization",
+      "threatLevel": "critical",
+      "description": "A cult dedicated to an ancient evil entity, actively seeking the artifact to unleash its power.",
+      "location": "Hidden throughout the realm",
+      "status": "active"
+    },
+    {
+      "name": "The Great Corruption",
+      "type": "natural disaster",
+      "threatLevel": "high",
+      "description": "A spreading magical corruption that threatens to consume the entire forest and surrounding lands.",
+      "location": "Spreading from the artifact's location",
+      "status": "active"
+    }
+  ],
+  "goals": [
+    {
+      "description": "Recover the Lost Artifact of the Ancients before it falls into evil hands",
+      "completed": false,
+      "progress": 0
+    },
+    {
+      "description": "Uncover the ancient knowledge and secrets hidden within the artifact",
+      "completed": false,
+      "progress": 0
+    },
+    {
+      "description": "Purify the corrupted guardian spirits and restore balance to the forest",
+      "completed": false,
+      "progress": 0
+    },
+    {
+      "description": "Prevent the Shadow Lord's cult from gaining control of the artifact",
+      "completed": false,
+      "progress": 0
+    },
+    {
+      "description": "Establish a safe haven in the forest for future adventurers and scholars",
+      "completed": false,
+      "progress": 0
+    }
+  ],
+  "lore": [
+    {
+      "category": "History",
+      "title": "The Age of the Ancients",
+      "content": "Long before recorded history, powerful beings known as the Ancients ruled this land with wisdom and magic. They created the artifact as a repository of their knowledge and power.",
+      "discoveredBy": [],
+      "importance": "legendary"
+    },
+    {
+      "category": "Legend",
+      "title": "The Whispering Woods",
+      "content": "The forest itself is said to be alive with ancient magic, its trees whispering secrets to those who know how to listen. The artifact's power is strongest here.",
+      "discoveredBy": [],
+      "importance": "rare"
+    },
+    {
+      "category": "Mythology",
+      "title": "The Guardian Pact",
+      "content": "The Ancients made a pact with the forest spirits to protect the artifact. This pact has been corrupted over time, turning the guardians into dangerous foes.",
+      "discoveredBy": [],
+      "importance": "uncommon"
+    },
+    {
+      "category": "Prophecy",
+      "title": "The Chosen One",
+      "content": "Ancient texts speak of a chosen one who will restore the artifact's power and bring balance back to the land. Many believe this prophecy is about to be fulfilled.",
+      "discoveredBy": [],
+      "importance": "rare"
+    },
+    {
+      "category": "Geography",
+      "title": "The Heart of the Forest",
+      "content": "At the center of the Whispering Woods lies a sacred grove where the artifact was originally placed. This location is protected by the most powerful of the corrupted guardians.",
+      "discoveredBy": [],
+      "importance": "common"
+    }
+  ]
+}`;
   }
 
   /**

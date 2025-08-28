@@ -433,11 +433,24 @@ export function GameChat({
     }
   };
 
-  const formatTimestamp = (timestamp: Date) => {
-    return timestamp.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const formatTimestamp = (timestamp: Date | string) => {
+    try {
+      // Handle both Date objects and string timestamps
+      const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
+
+      // Check if the date is valid
+      if (isNaN(date.getTime())) {
+        return "Unknown time";
+      }
+
+      return date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (error) {
+      console.warn('Error formatting timestamp:', timestamp, error);
+      return "Unknown time";
+    }
   };
 
   return (
@@ -569,24 +582,29 @@ export function GameChat({
                       )}
                     </div>
                     <div
-                      className={`p-2 md:p-3 rounded-lg ${
-                        message.sender === "dm"
-                          ? "bg-muted"
-                          : message.sender === "system"
-                            ? "bg-green-50 border border-green-200 dark:bg-green-950 dark:border-green-800"
-                            : message.type === "roll"
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-primary text-primary-foreground"
-                      }`}
+                      className={`p-2 md:p-3 rounded-lg ${message.sender === "dm"
+                        ? "bg-muted"
+                        : (message.type === "system-discovery" ||
+                          message.content.includes("🆕") || message.content.includes("🔄"))
+                          ? "bg-green-50 border border-green-200 dark:bg-green-950 dark:border-green-800"
+                          : message.type === "roll"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-primary text-primary-foreground"
+                        }`}
                     >
-                      {message.type === "system-discovery" ? (
+                      {/* Check if this is a discovery message by content or type */}
+                      {(message.type === "system-discovery" ||
+                        (message.sender === "system" &&
+                          (message.content.includes("🆕") || message.content.includes("🔄")))) ? (
                         <div className="text-xs md:text-sm">
                           <div className="whitespace-pre-wrap text-green-800 dark:text-green-200">
                             {message.content.split("\n").map((line, index) => {
-                              // Check if this line contains the discovery header (both old and new formats)
+                              // Check if this line contains discovery or update headers
                               if (
                                 line.includes("🆕 New Character Discovered:") ||
                                 line.includes("🆕 New Location Discovered:") ||
+                                line.includes("🔄 Character Updated:") ||
+                                line.includes("🔄 Location Updated:") ||
                                 line.includes(
                                   "🆕 **New Character Discovered**:",
                                 ) ||
@@ -600,11 +618,21 @@ export function GameChat({
                                   // Old format: "🆕 **New Character Discovered**: Thrain Ironbeard"
                                   headerText = rest.slice(1, 4).join(" "); // "New Character Discovered:"
                                   entityName = rest.slice(4).join(" "); // "Thrain Ironbeard"
+                                } else if (line.includes("🔄")) {
+                                  // Update format: "🔄 Character Updated: Thrain Ironbeard" or "🔄 Location Updated: Castle Blackstone"
+                                  headerText = rest.slice(0, 2).join(" "); // "Character Updated:" or "Location Updated:"
+                                  entityName = rest.slice(2).join(" "); // "Thrain Ironbeard" or "Castle Blackstone"
                                 } else {
                                   // New format: "🆕 New Character Discovered: Thrain Ironbeard"
                                   headerText = rest.slice(0, 3).join(" "); // "New Character Discovered:"
                                   entityName = rest.slice(3).join(" "); // "Thrain Ironbeard"
                                 }
+
+                                // Determine color based on message type
+                                const isUpdate = line.includes("🔄");
+                                const textColor = isUpdate
+                                  ? "text-blue-900 dark:text-blue-100"
+                                  : "text-green-900 dark:text-green-100";
 
                                 return (
                                   <div key={index} className="mb-1">
@@ -612,7 +640,7 @@ export function GameChat({
                                     <span className="font-bold">
                                       {headerText}
                                     </span>{" "}
-                                    <span className="font-semibold text-green-900 dark:text-green-100">
+                                    <span className={`font-semibold ${textColor}`}>
                                       {entityName}
                                     </span>
                                   </div>
@@ -633,7 +661,7 @@ export function GameChat({
                             })}
                           </div>
                           {message.metadata?.discovery && (
-                            <div className="mt-2 pt-2 border-t border-green-200 dark:border-green-800">
+                            <div className="mt-2 pt-2 border-green-200 dark:border-green-800 border-t">
                               <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
                                 <span>
                                   Confidence:{" "}
@@ -652,7 +680,25 @@ export function GameChat({
                                     </span>
                                   </>
                                 )}
+                                {message.metadata.discovery.isUpdate && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="text-blue-700 dark:text-blue-300 font-medium">
+                                      UPDATED!
+                                    </span>
+                                  </>
+                                )}
                               </div>
+                              {message.metadata.discovery.changes && message.metadata.discovery.changes.length > 0 && (
+                                <div className="mt-2 text-xs text-blue-600 dark:text-blue-400">
+                                  <div className="font-medium mb-1">Changes Made:</div>
+                                  {message.metadata.discovery.changes.map((change, idx) => (
+                                    <div key={idx} className="ml-2 text-blue-700 dark:text-blue-300">
+                                      • {change}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>

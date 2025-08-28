@@ -154,6 +154,42 @@ export function adaptCampaign(backendCampaign: any): Campaign {
 }
 
 export function adaptCharacter(backendCharacter: any): Character {
+  // Helper function to safely extract skills array
+  const extractSkills = (skills: any): string[] => {
+    if (Array.isArray(skills)) {
+      return skills;
+    }
+    if (skills && typeof skills === 'object') {
+      // Handle Map format from backend
+      return Object.keys(skills).filter(
+        (skill) => skills[skill]?.proficient === true
+      );
+    }
+    return [];
+  };
+
+  // Helper function to safely extract equipment array
+  const extractEquipment = (equipment: any): string[] => {
+    if (Array.isArray(equipment)) {
+      return equipment;
+    }
+    if (equipment && typeof equipment === 'object') {
+      // Handle backend equipment format
+      const result: string[] = [];
+      if (equipment.weapons && Array.isArray(equipment.weapons)) {
+        result.push(...equipment.weapons.map((w: any) => w.name || w).filter(Boolean));
+      }
+      if (equipment.armor && equipment.armor.name) {
+        result.push(equipment.armor.name);
+      }
+      if (equipment.items && Array.isArray(equipment.items)) {
+        result.push(...equipment.items.map((i: any) => i.name || i).filter(Boolean));
+      }
+      return result;
+    }
+    return [];
+  };
+
   return {
     id: backendCharacter._id?.toString() || backendCharacter._id,
     campaignId:
@@ -178,16 +214,8 @@ export function adaptCharacter(backendCharacter: any): Character {
       wisdom: backendCharacter.attributes?.wisdom || 10,
       charisma: backendCharacter.attributes?.charisma || 10,
     },
-    skills: Object.keys(backendCharacter.skills || {}).filter(
-      (skill) => backendCharacter.skills[skill]?.proficient,
-    ),
-    equipment: [
-      ...(backendCharacter.equipment?.weapons?.map((w: any) => w.name) || []),
-      ...(backendCharacter.equipment?.armor
-        ? [backendCharacter.equipment.armor.name]
-        : []),
-      ...(backendCharacter.equipment?.items?.map((i: any) => i.name) || []),
-    ],
+    skills: extractSkills(backendCharacter.skills),
+    equipment: extractEquipment(backendCharacter.equipment),
     backstory: backendCharacter.personality?.traits?.join(", ") || "",
     createdAt: new Date(backendCharacter.createdAt),
     updatedAt: new Date(backendCharacter.updatedAt),

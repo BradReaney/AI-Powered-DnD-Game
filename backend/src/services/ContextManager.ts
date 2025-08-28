@@ -216,53 +216,6 @@ export class ContextManager {
   }
 
   /**
-   * Export context for backup or transfer
-   */
-  exportContext(campaignId: string): {
-    layers: ContextLayer[];
-    summary: ContextSummary | null;
-    metadata: {
-      exportDate: Date;
-      totalLayers: number;
-      totalTokens: number;
-    };
-  } {
-    const layers = this.contextLayers.get(campaignId) || [];
-    const summary = this.campaignSummaries.get(campaignId) || null;
-
-    return {
-      layers,
-      summary,
-      metadata: {
-        exportDate: new Date(),
-        totalLayers: layers.length,
-        totalTokens: layers.reduce((sum, layer) => sum + layer.tokenCount, 0),
-      },
-    };
-  }
-
-  /**
-   * Import context from backup or transfer
-   */
-  importContext(
-    campaignId: string,
-    contextData: {
-      layers: ContextLayer[];
-      summary: ContextSummary | null;
-    }
-  ): void {
-    this.contextLayers.set(campaignId, contextData.layers);
-    if (contextData.summary) {
-      this.campaignSummaries.set(campaignId, contextData.summary);
-    }
-
-    logger.info('Context imported for campaign', {
-      campaignId,
-      layersImported: contextData.layers.length,
-    });
-  }
-
-  /**
    * Dynamically select context based on current situation
    */
   private async selectContextDynamically(
