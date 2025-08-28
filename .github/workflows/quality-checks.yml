@@ -42,6 +42,10 @@ jobs:
         working-directory: ./backend
         run: npx tsc --noEmit
 
+      - name: Run backend unit tests
+        working-directory: ./backend
+        run: npm test -- --passWithNoTests --maxWorkers=2
+
   frontend-quality:
     name: Frontend Quality Checks
     runs-on: ubuntu-latest
@@ -70,6 +74,10 @@ jobs:
       - name: Run frontend TypeScript compilation
         working-directory: ./frontend
         run: npx tsc --noEmit
+
+      - name: Run frontend unit tests
+        working-directory: ./frontend
+        run: npm test -- --passWithNoTests --maxWorkers=2
 
   e2e-tests:
     name: End-to-End Tests
