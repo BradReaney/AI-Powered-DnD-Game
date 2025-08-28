@@ -297,7 +297,7 @@ const CharacterSchema = new Schema<ICharacter>(
     sessionId: {
       type: String, // Changed from ObjectId to String to support UUIDs
       ref: 'Session',
-      required: true,
+      required: false, // Made optional - characters are linked to campaigns, not sessions
     },
     isActive: {
       type: Boolean,
@@ -327,7 +327,8 @@ const CharacterSchema = new Schema<ICharacter>(
 );
 
 // Indexes for performance
-CharacterSchema.index({ campaignId: 1, sessionId: 1 });
+CharacterSchema.index({ campaignId: 1 }); // Primary index on campaignId since characters are linked to campaigns
+CharacterSchema.index({ sessionId: 1 }); // Secondary index on sessionId for when characters join sessions
 CharacterSchema.index({ characterType: 1 });
 CharacterSchema.index({ name: 1 });
 
