@@ -125,11 +125,6 @@ export default function SessionContinuity({
 
   return (
     <div className="space-y-6">
-      {console.log(
-        "SessionContinuity component is rendering with",
-        activeSessions.length,
-        "sessions",
-      )}
       <div className="text-center">
         <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
         <h2 className="text-2xl font-bold text-foreground mb-2">
