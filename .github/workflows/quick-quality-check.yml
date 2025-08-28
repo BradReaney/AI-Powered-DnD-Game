@@ -3,8 +3,6 @@ name: Quick Quality Check
 on:
   push:
     branches-ignore: [ main, develop ]
-  pull_request:
-    types: [ opened, synchronize, reopened ]
   workflow_dispatch:
 
 env:
