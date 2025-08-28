@@ -86,7 +86,7 @@ router.post('/auto-create', async (req, res) => {
 
     // Create automatic session with default values
     const sessionConfig = {
-      name: `Session ${new Date().toLocaleDateString()}`,
+      name: `Session ${new Date().toLocaleDateString('en-GB')}`,
       dm: 'AI Dungeon Master',
       location: 'Starting Location',
       weather: 'Clear',

@@ -990,7 +990,7 @@ Your journey starts now. What would you like to do first?`;
         _id: sessionId, // Use the UUID provided by the frontend
         campaignId: campaign._id,
         sessionNumber: campaign.sessions.length + 1,
-        name: `Session ${new Date().toLocaleDateString()}`,
+        name: `Session ${new Date().toLocaleDateString('en-GB')}`,
         status: 'active',
         createdBy: 'ai-dm',
         metadata: {

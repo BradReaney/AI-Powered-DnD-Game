@@ -10,8 +10,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Play, Clock, User, Bot } from "lucide-react";
-import type { Campaign } from "@/lib/types";
+import { MessageSquare, Play, Clock, User, Bot, Trash2 } from "lucide-react";
+import type { Campaign, Character } from "@/lib/types";
+import apiService from "@/lib/api";
 
 interface ActiveSession {
   sessionId: string;
@@ -175,6 +176,28 @@ export default function ActiveSessionsDisplay({
                 >
                   <Play className="h-4 w-4 mr-2" />
                   Continue
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={async () => {
+                    if (
+                      confirm(
+                        `Are you sure you want to delete the session "${session.name}"? This action cannot be undone and will remove all session data including messages, characters, and locations.`,
+                      )
+                    ) {
+                      try {
+                        await apiService.deleteSession(session.sessionId);
+                        // Refresh the sessions list by triggering a re-render
+                        window.location.reload();
+                      } catch (error) {
+                        console.error("Error deleting session:", error);
+                        alert("Failed to delete session. Please try again.");
+                      }
+                    }
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             ))}

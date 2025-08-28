@@ -10,8 +10,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Play, Clock, User, Bot } from "lucide-react";
+import { MessageSquare, Play, Clock, User, Bot, Trash2 } from "lucide-react";
 import type { Campaign, Character } from "@/lib/types";
+import apiService from "@/lib/api";
 
 interface ActiveSession {
   sessionId: string;
@@ -124,6 +125,11 @@ export default function SessionContinuity({
 
   return (
     <div className="space-y-6">
+      {console.log(
+        "SessionContinuity component is rendering with",
+        activeSessions.length,
+        "sessions",
+      )}
       <div className="text-center">
         <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
         <h2 className="text-2xl font-bold text-foreground mb-2">
@@ -211,6 +217,38 @@ export default function SessionContinuity({
                     >
                       <Play className="h-4 w-4 mr-2" />
                       Resume Session
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={async () => {
+                        console.log(
+                          "Delete button clicked for session:",
+                          session.sessionId,
+                        );
+                        if (
+                          confirm(
+                            `Are you sure you want to delete the session "${session.name}"? This action cannot be undone and will remove all session data including messages, characters, and locations.`,
+                          )
+                        ) {
+                          try {
+                            console.log("Calling deleteSession API...");
+                            await apiService.deleteSession(session.sessionId);
+                            console.log(
+                              "Delete successful, refreshing sessions...",
+                            );
+                            // Refresh the sessions list
+                            fetchActiveSessions();
+                          } catch (error) {
+                            console.error("Error deleting session:", error);
+                            alert(
+                              "Failed to delete session. Please try again.",
+                            );
+                          }
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>

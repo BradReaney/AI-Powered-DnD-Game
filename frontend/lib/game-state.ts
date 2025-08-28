@@ -68,8 +68,8 @@ export class GameStateManager {
       currentSession: {
         id: crypto.randomUUID(),
         campaignId: campaign.id,
-        name: `Session ${new Date().toLocaleDateString()}`,
-        title: `Session ${new Date().toLocaleDateString()}`,
+        name: `Session ${new Date().toLocaleDateString("en-GB")}`,
+        title: `Session ${new Date().toLocaleDateString("en-GB")}`,
         description: `Playing as ${character.name}`,
         date: new Date(),
         isCompleted: false,
