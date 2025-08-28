@@ -63,7 +63,7 @@ export default function ActiveSessionsDisplay({
         throw new Error("Failed to fetch active sessions");
       }
       const data = await response.json();
-      setActiveSessions(data.sessions || []);
+      setActiveSessions(data.activeSessions || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {

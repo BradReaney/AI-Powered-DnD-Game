@@ -410,55 +410,20 @@ export function useSlashCommands(character: Character, campaign: Campaign) {
 
       const { command, args } = parsed;
 
-      // Handle character commands
+      // Handle character update commands
       if (command === "/character") {
-        return await handleCharacterUpdate(args);
+        return handleCharacterUpdate(args);
       }
 
-      // Handle location commands
+      // Handle location update commands
       if (command === "/location") {
-        return await handleLocationUpdate(args);
-      }
-
-      // Handle help commands
-      if (command === "/help") {
-        if (args.length === 0) {
-          return {
-            success: true,
-            content:
-              "Available commands: /help, /roll, /status, /inventory, /character, /location. Use /help [command] for specific help.",
-            type: "info",
-          };
-        }
-
-        const helpTarget = args[0];
-        if (helpTarget === "character") {
-          return {
-            success: true,
-            content:
-              "Character commands: /character name [value], /character level [value], /character hp [value], /character ac [value], /character skill [skill] [value]",
-            type: "info",
-          };
-        }
-
-        if (helpTarget === "location") {
-          return {
-            success: true,
-            content:
-              "Location commands: /location name [value], /location type [value], /location description [value], /location explore, /location add-tag [tag]",
-            type: "info",
-          };
-        }
+        return handleLocationUpdate(args);
       }
 
       // Handle existing commands
       switch (command) {
         case "/roll":
-          return {
-            success: true,
-            content: "Rolling dice... (dice rolling functionality simplified)",
-            type: "info",
-          };
+          return handleRollCommand(args);
         case "/status":
           return {
             success: true,
@@ -484,6 +449,76 @@ export function useSlashCommands(character: Character, campaign: Campaign) {
     },
     [character, handleCharacterUpdate, handleLocationUpdate, parseCommand],
   );
+
+  // Dice rolling command handler
+  const handleRollCommand = useCallback((args: string[]): CommandResponse => {
+    if (args.length === 0) {
+      return {
+        success: false,
+        content: "Usage: /roll <dice> (e.g., /roll 1d20, /roll 3d6+2)",
+        type: "error",
+      };
+    }
+
+    const diceNotation = args[0];
+
+    try {
+      const result = rollDice(diceNotation);
+      return {
+        success: true,
+        content: `🎲 Rolling ${diceNotation}: ${result.total} (${result.rolls.join(", ")})${result.modifier !== 0 ? ` + ${result.modifier}` : ""}`,
+        type: "roll",
+        metadata: {
+          diceRoll: {
+            notation: diceNotation,
+            result: result.total,
+            rolls: result.rolls,
+            modifier: result.modifier,
+          },
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        content: `Invalid dice notation: ${diceNotation}. Use format like "1d20", "3d6+2", or "1d100"`,
+        type: "error",
+      };
+    }
+  }, []);
+
+  // Dice rolling function
+  const rollDice = (
+    notation: string,
+  ): { total: number; rolls: number[]; modifier: number } => {
+    // Parse dice notation (e.g., "3d6+2", "1d20", "2d10-1")
+    const match = notation.match(/^(\d+)d(\d+)([+-]\d+)?$/);
+    if (!match) {
+      throw new Error(`Invalid dice notation: ${notation}`);
+    }
+
+    const count = parseInt(match[1]);
+    const sides = parseInt(match[2]);
+    const modifier = match[3] ? parseInt(match[3]) : 0;
+
+    if (count < 1 || count > 100) {
+      throw new Error("Dice count must be between 1 and 100");
+    }
+
+    if (sides < 1 || sides > 1000) {
+      throw new Error("Dice sides must be between 1 and 1000");
+    }
+
+    // Roll the dice
+    const rolls: number[] = [];
+    for (let i = 0; i < count; i++) {
+      rolls.push(Math.floor(Math.random() * sides) + 1);
+    }
+
+    // Calculate total
+    const total = rolls.reduce((sum, roll) => sum + roll, 0) + modifier;
+
+    return { total, rolls, modifier };
+  };
 
   // Check if input is a command
   const isCommand = useCallback((input: string): boolean => {

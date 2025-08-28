@@ -10,6 +10,8 @@ export interface DiscoveryMessage {
     extractionMethod: 'llm' | 'pattern' | 'hybrid';
     entityDetails: ICharacter | ILocation;
     isNew: boolean;
+    isUpdate?: boolean;
+    changes?: string[];
   };
 }
 
@@ -112,6 +114,55 @@ export class DiscoveryMessageService {
         extractionMethod: 'llm',
         entityDetails: character,
         isNew,
+        isUpdate: false,
+      },
+    };
+  }
+
+  /**
+   * Generate update messages for existing characters
+   */
+  generateCharacterUpdateMessage(
+    character: ICharacter,
+    previousData: Partial<ICharacter>,
+    changes: string[]
+  ): DiscoveryMessage {
+    const personalityTraits = character.personality?.traits?.join(', ') || 'Unknown';
+    const background = character.personality?.background || 'No background available';
+
+    // Handle multi-line background with proper indentation
+    const backgroundLines = (background || 'No background available').split('\n');
+    const formattedBackground =
+      backgroundLines.length > 1
+        ? backgroundLines.map((line, index) => (index === 0 ? line : `   ${line}`)).join('\n')
+        : background;
+
+    const changesList =
+      changes.length > 0
+        ? changes.map(change => `   • ${change}`).join('\n')
+        : '   • General information updated';
+
+    const content = `🔄 Character Updated: ${character.name}
+   • Race: ${character.race || 'Unknown'}
+   • Class: ${character.class || 'Unknown'}
+   • Level: ${character.level || 1}
+   • Personality: ${personalityTraits}
+   • Background: ${formattedBackground}
+   • Changes Made:
+${changesList}`;
+
+    return {
+      type: 'system-discovery',
+      content,
+      metadata: {
+        discoveryType: 'character',
+        entityId: character._id?.toString() || character.id || '',
+        confidence: 85, // Default confidence for LLM extraction
+        extractionMethod: 'llm',
+        entityDetails: character,
+        isNew: false,
+        isUpdate: true,
+        changes,
       },
     };
   }
@@ -153,6 +204,61 @@ ${poiList}`;
         extractionMethod: 'llm',
         entityDetails: location,
         isNew,
+        isUpdate: false,
+      },
+    };
+  }
+
+  /**
+   * Generate update messages for existing locations
+   */
+  generateLocationUpdateMessage(
+    location: ILocation,
+    previousData: Partial<ILocation>,
+    changes: string[]
+  ): DiscoveryMessage {
+    // Clean the location name to remove common words
+    const cleanedName = this.cleanLocationName(location.name);
+
+    // Handle multi-line description with proper indentation
+    const descriptionLines = (location.description || 'Location discovered during adventure').split(
+      '\n'
+    );
+    const formattedDescription =
+      descriptionLines.length > 1
+        ? descriptionLines.map((line, index) => (index === 0 ? line : `   ${line}`)).join('\n')
+        : location.description || 'Location discovered during adventure';
+
+    const poiList =
+      location.pointsOfInterest && location.pointsOfInterest.length > 0
+        ? location.pointsOfInterest.map(poi => `   • ${poi.name}: ${poi.description}`).join('\n')
+        : '   • No specific points of interest identified';
+
+    const changesList =
+      changes.length > 0
+        ? changes.map(change => `   • ${change}`).join('\n')
+        : '   • General information updated';
+
+    const content = `🔄 Location Updated: ${cleanedName}
+   • Type: ${location.type || 'Unknown'}
+   • Description: ${formattedDescription}
+   • Points of Interest:
+${poiList}
+   • Changes Made:
+${changesList}`;
+
+    return {
+      type: 'system-discovery',
+      content,
+      metadata: {
+        discoveryType: 'location',
+        entityId: location._id?.toString() || location.id || '',
+        confidence: 85, // Default confidence for LLM extraction
+        extractionMethod: 'llm',
+        entityDetails: location,
+        isNew: false,
+        isUpdate: true,
+        changes,
       },
     };
   }
@@ -192,6 +298,121 @@ ${poiList}`;
     }
 
     return messages;
+  }
+
+  /**
+   * Generate discovery messages with update tracking
+   */
+  generateDiscoveryMessagesWithUpdates(
+    characters: { current: ICharacter; previous?: Partial<ICharacter>; isNew: boolean }[],
+    locations: { current: ILocation; previous?: Partial<ILocation>; isNew: boolean }[],
+    extractionMethods: { characters: string; locations: string }
+  ): DiscoveryMessage[] {
+    const messages: DiscoveryMessage[] = [];
+
+    // Generate character discovery/update messages
+    for (const { current: character, previous, isNew } of characters) {
+      let message: DiscoveryMessage;
+
+      if (isNew) {
+        message = this.generateCharacterDiscoveryMessage(character, true);
+      } else {
+        // Generate update message with changes
+        const changes = this.detectCharacterChanges(character, previous);
+        message = this.generateCharacterUpdateMessage(character, previous || {}, changes);
+      }
+
+      message.metadata.extractionMethod = this.mapExtractionMethod(extractionMethods.characters);
+      message.metadata.confidence = this.calculateConfidence(extractionMethods.characters);
+      messages.push(message);
+    }
+
+    // Generate location discovery/update messages
+    for (const { current: location, previous, isNew } of locations) {
+      let message: DiscoveryMessage;
+
+      if (isNew) {
+        message = this.generateLocationDiscoveryMessage(location, true);
+      } else {
+        // Generate update message with changes
+        const changes = this.detectLocationChanges(location, previous);
+        message = this.generateLocationUpdateMessage(location, previous || {}, changes);
+      }
+
+      message.metadata.extractionMethod = this.mapExtractionMethod(extractionMethods.locations);
+      message.metadata.confidence = this.calculateConfidence(extractionMethods.locations);
+      messages.push(message);
+    }
+
+    return messages;
+  }
+
+  /**
+   * Detect changes between previous and current character data
+   */
+  private detectCharacterChanges(current: ICharacter, previous?: Partial<ICharacter>): string[] {
+    if (!previous) return ['Character information refreshed'];
+
+    const changes: string[] = [];
+
+    if (previous.race !== current.race) {
+      changes.push(
+        `Race changed from "${previous.race || 'Unknown'}" to "${current.race || 'Unknown'}"`
+      );
+    }
+
+    if (previous.class !== current.class) {
+      changes.push(
+        `Class changed from "${previous.class || 'Unknown'}" to "${current.class || 'Unknown'}"`
+      );
+    }
+
+    if (previous.level !== current.level) {
+      changes.push(
+        `Level changed from ${previous.level || 'Unknown'} to ${current.level || 'Unknown'}`
+      );
+    }
+
+    if (previous.personality?.background !== current.personality?.background) {
+      changes.push('Background information updated');
+    }
+
+    if (previous.personality?.traits?.join(', ') !== current.personality?.traits?.join(', ')) {
+      changes.push('Personality traits updated');
+    }
+
+    return changes.length > 0 ? changes : ['Character information refreshed'];
+  }
+
+  /**
+   * Detect changes between previous and current location data
+   */
+  private detectLocationChanges(current: ILocation, previous?: Partial<ILocation>): string[] {
+    if (!previous) return ['Location information refreshed'];
+
+    const changes: string[] = [];
+
+    if (previous.type !== current.type) {
+      changes.push(
+        `Type changed from "${previous.type || 'Unknown'}" to "${current.type || 'Unknown'}"`
+      );
+    }
+
+    if (previous.description !== current.description) {
+      changes.push('Description updated');
+    }
+
+    if (previous.importance !== current.importance) {
+      changes.push(
+        `Importance changed from "${previous.importance || 'Unknown'}" to "${current.importance || 'Unknown'}"`
+      );
+    }
+
+    if (previous.pointsOfInterest?.length !== current.pointsOfInterest?.length) {
+      changes.push('Points of interest updated');
+    }
+
+    return changes.length > 0 ? changes : ['Location information refreshed'];
   }
 
   /**
@@ -245,6 +466,7 @@ ${poiList}`;
         extractionMethod: 'hybrid',
         entityDetails: {} as any, // Empty for summary
         isNew: false,
+        isUpdate: false,
       },
     };
   }

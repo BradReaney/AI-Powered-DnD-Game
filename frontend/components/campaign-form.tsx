@@ -84,12 +84,13 @@ export function CampaignForm({
 
     // If external loading state is provided, don't manage internal state
     if (externalIsSaving !== undefined) {
-      onSave({
+      const campaignData = {
         ...formData,
         id: campaign?.id,
         createdAt: campaign?.createdAt,
         updatedAt: new Date(),
-      });
+      };
+      onSave(campaignData);
       return;
     }
 
@@ -98,12 +99,14 @@ export function CampaignForm({
       setSubmitStatus("idle");
       setSubmitMessage("");
 
-      await onSave({
+      const campaignData = {
         ...formData,
         id: campaign?.id,
         createdAt: campaign?.createdAt,
         updatedAt: new Date(),
-      });
+      };
+
+      await onSave(campaignData);
 
       setSubmitStatus("success");
       setSubmitMessage(

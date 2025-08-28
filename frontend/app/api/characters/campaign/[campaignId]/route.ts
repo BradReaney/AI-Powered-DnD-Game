@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { adaptCharacter } from "@/lib/adapters";
 
 export async function GET(
   request: NextRequest,
@@ -28,13 +29,9 @@ export async function GET(
 
     const data = await response.json();
 
-    // Transform backend data to frontend format
+    // Transform backend data to frontend format using adaptCharacter
     const transformedData = Array.isArray(data)
-      ? data.map((char) => ({
-          ...char,
-          id: char._id?.toString() || char.id || `char-${Math.random()}`,
-          campaignId: char.campaignId?.toString() || char.campaignId,
-        }))
+      ? data.map((char) => adaptCharacter(char))
       : data;
 
     return NextResponse.json(transformedData);

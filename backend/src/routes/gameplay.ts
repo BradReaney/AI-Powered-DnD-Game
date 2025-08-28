@@ -458,7 +458,7 @@ router.post('/story-response', async (req, res) => {
     }
 
     // Process characters if any were mentioned
-    const processedCharacters: any[] = [];
+    const processedCharacters: { current: any; previous?: any; isNew: boolean }[] = [];
     if (charactersData.length > 0 && sessionId) {
       const CharacterService = (await import('../services/CharacterService')).default;
       const characterService = new CharacterService();
@@ -472,12 +472,24 @@ router.post('/story-response', async (req, res) => {
           );
 
           if (existingCharacter) {
+            // Store previous data for change detection
+            const previousData = {
+              race: existingCharacter.race,
+              class: existingCharacter.class,
+              level: existingCharacter.level,
+              personality: existingCharacter.personality,
+            };
+
             // Update existing character if needed
             const updatedCharacter = await characterService.updateCharacter(
               existingCharacter._id.toString(),
               charData
             );
-            processedCharacters.push(updatedCharacter);
+            processedCharacters.push({
+              current: updatedCharacter,
+              previous: previousData,
+              isNew: false,
+            });
           } else {
             // Create new character
             const newCharacter = await characterService.createAICharacter({
@@ -486,7 +498,10 @@ router.post('/story-response', async (req, res) => {
               sessionId,
               createdBy: 'ai-system',
             });
-            processedCharacters.push(newCharacter);
+            processedCharacters.push({
+              current: newCharacter,
+              isNew: true,
+            });
           }
         } catch (charError) {
           logger.error('Error processing character:', charError);
@@ -496,7 +511,7 @@ router.post('/story-response', async (req, res) => {
     }
 
     // Process locations if any were mentioned
-    const processedLocations: any[] = [];
+    const processedLocations: { current: any; previous?: any; isNew: boolean }[] = [];
     if (locationsData.length > 0 && sessionId) {
       const LocationService = (await import('../services/LocationService')).default;
       const locationService = new LocationService();
@@ -552,16 +567,31 @@ router.post('/story-response', async (req, res) => {
           );
 
           if (existingLocation) {
+            // Store previous data for change detection
+            const previousData = {
+              type: existingLocation.type,
+              description: existingLocation.description,
+              importance: existingLocation.importance,
+              pointsOfInterest: existingLocation.pointsOfInterest,
+            };
+
             // Update existing location if needed
             const updatedLocation = await locationService.updateLocation(
               existingLocation._id.toString(),
               cleanLocationData
             );
-            processedLocations.push(updatedLocation);
+            processedLocations.push({
+              current: updatedLocation,
+              previous: previousData,
+              isNew: false,
+            });
           } else {
             // Create new location
             const newLocation = await locationService.createLocation(cleanLocationData);
-            processedLocations.push(newLocation);
+            processedLocations.push({
+              current: newLocation,
+              isNew: true,
+            });
           }
         } catch (locError) {
           logger.error('Error processing location:', {
@@ -659,7 +689,8 @@ router.post('/story-response', async (req, res) => {
           locations: locationsData.length > 0 ? 'llm_extraction' : 'fallback_extraction',
         };
 
-        discoveryMessages = discoveryService.generateDiscoveryMessages(
+        // Use the new method that tracks updates vs discoveries
+        discoveryMessages = discoveryService.generateDiscoveryMessagesWithUpdates(
           processedCharacters,
           processedLocations,
           extractionMethods
@@ -696,11 +727,15 @@ router.post('/story-response', async (req, res) => {
 
     contextManager.addContextLayer(campaignId, 'immediate', `AI Response: ${response.content}`, 7);
 
+    // Extract current entities for response (maintaining backward compatibility)
+    const currentCharacters = processedCharacters.map(pc => pc.current);
+    const currentLocations = processedLocations.map(pl => pl.current);
+
     return res.json({
       success: true,
       aiResponse: response.content,
-      characters: processedCharacters,
-      locations: processedLocations,
+      characters: currentCharacters,
+      locations: currentLocations,
       discoveryMessages: discoveryMessages,
       usage: response.usage,
       message: 'Story response generated successfully',
@@ -782,11 +817,14 @@ function extractCharactersFromText(storyContent: string, originalPrompt: string)
   const characters: any[] = [];
 
   // Look for character names mentioned in the story
-  // Improved pattern to catch names like "Legolas", "Thorin Ironforge", "Gimli", "Merlin", etc.
+  // More specific patterns to catch actual character names while avoiding common words
   const namePatterns = [
-    /\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g, // Basic name pattern
-    /\b[A-Z][a-z]+\s+[A-Z][a-z]+\s+[A-Z][a-z]+\b/g, // Three-word names like "Gandalf the Grey"
-    /\b[A-Z][a-z]+\s+[A-Z][a-z]+\b/g, // Two-word names like "Legolas Greenleaf"
+    // Pattern for compound names first (3+ words like "Gandalf the Grey")
+    /\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+){2,}\b/g,
+    // Pattern for two-word names (like "Legolas Greenleaf")
+    /\b[A-Z][a-z]+\s+[A-Z][a-z]+\b/g,
+    // Pattern for single-word names (like "Gimli", "Merlin")
+    /\b[A-Z][a-z]+\b/g,
   ];
 
   // Also look for names mentioned in the original prompt
@@ -806,126 +844,484 @@ function extractCharactersFromText(storyContent: string, originalPrompt: string)
   });
 
   // Filter out common words that aren't names
-  const commonWords = [
+  const commonWordsToExclude = [
     'The',
-    'You',
-    'Your',
     'This',
     'That',
-    'They',
-    'Their',
-    'Every',
-    'Each',
-    'All',
-    'Some',
-    'Many',
-    'Few',
-    'Several',
-    'Any',
-    'No',
-    'None',
-    'Oakhaven',
-    'Silverstream',
-    'Whisperwind',
-    'Gilded',
-    'Griffin',
-    'Whispering',
-    'Market',
-    'Square',
-    'Stone',
-    'Bridge',
-    'River',
-    'Mountains',
+    'These',
+    'Those',
+    'Here',
+    'There',
+    'Where',
+    'When',
+    'Why',
+    'How',
+    'What',
+    'Which',
+    'Who',
+    'Whom',
+    'Whose',
+    'If',
+    'Then',
+    'Else',
+    'While',
+    'For',
+    'And',
+    'But',
+    'Or',
+    'Nor',
+    'Yet',
+    'So',
+    'Because',
+    'Since',
+    'Although',
+    'Unless',
+    'Until',
+    'Before',
+    'After',
+    'During',
+    'Through',
+    'Throughout',
+    'Above',
+    'Below',
+    'Under',
+    'Over',
+    'Between',
+    'Among',
+    'Around',
+    'Across',
+    'Along',
+    'Behind',
+    'Beside',
+    'Beyond',
+    'Inside',
+    'Outside',
+    'Within',
+    'Without',
+    'Against',
+    'Toward',
+    'Towards',
+    'Upon',
+    'About',
+    'Above',
+    'Across',
+    'After',
+    'Against',
+    'Along',
+    'Among',
+    'Around',
+    'At',
+    'Before',
+    'Behind',
+    'Below',
+    'Beneath',
+    'Beside',
+    'Between',
+    'Beyond',
+    'By',
+    'Down',
+    'During',
+    'Except',
+    'For',
+    'From',
+    'In',
+    'Inside',
+    'Into',
+    'Like',
+    'Near',
+    'Of',
+    'Off',
+    'On',
+    'Out',
+    'Outside',
+    'Over',
+    'Past',
+    'Since',
+    'Through',
+    'Throughout',
+    'To',
+    'Toward',
+    'Under',
+    'Underneath',
+    'Until',
+    'Up',
+    'Upon',
+    'With',
+    'Within',
+    'Without',
+    'Learned',
+    'His',
+    'Perhaps',
+    'Her',
+    'Welcome',
+    'Ancient',
+    'Massive',
+    'Grand',
+    'Hidden',
+    'Main',
+    'Primary',
+    // Additional common words that are often capitalized but aren't character names
+    'Deep',
+    'Goblin',
     'Forest',
-    'Town',
-    'Village',
-    'City',
+    'Castle',
     'Inn',
     'Tavern',
+    'Temple',
+    'Shrine',
+    'Church',
+    'Monastery',
+    'Sanctuary',
     'Shop',
     'Market',
+    'Bazaar',
+    'Forge',
+    'Keep',
+    'Citadel',
+    'Palace',
+    'Town',
+    'City',
+    'Village',
+    'Settlement',
+    'Hamlet',
+    'Borough',
+    'Mountain',
+    'Hill',
+    'Valley',
+    'Desert',
+    'Swamp',
+    'Dungeon',
+    'Tower',
+    'Fortress',
+    'Bridge',
+    'Gate',
+    'Wall',
+    'Door',
+    'Window',
+    'Room',
+    'Hall',
+    'Chamber',
+    'Passage',
+    'Corridor',
+    'Stair',
+    'Floor',
+    'Ceiling',
+    'Roof',
+    'Garden',
+    'Courtyard',
     'Square',
     'Street',
     'Road',
     'Path',
     'Trail',
+    'River',
+    'Lake',
+    'Ocean',
+    'Sea',
+    'Island',
     'Cave',
-    'Dungeon',
-    'Castle',
-    'Tower',
-    'Temple',
-    'Church',
-    'Guild',
-    'Academy',
-    'Library',
-    'Stable',
-    'Blacksmith',
-    'Armorer',
-    'Merchant',
-    'Trader',
-    'Farmer',
-    'Hunter',
-    'Guard',
-    'Soldier',
-    'Knight',
-    'Wizard',
-    'Sorcerer',
-    'Cleric',
-    'Rogue',
-    'Fighter',
-    'Paladin',
-    'Ranger',
-    'Druid',
-    'Monk',
-    'Bard',
-    'Barbarian',
-    'Warlock',
-    'Artificer',
-    'Grey',
-    'White',
-    'Black',
-    'Red',
-    'Blue',
-    'Green',
-    'Iron',
-    'Gold',
-    'Silver',
-    'Quick',
-    'Swift',
-    'Strong',
-    'Wise',
-    'Brave',
-    'Mysterious',
-    'Ancient',
-    'Young',
-    'Old',
-    'Eldoria',
-    'Goblin',
-    'Goblins',
-    'Mountain',
-    'Pass',
-    'Peaks',
-    'Rocky',
-    'Overhang',
-    'Spur',
+    'Mine',
+    'Quarry',
+    'Field',
+    'Meadow',
+    'Glade',
+    'Clearing',
+    'Thicket',
+    'Bush',
+    'Tree',
+    'Flower',
+    'Grass',
+    'Stone',
     'Rock',
+    'Crystal',
+    'Gem',
+    'Metal',
+    'Wood',
+    'Water',
+    'Fire',
+    'Earth',
+    'Air',
+    'Light',
+    'Dark',
+    'Shadow',
+    'Sun',
+    'Moon',
+    'Star',
+    'Cloud',
+    'Rain',
+    'Snow',
+    'Wind',
+    'Storm',
+    'Thunder',
+    'Lightning',
+    'Magic',
+    'Spell',
+    'Scroll',
+    'Book',
+    'Potion',
+    'Ring',
+    'Amulet',
+    'Staff',
+    'Wand',
+    'Sword',
+    'Shield',
+    'Armor',
+    'Helmet',
+    'Boot',
+    'Glove',
+    'Cloak',
+    'Belt',
+    'Bag',
+    'Pouch',
+    'Chest',
+    'Box',
+    'Crate',
+    'Barrel',
+    'Bottle',
+    'Cup',
+    'Plate',
+    'Bowl',
+    'Knife',
+    'Fork',
+    'Spoon',
+    'Chair',
+    'Table',
+    'Bed',
+    'Mirror',
+    'Candle',
+    'Lamp',
+    'Torch',
+    'Fireplace',
+    'Hearth',
+    'Oven',
+    'Stove',
+    'Well',
+    'Fountain',
+    'Statue',
+    'Painting',
+    'Tapestry',
+    'Banner',
+    'Flag',
+    'Sign',
+    'Bell',
+    'Clock',
+    'Hourglass',
+    'Compass',
+    'Map',
+    'Key',
+    'Lock',
+    'Chain',
+    'Rope',
+    'Ladder',
+    'Wheel',
+    'Axle',
+    'Gear',
+    'Pulley',
+    'Lever',
+    'Button',
+    'Switch',
+    'Handle',
+    'Knob',
+    'Hinge',
+    'Nail',
+    'Screw',
+    'Bolt',
+    'Nut',
+    'Washer',
+    'Spring',
+    'Coil',
+    'Wire',
+    'Cable',
+    'Pipe',
+    'Tube',
+    'Hose',
+    'Funnel',
+    'Filter',
+    'Pump',
+    'Valve',
+    'Gauge',
+    'Meter',
+    'Sensor',
+    'Detector',
+    'Alarm',
+    'Siren',
+    'Whistle',
+    'Horn',
+    'Drum',
+    'Flute',
+    'Harp',
+    'Lute',
+    'Violin',
+    'Trumpet',
+    'Trombone',
+    'Clarinet',
+    'Saxophone',
+    'Piano',
+    'Organ',
+    'Guitar',
+    'Banjo',
+    'Mandolin',
+    'Harmonica',
+    'Accordion',
+    'Bagpipe',
+    'Tambourine',
+    'Maraca',
+    'Triangle',
+    'Cymbal',
+    'Gong',
+    'Bell',
+    'Chime',
+    'Xylophone',
+    'Vibraphone',
+    'Marimba',
     'Steel',
     'Iron',
-    'Rust',
-    'Fire',
-    'Battle',
-    'Battles',
-    'Gauntleted',
-    'Double',
-    'Bitted',
-    'Battleaxe',
-    'Dark',
-    'Blood',
+    'Copper',
+    'Silver',
+    'Gold',
+    'Platinum',
+    'Bronze',
+    'Brass',
+    'Aluminum',
+    'Titanium',
+    'Nickel',
+    'Zinc',
+    'Lead',
+    'Tin',
+    'Mercury',
+    'Sulfur',
+    'Carbon',
+    'Nitrogen',
+    'Oxygen',
+    'Hydrogen',
+    'Helium',
+    'Neon',
+    'Argon',
+    'Krypton',
+    'Xenon',
+    'Radon',
+    'Uranium',
+    'Plutonium',
+    'Thorium',
+    'Radium',
+    'Polonium',
+    'Astatine',
+    'Francium',
+    'Radon',
+    'Actinium',
+    'Protactinium',
+    'Neptunium',
+    'Americium',
+    'Curium',
+    'Berkelium',
+    'Californium',
+    'Einsteinium',
+    'Fermium',
+    'Mendelevium',
+    'Nobelium',
+    'Lawrencium',
+    'Rutherfordium',
+    'Dubnium',
+    'Seaborgium',
+    'Bohrium',
+    'Hassium',
+    'Meitnerium',
+    'Darmstadtium',
+    'Roentgenium',
+    'Copernicium',
+    'Nihonium',
+    'Flerovium',
+    'Moscovium',
+    'Livermorium',
+    'Tennessine',
+    'Oganesson',
   ];
 
-  const uniqueNames = [...new Set(potentialNames)].filter(
-    name => !commonWords.includes(name) && name.length > 2 && name.split(' ').length <= 3 // Allow up to 3-word names
-  );
+  // Additional filtering to ensure we only get actual character names
+  const uniqueNames = potentialNames
+    .filter(name => name.length > 1) // Filter out single letters
+    .filter(name => !commonWordsToExclude.includes(name)) // Filter out common words
+    .filter(name => name.split(' ').length <= 3) // Allow up to 3-word names
+    .filter(name => !/^(The|A|An)\s/i.test(name)) // Filter out articles at start
+    .filter(
+      name =>
+        !/^(Castle|Fortress|Tower|Keep|Citadel|Palace|Town|City|Village|Settlement|Hamlet|Borough|Forest|Mountain|Hill|Valley|Desert|Swamp|Temple|Shrine|Church|Monastery|Sanctuary|Inn|Tavern|Shop|Market|Bazaar|Forge)/i.test(
+          name
+        )
+    ) // Filter out location types
+    .filter(name => {
+      // Filter out individual words that are part of compound names
+      const words = name.split(' ');
+      if (words.length === 1) {
+        // For single words, check if they're part of any compound name
+        return !potentialNames.some(
+          otherName =>
+            otherName !== name && otherName.includes(name) && otherName.split(' ').length > 1
+        );
+      }
+      return true; // Keep compound names
+    })
+    .filter(name => {
+      // Additional context-based filtering
+      // Check if the name appears in a context that suggests it's a character
+      const nameRegex = new RegExp(`\\b${name}\\b`, 'gi');
+      const matches = storyContent.match(nameRegex);
+
+      if (!matches) return false;
+
+      // Look for context clues that suggest this is a character
+      let hasCharacterContext = false;
+
+      for (const match of matches) {
+        const matchIndex = storyContent.indexOf(match);
+        const contextStart = Math.max(0, matchIndex - 100);
+        const contextEnd = Math.min(storyContent.length, matchIndex + 100);
+        const context = storyContent.substring(contextStart, contextEnd);
+
+        // Check for character-related context
+        if (
+          context.includes('said') ||
+          context.includes('says') ||
+          context.includes('speaks') ||
+          context.includes('greets') ||
+          context.includes('approaches') ||
+          context.includes('meets') ||
+          context.includes('encounters') ||
+          context.includes('sees') ||
+          context.includes('notices') ||
+          context.includes('named') ||
+          context.includes('called') ||
+          context.includes('known as') ||
+          context.includes('sage') ||
+          context.includes('wizard') ||
+          context.includes('warrior') ||
+          context.includes('ranger') ||
+          context.includes('rogue') ||
+          context.includes('cleric') ||
+          context.includes('dwarf') ||
+          context.includes('elf') ||
+          context.includes('human') ||
+          context.includes('goblin') ||
+          context.includes('orc') ||
+          context.includes('halfling') ||
+          context.includes('dragon') ||
+          context.includes('monster') ||
+          context.includes('creature') ||
+          context.includes('npc') ||
+          context.includes('character') ||
+          context.includes('person') ||
+          context.includes('figure') ||
+          context.includes('being') ||
+          context.includes('individual')
+        ) {
+          hasCharacterContext = true;
+          break;
+        }
+      }
+
+      return hasCharacterContext;
+    })
+    .filter((name, index, arr) => arr.indexOf(name) === index); // Remove duplicates
 
   // Create basic character records for each unique name
   for (const name of uniqueNames.slice(0, 3)) {
@@ -975,7 +1371,7 @@ function extractCharactersFromText(storyContent: string, originalPrompt: string)
     }
 
     characters.push({
-      name: name,
+      name,
       race: inferredRace,
       class: inferredClass,
       level: 1,
@@ -1006,7 +1402,7 @@ function extractCharactersFromText(storyContent: string, originalPrompt: string)
       aiPersonality: {
         goals: ['Unknown'],
         fears: ['Unknown'],
-        background: `Mentioned in story: ${originalPrompt}`,
+        background: 'Recently encountered',
       },
     });
   }

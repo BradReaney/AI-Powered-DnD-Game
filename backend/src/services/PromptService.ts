@@ -382,55 +382,6 @@ Make it appropriate for the party level and theme. Keep the response focused and
       averageTokens: templates.length > 0 ? Math.round(totalTokens / templates.length) : 0,
     };
   }
-
-  /**
-   * Export templates for backup or sharing
-   */
-  exportTemplates(): PromptTemplate[] {
-    return this.getAllTemplates();
-  }
-
-  /**
-   * Import templates from backup or sharing
-   */
-  importTemplates(
-    templates: PromptTemplate[],
-    overwrite: boolean = false
-  ): {
-    imported: number;
-    skipped: number;
-    errors: string[];
-  } {
-    let imported = 0;
-    let skipped = 0;
-    const errors: string[] = [];
-
-    for (const template of templates) {
-      try {
-        // Validate template structure
-        if (!template.id || !template.template || !template.variables) {
-          errors.push(`Invalid template structure: ${template.id || 'unknown'}`);
-          continue;
-        }
-
-        // Check if template already exists
-        const existing = this.getTemplate(template.id);
-        if (existing && !overwrite) {
-          skipped++;
-          continue;
-        }
-
-        // Add or update template
-        this.templates.set(template.id, template);
-        imported++;
-      } catch (error) {
-        errors.push(`Error importing template ${template.id}: ${error}`);
-      }
-    }
-
-    logger.info('Templates imported', { imported, skipped, errors: errors.length });
-    return { imported, skipped, errors };
-  }
 }
 
 export default PromptService;

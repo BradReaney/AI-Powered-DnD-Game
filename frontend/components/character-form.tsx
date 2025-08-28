@@ -147,7 +147,7 @@ export function CharacterForm({
       wisdom: 10,
       charisma: 10,
     },
-    skills: character?.skills || [],
+    skills: Array.isArray(character?.skills) ? character?.skills : [],
     traits: character?.personality?.traits || [],
     ideals: character?.personality?.ideals || [],
     bonds: character?.personality?.bonds || [],
