@@ -145,6 +145,20 @@ export const config: Config = {
     commandTimeout: 5000,
     keepAlive: 30000,
   },
+  cache: {
+    clearOnDeploy: process.env['CLEAR_CACHE_ON_DEPLOY'] === 'true',
+    clearOnStartup: process.env['CACHE_CLEAR_ON_STARTUP'] === 'true',
+    clearPatterns: process.env['CACHE_CLEAR_PATTERNS']?.split(',') || [
+      'user-sessions:*',
+      'game-state:*',
+      'ai:response:*',
+    ],
+    preservePatterns: process.env['CACHE_PRESERVE_PATTERNS']?.split(',') || [
+      'mechanics:*',
+      'templates:*',
+      'system:*',
+    ],
+  },
   gemini: {
     apiKey: process.env['GEMINI_API_KEY'] || '',
     flashLiteModel: process.env['GEMINI_FLASH_LITE_MODEL'] || 'gemini-2.0-flash-lite',

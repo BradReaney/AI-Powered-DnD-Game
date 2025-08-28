@@ -222,6 +222,52 @@ class App {
       }
     });
 
+    // Deployment-triggered cache clearing endpoint
+    this.app.post('/api/cache/clear-deploy', async (_req, res) => {
+      try {
+        await cacheService.clearCacheOnDeploy();
+        res.status(200).json({
+          status: 'success',
+          message: 'Deployment cache clearing completed successfully',
+          timestamp: new Date().toISOString(),
+          config: {
+            clearOnDeploy: config.cache.clearOnDeploy,
+            clearPatterns: config.cache.clearPatterns,
+            preservePatterns: config.cache.preservePatterns,
+          },
+        });
+      } catch (error) {
+        logger.error('Failed to clear cache on deploy:', error);
+        res.status(500).json({
+          status: 'error',
+          error: 'Failed to clear cache on deploy',
+        });
+      }
+    });
+
+    // Startup-triggered cache clearing endpoint
+    this.app.post('/api/cache/clear-startup', async (_req, res) => {
+      try {
+        await cacheService.clearCacheOnStartup();
+        res.status(200).json({
+          status: 'success',
+          message: 'Startup cache clearing completed successfully',
+          timestamp: new Date().toISOString(),
+          config: {
+            clearOnStartup: config.cache.clearOnStartup,
+            clearPatterns: config.cache.clearPatterns,
+            preservePatterns: config.cache.preservePatterns,
+          },
+        });
+      } catch (error) {
+        logger.error('Failed to clear cache on startup:', error);
+        res.status(500).json({
+          status: 'error',
+          error: 'Failed to clear cache on startup',
+        });
+      }
+    });
+
     // Cache performance monitoring endpoint
     this.app.get('/api/cache/performance', async (_req, res) => {
       try {
@@ -366,6 +412,16 @@ class App {
       try {
         await cacheService.healthCheck();
         logger.info('Redis cache service connected successfully');
+
+        // Clear cache on deployment if configured
+        if (config.cache.clearOnDeploy) {
+          await cacheService.clearCacheOnDeploy();
+        }
+
+        // Clear cache on startup if configured
+        if (config.cache.clearOnStartup) {
+          await cacheService.clearCacheOnStartup();
+        }
 
         // Warm up cache
         await cacheService.warmCache();

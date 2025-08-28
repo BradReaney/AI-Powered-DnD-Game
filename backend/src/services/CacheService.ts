@@ -498,6 +498,107 @@ export class CacheService {
     }
   }
 
+  // Deployment-triggered cache clearing
+  async clearCacheOnDeploy(): Promise<void> {
+    try {
+      if (!config.cache.clearOnDeploy) {
+        logger.info('Cache clearing on deploy is disabled');
+        return;
+      }
+
+      logger.info('Starting deployment-triggered cache clearing...');
+
+      const clearedKeys = await this.clearCacheByPatterns(
+        config.cache.clearPatterns,
+        config.cache.preservePatterns
+      );
+
+      logger.info(`Deployment cache clearing completed. Cleared ${clearedKeys} keys.`);
+    } catch (error) {
+      logger.error('Failed to clear cache on deploy:', error);
+      // Don't throw error, just log it
+    }
+  }
+
+  // Startup-triggered cache clearing
+  async clearCacheOnStartup(): Promise<void> {
+    try {
+      if (!config.cache.clearOnStartup) {
+        logger.info('Cache clearing on startup is disabled');
+        return;
+      }
+
+      logger.info('Starting startup-triggered cache clearing...');
+
+      const clearedKeys = await this.clearCacheByPatterns(
+        config.cache.clearPatterns,
+        config.cache.preservePatterns
+      );
+
+      logger.info(`Startup cache clearing completed. Cleared ${clearedKeys} keys.`);
+    } catch (error) {
+      logger.error('Failed to clear cache on startup:', error);
+      // Don't throw error, just log it
+    }
+  }
+
+  // Smart cache clearing with pattern preservation
+  private async clearCacheByPatterns(
+    clearPatterns: string[],
+    preservePatterns: string[]
+  ): Promise<number> {
+    try {
+      if (!this.redisAvailable || !this.redis) {
+        logger.warn('Redis not available, skipping cache clearing');
+        return 0;
+      }
+
+      let totalCleared = 0;
+
+      // Get all keys matching clear patterns
+      for (const pattern of clearPatterns) {
+        const keys = await this.redis.keys(pattern);
+
+        // Filter out keys that match preserve patterns
+        const keysToClear = keys.filter(key => {
+          return !preservePatterns.some(preservePattern => {
+            // Convert glob pattern to regex for matching
+            const regexPattern = preservePattern.replace(/\*/g, '.*').replace(/\?/g, '.');
+            return new RegExp(`^${regexPattern}$`).test(key);
+          });
+        });
+
+        if (keysToClear.length > 0) {
+          const deleted = await this.redis.del(...keysToClear);
+          totalCleared += deleted;
+          logger.debug(`Cleared ${deleted} keys matching pattern: ${pattern}`);
+        }
+      }
+
+      // Clear fallback cache for matching patterns
+      for (const [key, value] of this.fallbackCache.entries()) {
+        const shouldClear = clearPatterns.some(pattern => {
+          const regexPattern = pattern.replace(/\*/g, '.*').replace(/\?/g, '.');
+          return new RegExp(`^${regexPattern}$`).test(key);
+        });
+
+        const shouldPreserve = preservePatterns.some(pattern => {
+          const regexPattern = pattern.replace(/\*/g, '.*').replace(/\?/g, '.');
+          return new RegExp(`^${regexPattern}$`).test(key);
+        });
+
+        if (shouldClear && !shouldPreserve) {
+          this.fallbackCache.delete(key);
+        }
+      }
+
+      return totalCleared;
+    } catch (error) {
+      logger.error('Failed to clear cache by patterns:', error);
+      return 0;
+    }
+  }
+
   // Health check
   async healthCheck(): Promise<boolean> {
     try {

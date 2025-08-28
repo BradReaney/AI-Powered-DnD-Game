@@ -172,6 +172,52 @@ POST /api/cache/clear
 GET /api/cache/performance
 ```
 
+### Deployment-Triggered Cache Clearing
+
+The system now supports automatic Redis cache clearing during Railway deployments using environment variables:
+
+#### Environment Variables
+```bash
+# Enable cache clearing on deployment
+CLEAR_CACHE_ON_DEPLOY=true
+
+# Enable cache clearing on startup
+CACHE_CLEAR_ON_STARTUP=true
+
+# Cache patterns to clear (comma-separated)
+CACHE_CLEAR_PATTERNS=user-sessions:*,game-state:*,ai:response:*,campaign:*,character:*,session:*,quest:*,location:*
+
+# Cache patterns to preserve (comma-separated)
+CACHE_PRESERVE_PATTERNS=mechanics:*,templates:*,system:*
+```
+
+#### API Endpoints
+```bash
+# Trigger deployment cache clearing manually
+POST /api/cache/clear-deploy
+
+# Trigger startup cache clearing manually
+POST /api/cache/clear-startup
+```
+
+#### Automatic Behavior
+- **On Deployment**: If `CLEAR_CACHE_ON_DEPLOY=true`, cache is cleared before warming
+- **On Startup**: If `CACHE_CLEAR_ON_STARTUP=true`, cache is cleared on application startup
+- **Smart Clearing**: Only clears specified patterns while preserving system data
+- **Logging**: All cache clearing operations are logged with detailed information
+
+#### Setup Script
+Use the provided script to configure Railway environment variables:
+```bash
+./scripts/setup-railway-cache-clearing.sh
+```
+
+This script will:
+1. Check Railway CLI installation
+2. Set all required environment variables
+3. Provide configuration summary
+4. Give testing instructions
+
 ## 🎯 Service Integration
 
 ### Campaign Service
