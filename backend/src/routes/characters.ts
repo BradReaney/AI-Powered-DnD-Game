@@ -1,7 +1,6 @@
 import express from 'express';
 import CharacterService, { CharacterCreationData } from '../services/CharacterService';
 import logger from '../services/LoggerService';
-import crypto from 'crypto';
 
 const router = express.Router();
 const characterService = new CharacterService();
@@ -226,62 +225,8 @@ router.post('/', async (req, res) => {
       createdBy: characterData.createdBy || 'user', // Default to 'user' if not provided
     };
 
-    // If no sessionId provided and campaignId is valid, create a default session first
-    if (!humanCharacterData.sessionId && humanCharacterData.campaignId) {
-      try {
-        // Validate that campaignId is a valid ObjectId
-        const mongoose = require('mongoose');
-        if (!mongoose.Types.ObjectId.isValid(humanCharacterData.campaignId)) {
-          logger.warn(`Invalid campaignId format: ${humanCharacterData.campaignId}`);
-          // Continue without creating a session
-        } else {
-          const Session = require('../models').Session;
-          const defaultSession = new Session({
-            _id: crypto.randomUUID(), // Generate UUID for session ID
-            name: 'Character Creation Session',
-            campaignId: humanCharacterData.campaignId,
-            sessionNumber: 1,
-            status: 'active',
-            createdBy: humanCharacterData.createdBy || 'user', // Add the missing required field
-            metadata: {
-              startTime: new Date(),
-              endTime: new Date(),
-              duration: 0,
-              players: [],
-              dm: humanCharacterData.createdBy || 'user',
-              location: 'Character Creation',
-              weather: 'Clear',
-              timeOfDay: 'afternoon',
-            },
-            gameState: {
-              currentScene: 'Character Creation',
-              sceneDescription: 'Session for creating new characters',
-              activeCharacters: [],
-              currentTurn: 0,
-              initiativeOrder: [],
-              combatState: {
-                isActive: false,
-                round: 0,
-                currentCharacter: null,
-                conditions: [],
-              },
-              worldState: {
-                currentLocation: 'Character Creation',
-                discoveredLocations: [],
-                activeEffects: [],
-              },
-            },
-            storyEvents: [],
-          });
-
-          await defaultSession.save();
-          humanCharacterData.sessionId = defaultSession._id.toString();
-        }
-      } catch (sessionError) {
-        logger.warn('Failed to create default session for character:', sessionError);
-        // Continue without creating a session
-      }
-    }
+    // Characters are now linked to campaigns, not sessions
+    // sessionId is optional and will be set when the character joins a session
 
     const character = await characterService.createHumanCharacter(humanCharacterData);
     return res.status(201).json(character);
@@ -337,63 +282,8 @@ router.post('/simple', async (req, res) => {
       createdBy: characterData.createdBy || 'user',
     };
 
-    // If no sessionId provided and campaignId is valid, create a default session first
-    // Note: These sessions are marked as 'inactive' to avoid cluttering the active sessions list
-    if (!simpleCharacterData.sessionId && simpleCharacterData.campaignId) {
-      try {
-        // Validate that campaignId is a valid ObjectId
-        const mongoose = require('mongoose');
-        if (!mongoose.Types.ObjectId.isValid(simpleCharacterData.campaignId)) {
-          logger.warn(`Invalid campaignId format: ${simpleCharacterData.campaignId}`);
-          // Continue without creating a session
-        } else {
-          const Session = require('../models').Session;
-          const defaultSession = new Session({
-            _id: crypto.randomUUID(), // Generate UUID for session ID
-            name: 'Character Creation Session',
-            campaignId: simpleCharacterData.campaignId,
-            sessionNumber: 1,
-            status: 'inactive', // Mark as inactive immediately
-            createdBy: simpleCharacterData.createdBy || 'user', // Add the missing required field
-            metadata: {
-              startTime: new Date(),
-              endTime: new Date(),
-              duration: 0,
-              players: [],
-              dm: simpleCharacterData.createdBy || 'user',
-              location: 'Character Creation',
-              weather: 'Clear',
-              timeOfDay: 'afternoon',
-            },
-            gameState: {
-              currentScene: 'Character Creation',
-              sceneDescription: 'Session for creating new characters',
-              activeCharacters: [],
-              currentTurn: 0,
-              initiativeOrder: [],
-              combatState: {
-                isActive: false,
-                round: 0,
-                currentCharacter: null,
-                conditions: [],
-              },
-              worldState: {
-                currentLocation: 'Character Creation',
-                discoveredLocations: [],
-                activeEffects: [],
-              },
-            },
-            storyEvents: [],
-          });
-
-          await defaultSession.save();
-          simpleCharacterData.sessionId = defaultSession._id.toString();
-        }
-      } catch (sessionError) {
-        logger.warn('Failed to create default session for character:', sessionError);
-        // Continue without creating a session
-      }
-    }
+    // Characters are now linked to campaigns, not sessions
+    // sessionId is optional and will be set when the character joins a session
 
     const character = await characterService.createHumanCharacter(simpleCharacterData);
     return res.status(201).json(character);

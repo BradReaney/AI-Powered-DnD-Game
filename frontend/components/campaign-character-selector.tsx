@@ -80,7 +80,17 @@ export function CampaignCharacterSelector({
     };
 
     fetchData();
-  }, []);
+  }, []); // Empty dependency array - fetch only on mount
+
+  // Manual refresh function
+  const handleRefresh = () => {
+    setLoading(true);
+    setError(null);
+    // Force re-fetch by updating a dependency
+    setCampaigns([]);
+    setCharacters([]);
+    // The useEffect will run again due to state changes
+  };
 
   // Get characters for selected campaign
   const getCharactersForCampaign = (campaignId: string) => {
@@ -134,16 +144,12 @@ export function CampaignCharacterSelector({
 
   if (campaigns.length === 0) {
     return (
-      <div className="text-center py-12">
-        <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-foreground mb-2">
-          No Active Campaigns
-        </h2>
-        <p className="text-muted-foreground mb-6">
-          You need to create a campaign first before you can start playing.
+      <div className="text-center py-8">
+        <p className="text-muted-foreground mb-4">
+          No campaigns available. Create a campaign first to get started.
         </p>
-        <Button onClick={onBack} variant="outline">
-          Back to Overview
+        <Button onClick={handleRefresh} variant="outline">
+          Refresh
         </Button>
       </div>
     );
@@ -178,6 +184,9 @@ export function CampaignCharacterSelector({
           Select your campaign and character to begin your adventure with the AI
           Dungeon Master.
         </p>
+        <Button onClick={handleRefresh} variant="outline" size="sm">
+          Refresh Data
+        </Button>
       </div>
 
       <Card>

@@ -131,15 +131,10 @@ class CharacterService {
 
   public async createHumanCharacter(data: CharacterCreationData): Promise<ICharacter> {
     try {
-      // Validate campaign and session exist
+      // Validate campaign exists
       const campaign = await Campaign.findById(data.campaignId);
       if (!campaign) {
         throw new Error('Campaign not found');
-      }
-
-      const session = await Session.findOne({ _id: data.sessionId });
-      if (!session) {
-        throw new Error('Session not found');
       }
 
       // Calculate hit points based on class and constitution
@@ -191,10 +186,6 @@ class CharacterService {
       });
       await campaign.save();
 
-      // Add character to session
-      session.gameState.activeCharacters.push(character._id as any);
-      await session.save();
-
       logger.info(
         `Created human character: ${character.name} (${character.race} ${character.class})`
       );
@@ -207,15 +198,10 @@ class CharacterService {
 
   public async createAICharacter(data: ExtractedCharacterData): Promise<ICharacter> {
     try {
-      // Validate campaign and session exist
+      // Validate campaign exists
       const campaign = await Campaign.findById(data.campaignId);
       if (!campaign) {
         throw new Error('Campaign not found');
-      }
-
-      const session = await Session.findOne({ _id: data.sessionId });
-      if (!session) {
-        throw new Error('Session not found');
       }
 
       // Use the provided character data directly instead of generating new data
@@ -289,7 +275,7 @@ class CharacterService {
           items: [],
         },
         campaignId: data.campaignId,
-        sessionId: data.sessionId,
+        sessionId: data.sessionId, // Optional now
         isActive: true,
         createdBy: data.createdBy,
       });
@@ -304,10 +290,6 @@ class CharacterService {
         isActive: true,
       });
       await campaign.save();
-
-      // Add character to session
-      session.gameState.activeCharacters.push(character._id as any);
-      await session.save();
 
       logger.info(`Created AI character: ${character.name} (${character.race} ${character.class})`);
       return character;
@@ -328,20 +310,15 @@ class CharacterService {
     personality: string;
     description: string;
     campaignId: string;
-    sessionId: string;
+    sessionId?: string; // Made optional
     currentLocation: string;
     relationshipToParty: string;
   }): Promise<ICharacter> {
     try {
-      // Validate campaign and session exist
+      // Validate campaign exists
       const campaign = await Campaign.findById(data.campaignId);
       if (!campaign) {
         throw new Error('Campaign not found');
-      }
-
-      const session = await Session.findOne({ _id: data.sessionId });
-      if (!session) {
-        throw new Error('Session not found');
       }
 
       // Generate basic stats for the NPC
@@ -422,10 +399,6 @@ class CharacterService {
       });
 
       await campaign.save();
-
-      // Add character to session
-      session.gameState.activeCharacters.push(character._id as any);
-      await session.save();
 
       logger.info(
         `Created gameplay NPC: ${character.name} (${character.race} ${character.class}) in campaign ${data.campaignId}`
@@ -908,7 +881,13 @@ class CharacterService {
       }
 
       // If not in cache, get from database
-      const characters = await Character.find({ sessionId, isActive: true });
+      // Note: sessionId is now optional, so we need to handle characters without sessions
+      const characters = await Character.find({
+        $or: [
+          { sessionId, isActive: true },
+          { sessionId: { $exists: false }, isActive: true },
+        ],
+      });
 
       // Cache the result for 3 minutes
       await cacheService.set(cacheKey, characters, { ttl: 180 });
@@ -970,7 +949,7 @@ class CharacterService {
       await this.invalidateCharacterCache(
         characterId,
         character.campaignId.toString(),
-        character.sessionId.toString()
+        character.sessionId
       );
 
       logger.info(`Updated character: ${character.name}`);
@@ -1027,7 +1006,7 @@ class CharacterService {
       await this.invalidateCharacterCache(
         characterId,
         character.campaignId.toString(),
-        character.sessionId.toString()
+        character.sessionId
       );
 
       logger.info(`Updated character progress: ${character.name}`);
@@ -1042,15 +1021,19 @@ class CharacterService {
   private async invalidateCharacterCache(
     characterId: string,
     campaignId: string,
-    sessionId: string
+    sessionId?: string
   ): Promise<void> {
     try {
       const patterns = [
         `character:${characterId}`,
         `characters:campaign:${campaignId}`,
-        `characters:session:${sessionId}`,
         `character:name:*:campaign:${campaignId}`,
       ];
+
+      // Only add session cache invalidation if sessionId exists
+      if (sessionId) {
+        patterns.push(`characters:session:${sessionId}`);
+      }
 
       for (const pattern of patterns) {
         await cacheService.deletePattern(pattern);
