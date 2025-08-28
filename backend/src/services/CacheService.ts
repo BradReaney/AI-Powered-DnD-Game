@@ -1,11 +1,11 @@
-import Redis from 'ioredis';
-import logger from './LoggerService';
+import { Redis } from 'ioredis';
 import config from '../config';
+import logger from './LoggerService';
 
-export interface CacheOptions {
-  ttl?: number; // Time to live in seconds
-  prefix?: string; // Key prefix for namespacing
-  compress?: boolean; // Whether to compress large values
+interface CacheOptions {
+  ttl?: number;
+  compress?: boolean;
+  tags?: string[];
 }
 
 export interface CacheStats {
@@ -24,7 +24,7 @@ export class CacheService {
   private compressionThreshold: number = 1024; // 1KB threshold for compression
   private redisAvailable: boolean = false;
   private fallbackCache: Map<string, { value: any; expiry: number }> = new Map();
-  private fallbackCleanupInterval: NodeJS.Timeout;
+  private fallbackCleanupInterval: ReturnType<typeof setInterval>;
 
   constructor() {
     this.defaultTTL = 300; // 5 minutes default
@@ -59,7 +59,7 @@ export class CacheService {
       });
 
       this.setupEventHandlers();
-      
+
       // Test connection
       await this.redis.ping();
       this.redisAvailable = true;
@@ -102,14 +102,17 @@ export class CacheService {
 
   private startFallbackCleanup(): void {
     // Clean up expired fallback cache entries every 5 minutes
-    this.fallbackCleanupInterval = setInterval(() => {
-      const now = Date.now();
-      for (const [key, entry] of this.fallbackCache.entries()) {
-        if (entry.expiry < now) {
-          this.fallbackCache.delete(key);
+    this.fallbackCleanupInterval = setInterval(
+      () => {
+        const now = Date.now();
+        for (const [key, entry] of this.fallbackCache.entries()) {
+          if (entry.expiry < now) {
+            this.fallbackCache.delete(key);
+          }
         }
-      }
-    }, 5 * 60 * 1000);
+      },
+      5 * 60 * 1000
+    );
   }
 
   // Set cache item with compression for large values
@@ -117,7 +120,7 @@ export class CacheService {
     try {
       const ttl = options.ttl || this.defaultTTL;
       const fullKey = this.getFullKey(key);
-      
+
       if (this.redisAvailable && this.redis) {
         // Use Redis if available
         let serializedValue: string;
@@ -138,7 +141,7 @@ export class CacheService {
         logger.debug(`Redis cache set: ${key} (TTL: ${ttl}s)`);
       } else {
         // Fallback to in-memory cache
-        const expiry = Date.now() + (ttl * 1000);
+        const expiry = Date.now() + ttl * 1000;
         this.fallbackCache.set(fullKey, { value, expiry });
         this.updateStats('set', key);
         logger.debug(`Fallback cache set: ${key} (TTL: ${ttl}s)`);
@@ -154,7 +157,7 @@ export class CacheService {
   async get<T>(key: string): Promise<T | null> {
     try {
       const fullKey = this.getFullKey(key);
-      
+
       if (this.redisAvailable && this.redis) {
         // Try Redis first
         const value = await this.redis.get(fullKey);
@@ -210,7 +213,7 @@ export class CacheService {
   async exists(key: string): Promise<boolean> {
     try {
       const fullKey = this.getFullKey(key);
-      
+
       if (this.redisAvailable && this.redis) {
         const result = await this.redis.exists(fullKey);
         return result === 1;
@@ -218,13 +221,13 @@ export class CacheService {
         // Fallback to in-memory cache
         const entry = this.fallbackCache.get(fullKey);
         if (!entry) return false;
-        
+
         // Check if expired
         if (entry.expiry < Date.now()) {
           this.fallbackCache.delete(fullKey);
           return false;
         }
-        
+
         return true;
       }
     } catch (error) {
@@ -234,24 +237,24 @@ export class CacheService {
   }
 
   // Delete cache item
-  async delete(key: string): Promise<boolean> {
+  async delete(_key: string): Promise<boolean> {
     try {
-      const fullKey = this.getFullKey(key);
-      
+      const fullKey = this.getFullKey(_key);
+
       if (this.redisAvailable && this.redis) {
         const result = await this.redis.del(fullKey);
-        logger.debug(`Redis cache deleted: ${key}`);
+        logger.debug(`Redis cache deleted: ${_key}`);
         return result === 1;
       } else {
         // Fallback to in-memory cache
         const deleted = this.fallbackCache.delete(fullKey);
         if (deleted) {
-          logger.debug(`Fallback cache deleted: ${key}`);
+          logger.debug(`Fallback cache deleted: ${_key}`);
         }
         return deleted;
       }
     } catch (error) {
-      logger.error(`Failed to delete cache for key ${key}:`, error);
+      logger.error(`Failed to delete cache for key ${_key}:`, error);
       return false;
     }
   }
@@ -260,7 +263,7 @@ export class CacheService {
   async deletePattern(pattern: string): Promise<number> {
     try {
       const fullPattern = this.getFullKey(pattern);
-      
+
       if (this.redisAvailable && this.redis) {
         const keys = await this.redis.keys(fullPattern);
         if (keys.length > 0) {
@@ -292,7 +295,7 @@ export class CacheService {
     try {
       const ttl = options.ttl || this.defaultTTL;
       const fullKey = this.getFullKey(key);
-      
+
       if (this.redisAvailable && this.redis) {
         const serializedValue = typeof value === 'string' ? value : JSON.stringify(value);
         const result = await this.redis.set(fullKey, serializedValue, 'EX', ttl, 'NX');
@@ -309,8 +312,8 @@ export class CacheService {
         if (this.fallbackCache.has(fullKey)) {
           return false;
         }
-        
-        const expiry = Date.now() + (ttl * 1000);
+
+        const expiry = Date.now() + ttl * 1000;
         this.fallbackCache.set(fullKey, { value, expiry });
         this.updateStats('set', key);
         logger.debug(`Fallback cache setNX: ${key} (TTL: ${ttl}s)`);
@@ -326,7 +329,7 @@ export class CacheService {
   async increment(key: string, amount: number = 1): Promise<number> {
     try {
       const fullKey = this.getFullKey(key);
-      
+
       if (this.redisAvailable && this.redis) {
         const result = await this.redis.incrby(fullKey, amount);
 
@@ -342,7 +345,10 @@ export class CacheService {
         const entry = this.fallbackCache.get(fullKey);
         if (!entry) {
           const result = amount; // If not in cache, it's a new increment
-          this.fallbackCache.set(fullKey, { value: result, expiry: Date.now() + this.defaultTTL * 1000 });
+          this.fallbackCache.set(fullKey, {
+            value: result,
+            expiry: Date.now() + this.defaultTTL * 1000,
+          });
           logger.debug(`Fallback cache incremented: ${key} by ${amount} (new entry)`);
           return result;
         }
@@ -478,10 +484,10 @@ export class CacheService {
       if (this.redisAvailable && this.redis) {
         await this.redis.flushdb();
       }
-      
+
       // Clear fallback cache
       this.fallbackCache.clear();
-      
+
       this.stats.hits = 0;
       this.stats.misses = 0;
       this.stats.keys = 0;
@@ -514,15 +520,15 @@ export class CacheService {
       if (this.redisAvailable && this.redis) {
         await this.redis.quit();
       }
-      
+
       // Clear fallback cache cleanup interval
       if (this.fallbackCleanupInterval) {
         clearInterval(this.fallbackCleanupInterval);
       }
-      
+
       // Clear fallback cache
       this.fallbackCache.clear();
-      
+
       logger.info('Cache service shutdown complete');
     } catch (error) {
       logger.error('Cache service shutdown failed:', error);
@@ -534,7 +540,7 @@ export class CacheService {
     return `${this.keyPrefix}${key}`;
   }
 
-  private updateStats(operation: 'hit' | 'miss' | 'set', key: string): void {
+  private updateStats(operation: 'hit' | 'miss' | 'set', _key: string): void {
     switch (operation) {
       case 'hit':
         this.stats.hits++;
@@ -555,10 +561,10 @@ export class CacheService {
 
   private async decompress(data: string): Promise<string> {
     // Simple decompression implementation - in production you might want to use a proper compression library
-    return data; // Placeholder for decompression logic
+    return data; // Placeholder for compression logic
   }
 
-  private isCompressed(data: string): boolean {
+  private isCompressed(_data: string): boolean {
     // Simple compression detection - in production you might want to use proper compression detection
     return false; // Placeholder for compression detection logic
   }

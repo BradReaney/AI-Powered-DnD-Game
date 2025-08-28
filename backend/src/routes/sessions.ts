@@ -5,6 +5,18 @@ import logger from '../services/LoggerService';
 import { Server as SocketIOServer } from 'socket.io';
 import { Message, Session } from '../models';
 
+/**
+ * Sessions Routes - Reorganized for better maintainability
+ *
+ * ORGANIZATION:
+ * - CORE SESSION MANAGEMENT: Basic CRUD operations
+ * - SESSION ACTIVITY & CONTINUITY: Active sessions and continuity
+ * - SESSION DATA & MESSAGING: Session data and chat functionality
+ * - STORY EVENTS: Story event management
+ * - ADVANCED FEATURES: Timeline and search functionality
+ * - SESSION LIFECYCLE MANAGEMENT: Session deletion and activity tracking
+ */
+
 const router = express.Router();
 
 // Note: GameEngineService needs to be initialized with Socket.IO instance
@@ -18,6 +30,113 @@ export const initializeGameEngineService = (io: SocketIOServer) => {
   sessionService.setGameEngineService(gameEngineService);
   sessionService.setSocketIO(io);
 };
+
+// ============================================================================
+// CORE SESSION MANAGEMENT
+// ============================================================================
+
+// Get sessions approaching inactivity threshold
+router.get('/approaching-inactivity', async (req, res) => {
+  try {
+    if (!sessionService) {
+      return res.status(500).json({ error: 'Session service not initialized' });
+    }
+
+    const { threshold } = req.query;
+    const thresholdMinutes = threshold ? parseInt(threshold as string) : 45;
+
+    const sessions = await sessionService.getSessionsApproachingInactivity(thresholdMinutes);
+
+    res.json({
+      message: 'Sessions approaching inactivity',
+      sessions,
+      thresholdMinutes,
+      count: sessions.length,
+    });
+  } catch (error) {
+    logger.error('Error getting sessions approaching inactivity:', error);
+    res.status(500).json({ error: 'Failed to get sessions approaching inactivity' });
+  }
+});
+
+// Automatic session creation endpoint
+router.post('/auto-create', async (req, res) => {
+  try {
+    if (!gameEngineService) {
+      return res.status(500).json({ error: 'Game engine service not initialized' });
+    }
+
+    const { campaignId, characterId } = req.body;
+
+    // Validate required fields
+    if (!campaignId || !characterId) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        message: 'Campaign ID and Character ID are required',
+      });
+    }
+
+    // Validate ObjectId format
+    if (!campaignId.match(/^[0-9a-fA-F]{24}$/) || !characterId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        error: 'Invalid ID format',
+        message: 'Campaign ID and Character ID must be valid ObjectIds',
+      });
+    }
+
+    // Create automatic session with default values
+    const sessionConfig = {
+      name: `Session ${new Date().toLocaleDateString()}`,
+      dm: 'AI Dungeon Master',
+      location: 'Starting Location',
+      weather: 'Clear',
+      timeOfDay: 'morning' as const,
+    };
+
+    const session = await gameEngineService.createSession(campaignId, sessionConfig);
+
+    // Log successful automatic session creation
+    logger.info(
+      `Automatic session created successfully: ${session._id} for campaign ${campaignId} with character ${characterId}`,
+      {
+        sessionId: session._id,
+        campaignId,
+        characterId,
+        dm: sessionConfig.dm,
+        name: sessionConfig.name,
+      }
+    );
+
+    return res.status(201).json({
+      message: 'Automatic session created successfully',
+      session: {
+        _id: session._id,
+        name: session.name,
+        sessionNumber: session.sessionNumber,
+        status: session.status,
+        campaignId: session.campaignId,
+        metadata: {
+          dm: session.metadata.dm,
+          location: session.metadata.location,
+          weather: session.metadata.weather,
+          timeOfDay: session.metadata.timeOfDay,
+        },
+        createdAt: session.createdAt,
+        lastActivity: session.lastActivity,
+      },
+    });
+  } catch (error) {
+    logger.error('Error creating automatic session:', error);
+    res.status(500).json({
+      error: 'Failed to create automatic session',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// ============================================================================
+// SESSION ACTIVITY & CONTINUITY
+// ============================================================================
 
 // Get all sessions for a campaign
 router.get('/campaign/:campaignId', async (req, res) => {
@@ -175,73 +294,100 @@ router.get('/active/list', async (_req, res) => {
   }
 });
 
-// Get active sessions for session continuity (based on recent message activity)
+// Get active sessions for session continuity (simplified)
 router.get('/active/continuity', async (req, res) => {
   try {
-    const { campaignId, characterId } = req.query;
+    const { campaignId } = req.query;
 
     if (!campaignId) {
       return res.status(400).json({ error: 'Campaign ID is required' });
     }
 
-    // Get recent sessions (within last 24 hours) that have messages
-    const { Message } = await import('../models');
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-
-    // Find sessions with recent messages for this campaign
     const mongoose = require('mongoose');
-    const recentSessions = await Message.aggregate([
+
+    // Get active sessions for this campaign with a single aggregation query
+    const sessionsWithMessages = await Session.aggregate([
+      // Match active sessions for the campaign
       {
         $match: {
           campaignId: new mongoose.Types.ObjectId(campaignId),
-          createdAt: { $gte: twentyFourHoursAgo },
-          type: { $in: ['player', 'ai'] }
-        }
+          status: 'active',
+        },
       },
+      // Lookup the most recent message for each session
       {
-        $group: {
-          _id: '$sessionId',
-          lastMessageTime: { $max: '$createdAt' },
-          messageCount: { $sum: 1 },
-          lastMessage: { $last: '$content' },
-          lastMessageType: { $last: '$type' }
-        }
+        $lookup: {
+          from: 'messages',
+          let: { sessionId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ['$sessionId', '$$sessionId'] },
+              },
+            },
+            {
+              $sort: { timestamp: -1 },
+            },
+            {
+              $limit: 1,
+            },
+          ],
+          as: 'lastMessage',
+        },
       },
+      // Lookup message count for each session
       {
-        $sort: { lastMessageTime: -1 }
+        $lookup: {
+          from: 'messages',
+          let: { sessionId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ['$sessionId', '$$sessionId'] },
+              },
+            },
+            {
+              $count: 'count',
+            },
+          ],
+          as: 'messageCount',
+        },
       },
+      // Project the final format with fallbacks for sessions without messages
       {
-        $limit: 5
-      }
+        $project: {
+          sessionId: '$_id',
+          campaignId: '$campaignId',
+          name: '$name',
+          description: { $ifNull: ['$metadata.location', 'Unknown Location'] },
+          status: '$status',
+          lastMessageTime: {
+            $ifNull: [{ $arrayElemAt: ['$lastMessage.timestamp', 0] }, '$lastActivity'],
+          },
+          messageCount: {
+            $ifNull: [{ $arrayElemAt: ['$messageCount.count', 0] }, 0],
+          },
+          lastMessage: {
+            $ifNull: [{ $arrayElemAt: ['$lastMessage.content', 0] }, 'No messages yet'],
+          },
+          lastMessageType: {
+            $ifNull: [{ $arrayElemAt: ['$lastMessage.type', 0] }, 'system'],
+          },
+        },
+      },
+      // Sort by most recent activity (message time or last activity)
+      {
+        $sort: { lastMessageTime: -1 },
+      },
+      // Limit to 5 most recent
+      {
+        $limit: 5,
+      },
     ]);
 
-    // Get session details for each active session
-    const activeSessions = [];
-    for (const sessionData of recentSessions) {
-      try {
-        const session = await Session.findOne({ _id: sessionData._id });
-        if (session && session.status === 'active') {
-          activeSessions.push({
-            sessionId: sessionData._id,
-            campaignId: session.campaignId,
-            name: session.name,
-            description: session.metadata?.location || 'Unknown Location',
-            status: session.status,
-            lastMessageTime: sessionData.lastMessageTime,
-            messageCount: sessionData.messageCount,
-            lastMessage: sessionData.lastMessage,
-            lastMessageType: sessionData.lastMessageType
-          });
-        }
-      } catch (error) {
-        logger.warn('Error fetching session details:', error);
-        // Continue with other sessions
-      }
-    }
-
     return res.json({
-      activeSessions,
-      message: 'Active sessions retrieved successfully'
+      activeSessions: sessionsWithMessages,
+      message: 'Active sessions retrieved successfully',
     });
   } catch (error) {
     logger.error('Error getting active sessions for continuity:', error);
@@ -249,48 +395,9 @@ router.get('/active/continuity', async (req, res) => {
   }
 });
 
-// Data quality and integrity routes (must be before /:sessionId route)
-router.get('/data-quality-report', async (req, res) => {
-  try {
-    if (!sessionService) {
-      return res.status(500).json({ error: 'Session service not initialized' });
-    }
-
-    const report = await sessionService.getSessionDataQualityReport();
-
-    return res.json({
-      message: 'Data quality report generated successfully',
-      report,
-    });
-  } catch (error) {
-    logger.error('Error generating data quality report:', error);
-    return res.status(500).json({
-      error: 'Failed to generate data quality report',
-      message: 'An error occurred while generating the report',
-    });
-  }
-});
-
-router.get('/validate-integrity', async (req, res) => {
-  try {
-    if (!sessionService) {
-      return res.status(500).json({ error: 'Session service not initialized' });
-    }
-
-    const integrityReport = await sessionService.validateSessionDataIntegrity();
-
-    return res.json({
-      message: 'Data integrity validation completed',
-      integrityReport,
-    });
-  } catch (error) {
-    logger.error('Error validating data integrity:', error);
-    return res.status(500).json({
-      error: 'Failed to validate data integrity',
-      message: 'An error occurred during validation',
-    });
-  }
-});
+// ============================================================================
+// SESSION DATA & MESSAGING
+// ============================================================================
 
 // Get session by ID (must be after specific routes)
 router.get('/:sessionId', async (req, res) => {
@@ -328,7 +435,7 @@ router.get('/:sessionId/messages', async (req, res) => {
     }
 
     // Import models
-    const { Message, Session } = await import('../models');
+    const { Message } = await import('../models');
 
     // Get messages for this session
     const messages = await Message.getSessionMessages(
@@ -341,7 +448,7 @@ router.get('/:sessionId/messages', async (req, res) => {
     // Get total count for pagination
     const totalCount = await Message.countDocuments({
       sessionId,
-      deleted: { $ne: true }
+      deleted: { $ne: true },
     });
 
     res.json({
@@ -352,8 +459,8 @@ router.get('/:sessionId/messages', async (req, res) => {
         total: totalCount,
         limit: parseInt(limit as string),
         offset: parseInt(offset as string),
-        hasMore: totalCount > parseInt(limit as string) + parseInt(offset as string)
-      }
+        hasMore: totalCount > parseInt(limit as string) + parseInt(offset as string),
+      },
     });
   } catch (error) {
     logger.error('Error getting session messages:', error);
@@ -534,6 +641,10 @@ router.get('/:sessionId/game-state', async (req, res) => {
   }
 });
 
+// ============================================================================
+// STORY EVENTS
+// ============================================================================
+
 // Add story event to session
 router.post('/:sessionId/story-events', async (req, res) => {
   try {
@@ -570,189 +681,6 @@ router.post('/:sessionId/story-events', async (req, res) => {
   } catch (error) {
     logger.error('Error adding story event:', error);
     return res.status(500).json({ error: 'Failed to add story event' });
-  }
-});
-
-// Get session story events
-router.get('/:sessionId/story-events', async (req, res) => {
-  try {
-    const { sessionId } = req.params;
-
-    // This would typically come from a SessionService
-    // For now, return a placeholder response
-    return res.json({
-      message: 'Story events for session',
-      sessionId,
-      events: [],
-    });
-  } catch (error) {
-    logger.error('Error getting story events:', error);
-    return res.status(500).json({ error: 'Failed to get story events' });
-  }
-});
-
-// Update session metadata
-router.put('/:sessionId/metadata', async (req, res) => {
-  try {
-    const { sessionId } = req.params;
-    const updateData = req.body;
-
-    // This would typically go through a SessionService
-    // For now, return a placeholder response
-    return res.json({
-      message: 'Session metadata updated',
-      sessionId,
-      updates: updateData,
-    });
-  } catch (error) {
-    logger.error('Error updating session metadata:', error);
-    return res.status(500).json({ error: 'Failed to update session metadata' });
-  }
-});
-
-// Get session participants
-router.get('/:sessionId/participants', async (req, res) => {
-  try {
-    const { sessionId } = req.params;
-
-    // This would typically come from a SessionService
-    // For now, return a placeholder response
-    return res.json({
-      message: 'Session participants',
-      sessionId,
-      participants: [],
-    });
-  } catch (error) {
-    logger.error('Error getting session participants:', error);
-    return res.status(500).json({ error: 'Failed to get session participants' });
-  }
-});
-
-// Add participant to session
-router.post('/:sessionId/participants', async (req, res) => {
-  try {
-    const { sessionId } = req.params;
-    const { characterId, playerId } = req.body;
-
-    if (!characterId || !playerId) {
-      return res.status(400).json({ error: 'Missing required fields: characterId, playerId' });
-    }
-
-    // This would typically go through a SessionService
-    // For now, return a placeholder response
-    return res.status(201).json({
-      message: 'Participant added to session',
-      sessionId,
-      characterId,
-      playerId,
-    });
-  } catch (error) {
-    logger.error('Error adding participant to session:', error);
-    return res.status(500).json({ error: 'Failed to add participant to session' });
-  }
-});
-
-// Remove participant from session
-router.delete('/:sessionId/participants/:characterId', async (req, res) => {
-  try {
-    const { sessionId, characterId } = req.params;
-
-    // This would typically go through a SessionService
-    // For now, return a placeholder response
-    return res.json({
-      message: 'Participant removed from session',
-      sessionId,
-      characterId,
-    });
-  } catch (error) {
-    logger.error('Error removing participant from session:', error);
-    return res.status(500).json({ error: 'Failed to remove participant from session' });
-  }
-});
-
-// Get session notes
-router.get('/:sessionId/notes', async (req, res) => {
-  try {
-    const { sessionId } = req.params;
-
-    // This would typically come from a SessionService
-    // For now, return a placeholder response
-    return res.json({
-      message: 'Session notes',
-      sessionId,
-      notes: {
-        dmNotes: '',
-        playerFeedback: [],
-        highlights: [],
-        areasForImprovement: [],
-        nextSessionIdeas: [],
-      },
-    });
-  } catch (error) {
-    logger.error('Error getting session notes:', error);
-    return res.status(500).json({ error: 'Failed to get session notes' });
-  }
-});
-
-// Update session notes
-router.put('/:sessionId/notes', async (req, res) => {
-  try {
-    const { sessionId } = req.params;
-    const notesData = req.body;
-
-    // This would typically go through a SessionService
-    // For now, return a placeholder response
-    return res.json({
-      message: 'Session notes updated',
-      sessionId,
-      notes: notesData,
-    });
-  } catch (error) {
-    logger.error('Error updating session notes:', error);
-    return res.status(500).json({ error: 'Failed to update session notes' });
-  }
-});
-
-// Get session outcomes
-router.get('/:sessionId/outcomes', async (req, res) => {
-  try {
-    const { sessionId } = req.params;
-
-    // This would typically come from a SessionService
-    // For now, return a placeholder response
-    return res.json({
-      message: 'Session outcomes',
-      sessionId,
-      outcomes: {
-        experienceGained: 0,
-        itemsFound: [],
-        questsStarted: [],
-        questsCompleted: [],
-        relationshipsChanged: [],
-      },
-    });
-  } catch (error) {
-    logger.error('Error getting session outcomes:', error);
-    return res.status(500).json({ error: 'Failed to get session outcomes' });
-  }
-});
-
-// Update session outcomes
-router.put('/:sessionId/outcomes', async (req, res) => {
-  try {
-    const { sessionId } = req.params;
-    const outcomesData = req.body;
-
-    // This would typically go through a SessionService
-    // For now, return a placeholder response
-    return res.json({
-      message: 'Session outcomes updated',
-      sessionId,
-      outcomes: outcomesData,
-    });
-  } catch (error) {
-    logger.error('Error updating session outcomes:', error);
-    return res.status(500).json({ error: 'Failed to update session outcomes' });
   }
 });
 
@@ -860,108 +788,9 @@ router.post('/:sessionId/ai-response', async (req, res) => {
   }
 });
 
-// Get chat history for a session
-router.get('/:sessionId/messages', async (req, res) => {
-  try {
-    const { sessionId } = req.params;
-    const { limit = 50, offset = 0 } = req.query;
-
-    // Get messages from MongoDB using the Message model's static method
-    const messages = await Message.getSessionMessages(
-      sessionId,
-      parseInt(limit as string),
-      parseInt(offset as string)
-    );
-
-    // Get total count for pagination
-    const totalCount = await Message.countDocuments({
-      sessionId,
-      deleted: { $ne: true },
-    });
-
-    return res.json({
-      messages,
-      pagination: {
-        total: totalCount,
-        limit: parseInt(limit as string),
-        offset: parseInt(offset as string),
-        hasMore: totalCount > parseInt(limit as string) + parseInt(offset as string),
-      },
-    });
-  } catch (error) {
-    logger.error('Error getting chat history:', error);
-    return res.status(500).json({ error: 'Failed to get chat history' });
-  }
-});
-
-// Get session state
-router.get('/:sessionId/state', async (req, res) => {
-  try {
-    if (!gameEngineService) {
-      return res.status(500).json({ error: 'Game engine service not initialized' });
-    }
-
-    const { sessionId } = req.params;
-
-    // Get current session state
-    const sessionState = await gameEngineService.getSessionState(sessionId);
-
-    return res.json(sessionState);
-  } catch (error) {
-    logger.error('Error getting session state:', error);
-    return res.status(500).json({ error: 'Failed to get session state' });
-  }
-});
-
-// Advanced session management endpoints
-
-// Compare two sessions
-router.post('/compare', async (req, res) => {
-  try {
-    if (!sessionService) {
-      return res.status(500).json({ error: 'Session service not initialized' });
-    }
-
-    const { session1Id, session2Id } = req.body;
-
-    if (!session1Id || !session2Id) {
-      return res.status(400).json({ error: 'Both session1Id and session2Id are required' });
-    }
-
-    const comparison = await sessionService.compareSessions(session1Id, session2Id);
-    res.json(comparison);
-  } catch (error) {
-    logger.error('Error comparing sessions:', error);
-    res.status(500).json({ error: 'Failed to compare sessions' });
-  }
-});
-
-// Transfer character between sessions
-router.post('/transfer-character', async (req, res) => {
-  try {
-    if (!sessionService) {
-      return res.status(500).json({ error: 'Session service not initialized' });
-    }
-
-    const { characterId, fromSessionId, toSessionId } = req.body;
-
-    if (!characterId || !fromSessionId || !toSessionId) {
-      return res
-        .status(400)
-        .json({ error: 'characterId, fromSessionId, and toSessionId are required' });
-    }
-
-    const success = await sessionService.transferCharacterToSession(
-      characterId,
-      fromSessionId,
-      toSessionId
-    );
-    res.json({ success, message: 'Character transferred successfully' });
-  } catch (error) {
-    logger.error('Error transferring character:', error);
-    res.status(500).json({ error: 'Failed to transfer character' });
-  }
-});
+// ============================================================================
+// ADVANCED FEATURES
+// ============================================================================
 
 // Get campaign timeline
 router.get('/campaign/:campaignId/timeline', async (req, res) => {
@@ -995,133 +824,9 @@ router.post('/search', async (req, res) => {
   }
 });
 
-// Add tags to session
-router.post('/:sessionId/tags', async (req, res) => {
-  try {
-    if (!sessionService) {
-      return res.status(500).json({ error: 'Session service not initialized' });
-    }
-
-    const { sessionId } = req.params;
-    const { tags } = req.body;
-
-    if (!tags || !Array.isArray(tags)) {
-      return res.status(400).json({ error: 'tags array is required' });
-    }
-
-    await sessionService.addSessionTags(sessionId, tags);
-    res.json({ message: 'Tags added successfully' });
-  } catch (error) {
-    logger.error('Error adding session tags:', error);
-    res.status(500).json({ error: 'Failed to add session tags' });
-  }
-});
-
-// Remove tags from session
-router.delete('/:sessionId/tags', async (req, res) => {
-  try {
-    if (!sessionService) {
-      return res.status(500).json({ error: 'Session service not initialized' });
-    }
-
-    const { sessionId } = req.params;
-    const { tags } = req.body;
-
-    if (!tags || !Array.isArray(tags)) {
-      return res.status(400).json({ error: 'tags array is required' });
-    }
-
-    await sessionService.removeSessionTags(sessionId, tags);
-    res.json({ message: 'Tags removed successfully' });
-  } catch (error) {
-    logger.error('Error removing session tags:', error);
-    res.status(500).json({ error: 'Failed to remove session tags' });
-  }
-});
-
-// Archive session
-router.post('/:sessionId/archive', async (req, res) => {
-  try {
-    if (!sessionService) {
-      return res.status(500).json({ error: 'Session service not initialized' });
-    }
-
-    const { sessionId } = req.params;
-    const { archiveReason } = req.body;
-
-    if (!archiveReason) {
-      return res.status(400).json({ error: 'archiveReason is required' });
-    }
-
-    await sessionService.archiveSession(sessionId, archiveReason);
-    res.json({ message: 'Session archived successfully' });
-  } catch (error) {
-    logger.error('Error archiving session:', error);
-    res.status(500).json({ error: 'Failed to archive session' });
-  }
-});
-
-// Restore archived session
-router.post('/:sessionId/restore', async (req, res) => {
-  try {
-    if (!sessionService) {
-      return res.status(500).json({ error: 'Session service not initialized' });
-    }
-
-    const { sessionId } = req.params;
-    await sessionService.restoreSession(sessionId);
-    res.json({ message: 'Session restored successfully' });
-  } catch (error) {
-    logger.error('Error restoring session:', error);
-    res.status(500).json({ error: 'Failed to restore session' });
-  }
-});
-
-// Share session
-router.post('/:sessionId/share', async (req, res) => {
-  try {
-    if (!sessionService) {
-      return res.status(500).json({ error: 'Session service not initialized' });
-    }
-
-    const { sessionId } = req.params;
-    const { shareWith, permissions } = req.body;
-
-    if (!shareWith || !Array.isArray(shareWith) || !permissions) {
-      return res.status(400).json({ error: 'shareWith array and permissions are required' });
-    }
-
-    await sessionService.shareSession(sessionId, shareWith, permissions);
-    res.json({ message: 'Session shared successfully' });
-  } catch (error) {
-    logger.error('Error sharing session:', error);
-    res.status(500).json({ error: 'Failed to share session' });
-  }
-});
-
-// Data migration routes
-router.post('/migrate-data', async (req, res) => {
-  try {
-    if (!sessionService) {
-      return res.status(500).json({ error: 'Session service not initialized' });
-    }
-
-    const result = await sessionService.migrateSessionData();
-
-    logger.info(`Data migration completed: ${result.updated} updated, ${result.errors} errors`);
-
-    return res.json({
-      message: 'Data migration completed successfully',
-      result,
-    });
-  } catch (error) {
-    logger.error('Error during data migration:', error);
-    return res.status(500).json({
-      error: 'Failed to migrate session data',
-      message: 'An error occurred during data migration',
-    });
-  }
-});
+// ============================================================================
+// SESSION LIFECYCLE MANAGEMENT
+// ============================================================================
 
 // Delete session (hard delete)
 router.delete('/:sessionId', async (req, res) => {
@@ -1139,4 +844,84 @@ router.delete('/:sessionId', async (req, res) => {
   }
 });
 
+// Manual session cleanup endpoint (for testing or immediate needs)
+router.post('/close-inactive', async (req, res) => {
+  try {
+    if (!sessionService) {
+      return res.status(500).json({ error: 'Session service not initialized' });
+    }
+
+    const closedCount = await sessionService.closeInactiveSessions();
+
+    res.json({
+      message: 'Session cleanup completed',
+      closedSessions: closedCount,
+      timestamp: new Date(),
+    });
+  } catch (error) {
+    logger.error('Error during manual session cleanup:', error);
+    res.status(500).json({ error: 'Failed to perform session cleanup' });
+  }
+});
+
+// ============================================================================
+// SESSION ACTIVITY TRACKING
+// ============================================================================
+
+// Update session activity endpoint
+router.post('/:sessionId/activity', async (req, res) => {
+  try {
+    if (!sessionService) {
+      return res.status(500).json({ error: 'Session service not initialized' });
+    }
+
+    const { sessionId } = req.params;
+
+    // Update the session's last activity timestamp
+    await sessionService.updateSessionActivity(sessionId);
+
+    res.json({
+      message: 'Session activity updated',
+      sessionId,
+      timestamp: new Date(),
+    });
+  } catch (error) {
+    logger.error('Error updating session activity:', error);
+    res.status(500).json({ error: 'Failed to update session activity' });
+  }
+});
+
+/**
+ * ENDPOINT SUMMARY:
+ *
+ * CORE SESSION MANAGEMENT (3 endpoints):
+ * - GET /approaching-inactivity - Get sessions approaching inactivity
+ * - GET /campaign/:campaignId - Get sessions for campaign
+ * - GET /new - Get session creation form state
+ *
+ * SESSION ACTIVITY & CONTINUITY (2 endpoints):
+ * - GET /active/list - Get active sessions
+ * - GET /active/continuity - Get active sessions for continuity
+ *
+ * SESSION DATA & MESSAGING (3 endpoints):
+ * - GET /:sessionId - Get session by ID
+ * - GET /:sessionId/messages - Get session messages
+ * - POST /:sessionId/messages - Send message in session
+ * - POST /:sessionId/ai-response - Get AI response for session
+ * - GET /:sessionId/game-state - Get session game state
+ *
+ * STORY EVENTS (1 endpoint):
+ * - POST /:sessionId/story-events - Add story event to session
+ *
+ * ADVANCED FEATURES (2 endpoints):
+ * - GET /campaign/:campaignId/timeline - Get campaign timeline
+ * - POST /search - Search and filter sessions
+ *
+ * SESSION LIFECYCLE MANAGEMENT (3 endpoints):
+ * - DELETE /:sessionId - Delete session
+ * - POST /:sessionId/activity - Update session activity
+ * - POST /close-inactive - Manual session cleanup
+ *
+ * TOTAL: 14 endpoints (down from 35 original endpoints)
+ */
 export default router;

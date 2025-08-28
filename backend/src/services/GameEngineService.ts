@@ -43,14 +43,14 @@ export interface GameState {
 export interface StoryEvent {
   timestamp: Date;
   type:
-  | 'action'
-  | 'dialogue'
-  | 'combat'
-  | 'exploration'
-  | 'skill_check'
-  | 'story'
-  | 'other'
-  | 'ai-response';
+    | 'action'
+    | 'dialogue'
+    | 'combat'
+    | 'exploration'
+    | 'skill_check'
+    | 'story'
+    | 'other'
+    | 'ai-response';
   title: string;
   description: string;
   participants: string[];
@@ -116,15 +116,15 @@ export interface CombatAction {
   characterId: string;
   sessionId: string;
   action:
-  | 'attack'
-  | 'spell'
-  | 'move'
-  | 'dash'
-  | 'dodge'
-  | 'help'
-  | 'ready'
-  | 'search'
-  | 'use_object';
+    | 'attack'
+    | 'spell'
+    | 'move'
+    | 'dash'
+    | 'dodge'
+    | 'help'
+    | 'ready'
+    | 'search'
+    | 'use_object';
   target?: string;
   spell?: string;
   weapon?: string;
@@ -350,6 +350,7 @@ class GameEngineService {
         sessionNumber,
         name: sessionData.name,
         status: 'active', // Add missing status field
+        lastActivity: new Date(), // Set lastActivity to prevent immediate cleanup
         metadata: {
           startTime: new Date(),
           dm: sessionData.dm,
@@ -781,19 +782,23 @@ class GameEngineService {
       const { Message } = await import('../models');
       const initializationMessage = await Message.findOne({
         sessionId,
-        'metadata.tags': 'campaign-start'
+        'metadata.tags': 'campaign-start',
       });
 
       if (initializationMessage) {
-        logger.info('Session is still initializing, preventing AI response to avoid race condition', { sessionId });
+        logger.info(
+          'Session is still initializing, preventing AI response to avoid race condition',
+          { sessionId }
+        );
         return {
-          content: 'The campaign is still being initialized. Please wait a moment before continuing.',
+          content:
+            'The campaign is still being initialized. Please wait a moment before continuing.',
           metadata: {
             contextLength: 0,
             responseTime: Date.now(),
             success: false,
             conversationHistoryLength: 0,
-            reason: 'campaign_initializing'
+            reason: 'campaign_initializing',
           },
         };
       }
@@ -807,8 +812,8 @@ class GameEngineService {
       const campaignId = session.campaignId.toString();
       const context = await this.contextManager.getContext(campaignId);
 
-      // Get recent chat history for conversation context (max 10 messages)
-      const chatHistory = await Message.getRecentContext(sessionId, 10, ['player', 'ai', 'system']);
+      // Get recent chat history for conversation context (simplified)
+      const chatHistory = await Message.getRecentAIContext(sessionId, 10);
 
       logger.info('Retrieved chat history', {
         sessionId,
@@ -871,7 +876,7 @@ class GameEngineService {
   }
 
   /**
-   * Build conversation context from chat history for AI
+   * Build conversation context from chat history for AI (simplified)
    */
   private buildConversationContext(
     chatHistory: any[],
@@ -885,13 +890,11 @@ class GameEngineService {
       parts: Array<{ text: string }>;
     }> = [];
 
-    // Limit conversation history to prevent context overflow
-    // We'll take the most recent messages, ensuring we don't exceed reasonable limits
-    const maxHistoryMessages = 8; // Keep this reasonable for AI context
-    const recentHistory = chatHistory.slice(-maxHistoryMessages);
+    // Reverse to get chronological order (most recent first, so reverse for conversation flow)
+    const chronologicalHistory = chatHistory.slice().reverse();
 
     // Add chat history messages in chronological order
-    recentHistory.forEach(msg => {
+    chronologicalHistory.forEach(msg => {
       if (msg.type === 'player') {
         conversationContext.push({
           role: 'user',
@@ -909,14 +912,6 @@ class GameEngineService {
     conversationContext.push({
       role: 'user',
       parts: [{ text: currentMessage }],
-    });
-
-    // Log the conversation context for debugging
-    logger.info('Building conversation context', {
-      totalHistoryMessages: chatHistory.length,
-      recentHistoryMessages: recentHistory.length,
-      conversationContextLength: conversationContext.length,
-      messageTypes: recentHistory.map(msg => msg.type),
     });
 
     return conversationContext;

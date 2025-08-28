@@ -45,6 +45,7 @@
     "quality:fix": "npm run quality:fix:backend && npm run quality:fix:frontend",
     "quality:fix:frontend": "cd frontend && npm run quality:fix",
     "quality:fix:backend": "cd backend && npm run quality:fix",
+    "quality:local": "./scripts/local-quality-check.sh",
     "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
     "clean": "rm -rf frontend/dist backend/dist frontend/node_modules backend/node_modules node_modules",
     "docker:up": "docker-compose up -d",

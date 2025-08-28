@@ -36,12 +36,12 @@ export interface CampaignUpdateData {
     factions?: Array<{
       name: string;
       type:
-      | 'guild'
-      | 'noble house'
-      | 'religious order'
-      | 'mercenary company'
-      | 'criminal syndicate'
-      | 'other';
+        | 'guild'
+        | 'noble house'
+        | 'religious order'
+        | 'mercenary company'
+        | 'criminal syndicate'
+        | 'other';
       alignment: string;
       influence: number;
       relationship: 'hostile' | 'unfriendly' | 'neutral' | 'friendly' | 'allied';
@@ -174,12 +174,12 @@ class CampaignService {
     factions: Array<{
       name: string;
       type:
-      | 'guild'
-      | 'noble house'
-      | 'religious order'
-      | 'mercenary company'
-      | 'criminal syndicate'
-      | 'other';
+        | 'guild'
+        | 'noble house'
+        | 'religious order'
+        | 'mercenary company'
+        | 'criminal syndicate'
+        | 'other';
       alignment: string;
       influence: number;
       relationship: 'hostile' | 'unfriendly' | 'neutral' | 'friendly' | 'allied';
@@ -319,7 +319,14 @@ class CampaignService {
 
   private validateEnumValues(content: any): void {
     // Valid enum values from Campaign model
-    const validFactionTypes = ['guild', 'noble house', 'religious order', 'mercenary company', 'criminal syndicate', 'other'];
+    const validFactionTypes = [
+      'guild',
+      'noble house',
+      'religious order',
+      'mercenary company',
+      'criminal syndicate',
+      'other',
+    ];
     const validThreatTypes = ['monster', 'organization', 'natural disaster', 'political', 'other'];
     const validThreatLevels = ['low', 'medium', 'high', 'critical'];
     const validThreatStatuses = ['active', 'defeated', 'resolved'];
@@ -329,7 +336,9 @@ class CampaignService {
     if (content.factions && Array.isArray(content.factions)) {
       content.factions.forEach((faction: any, index: number) => {
         if (faction.type && !validFactionTypes.includes(faction.type)) {
-          throw new Error(`Invalid faction type at index ${index}: "${faction.type}". Valid types are: ${validFactionTypes.join(', ')}`);
+          throw new Error(
+            `Invalid faction type at index ${index}: "${faction.type}". Valid types are: ${validFactionTypes.join(', ')}`
+          );
         }
       });
     }
@@ -338,13 +347,19 @@ class CampaignService {
     if (content.threats && Array.isArray(content.threats)) {
       content.threats.forEach((threat: any, index: number) => {
         if (threat.type && !validThreatTypes.includes(threat.type)) {
-          throw new Error(`Invalid threat type at index ${index}: "${threat.type}". Valid types are: ${validThreatTypes.join(', ')}`);
+          throw new Error(
+            `Invalid threat type at index ${index}: "${threat.type}". Valid types are: ${validThreatTypes.join(', ')}`
+          );
         }
         if (threat.threatLevel && !validThreatLevels.includes(threat.threatLevel)) {
-          throw new Error(`Invalid threat level at index ${index}: "${threat.threatLevel}". Valid levels are: ${validThreatLevels.join(', ')}`);
+          throw new Error(
+            `Invalid threat level at index ${index}: "${threat.threatLevel}". Valid levels are: ${validThreatLevels.join(', ')}`
+          );
         }
         if (threat.status && !validThreatStatuses.includes(threat.status)) {
-          throw new Error(`Invalid threat status at index ${index}: "${threat.status}". Valid statuses are: ${validThreatStatuses.join(', ')}`);
+          throw new Error(
+            `Invalid threat status at index ${index}: "${threat.status}". Valid statuses are: ${validThreatStatuses.join(', ')}`
+          );
         }
       });
     }
@@ -353,7 +368,9 @@ class CampaignService {
     if (content.lore && Array.isArray(content.lore)) {
       content.lore.forEach((lore: any, index: number) => {
         if (lore.importance && !validLoreImportance.includes(lore.importance)) {
-          throw new Error(`Invalid lore importance at index ${index}: "${lore.importance}". Valid importance levels are: ${validLoreImportance.join(', ')}`);
+          throw new Error(
+            `Invalid lore importance at index ${index}: "${lore.importance}". Valid importance levels are: ${validLoreImportance.join(', ')}`
+          );
         }
       });
     }
@@ -767,12 +784,12 @@ class CampaignService {
     factionData: {
       name: string;
       type:
-      | 'guild'
-      | 'noble house'
-      | 'religious order'
-      | 'mercenary company'
-      | 'criminal syndicate'
-      | 'other';
+        | 'guild'
+        | 'noble house'
+        | 'religious order'
+        | 'mercenary company'
+        | 'criminal syndicate'
+        | 'other';
       alignment: string;
       influence: number;
       relationship: 'hostile' | 'unfriendly' | 'neutral' | 'friendly' | 'allied';
@@ -910,8 +927,8 @@ class CampaignService {
           characterContext = `
           The party consists of:
           ${validCharacters
-              .map(char => `- ${char.name}, a ${char.race} ${char.class} (Level ${char.level})`)
-              .join('\n')}
+            .map(char => `- ${char.name}, a ${char.race} ${char.class} (Level ${char.level})`)
+            .join('\n')}
           `;
         }
       }
@@ -978,11 +995,13 @@ Your journey starts now. What would you like to do first?`;
         createdBy: 'ai-dm',
         metadata: {
           startTime: new Date(),
-          players: characterIds ? characterIds.map(id => ({
-            playerId: 'ai-dm',
-            characterId: id,
-            joinedAt: new Date(),
-          })) : [],
+          players: characterIds
+            ? characterIds.map(id => ({
+                playerId: 'ai-dm',
+                characterId: id,
+                joinedAt: new Date(),
+              }))
+            : [],
           dm: 'AI Dungeon Master',
           location: 'Starting Location',
           weather: 'Clear',

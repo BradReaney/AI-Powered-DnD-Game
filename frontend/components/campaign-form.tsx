@@ -27,7 +27,7 @@ import type { Campaign } from "@/lib/types";
 import { Save, X, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 
 // Force dynamic rendering to prevent build-time prerendering issues
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 interface CampaignFormProps {
   campaign?: Campaign;
@@ -65,20 +65,23 @@ export function CampaignForm({
     name: campaign?.name || "",
     description: campaign?.description || "",
     theme: campaign?.theme || "",
-    status: campaign?.status ?? 'active',
+    status: campaign?.status ?? "active",
     createdBy: "player", // Default user ID for now
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [submitMessage, setSubmitMessage] = useState('');
+  const [submitStatus, setSubmitStatus] = useState<
+    "idle" | "success" | "error"
+  >("idle");
+  const [submitMessage, setSubmitMessage] = useState("");
 
   // Use external loading state if provided, otherwise use internal state
-  const isCurrentlySaving = externalIsSaving !== undefined ? externalIsSaving : isSubmitting;
+  const isCurrentlySaving =
+    externalIsSaving !== undefined ? externalIsSaving : isSubmitting;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // If external loading state is provided, don't manage internal state
     if (externalIsSaving !== undefined) {
       onSave({
@@ -89,11 +92,11 @@ export function CampaignForm({
       });
       return;
     }
-    
+
     try {
       setIsSubmitting(true);
-      setSubmitStatus('idle');
-      setSubmitMessage('');
+      setSubmitStatus("idle");
+      setSubmitMessage("");
 
       await onSave({
         ...formData,
@@ -102,23 +105,28 @@ export function CampaignForm({
         updatedAt: new Date(),
       });
 
-      setSubmitStatus('success');
-      setSubmitMessage(campaign ? 'Campaign updated successfully!' : 'Campaign created successfully!');
-      
+      setSubmitStatus("success");
+      setSubmitMessage(
+        campaign
+          ? "Campaign updated successfully!"
+          : "Campaign created successfully!",
+      );
+
       // Clear success message after 3 seconds
       setTimeout(() => {
-        setSubmitStatus('idle');
-        setSubmitMessage('');
+        setSubmitStatus("idle");
+        setSubmitMessage("");
       }, 3000);
-
     } catch (error) {
-      setSubmitStatus('error');
-      setSubmitMessage(error instanceof Error ? error.message : 'Failed to save campaign');
-      
+      setSubmitStatus("error");
+      setSubmitMessage(
+        error instanceof Error ? error.message : "Failed to save campaign",
+      );
+
       // Clear error message after 5 seconds
       setTimeout(() => {
-        setSubmitStatus('error');
-        setSubmitMessage('');
+        setSubmitStatus("error");
+        setSubmitMessage("");
       }, 5000);
     } finally {
       setIsSubmitting(false);
@@ -139,7 +147,7 @@ export function CampaignForm({
       </CardHeader>
       <CardContent>
         {/* Status Messages */}
-        {submitStatus === 'success' && (
+        {submitStatus === "success" && (
           <Alert className="mb-4 border-green-200 bg-green-50">
             <CheckCircle className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-800">
@@ -148,7 +156,7 @@ export function CampaignForm({
           </Alert>
         )}
 
-        {submitStatus === 'error' && (
+        {submitStatus === "error" && (
           <Alert className="mb-4 border-red-200 bg-red-50">
             <AlertCircle className="h-4 w-4 text-red-600" />
             <AlertDescription className="text-red-800">
@@ -214,23 +222,28 @@ export function CampaignForm({
             <input
               type="checkbox"
               id="status"
-              checked={formData.status === 'active'}
+              checked={formData.status === "active"}
               onChange={(e) =>
-                setFormData({ ...formData, status: e.target.checked ? 'active' : 'paused' })
+                setFormData({
+                  ...formData,
+                  status: e.target.checked ? "active" : "paused",
+                })
               }
               className="rounded border-border"
               disabled={isCurrentlySaving}
             />
             <Label htmlFor="status">Active Campaign</Label>
-            <Badge variant={formData.status === 'active' ? "default" : "secondary"}>
-              {formData.status === 'active' ? "Active" : "Paused"}
+            <Badge
+              variant={formData.status === "active" ? "default" : "secondary"}
+            >
+              {formData.status === "active" ? "Active" : "Paused"}
             </Badge>
           </div>
 
           <div className="flex gap-3 pt-4">
-            <Button 
-              type="submit" 
-              className="flex-1" 
+            <Button
+              type="submit"
+              className="flex-1"
               disabled={isCurrentlySaving}
             >
               {isCurrentlySaving ? (
@@ -245,9 +258,9 @@ export function CampaignForm({
                 </>
               )}
             </Button>
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={onCancel}
               disabled={isCurrentlySaving}
             >

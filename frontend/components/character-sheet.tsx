@@ -26,6 +26,7 @@ import {
 interface CharacterSheetProps {
   character: Character;
   onEdit?: () => void;
+  onBack?: () => void;
 }
 
 export function CharacterSheet({ character, onEdit }: CharacterSheetProps) {

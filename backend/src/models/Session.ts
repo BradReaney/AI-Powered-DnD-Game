@@ -5,7 +5,7 @@ export interface ISession extends Document {
   campaignId: mongoose.Types.ObjectId;
   sessionNumber: number;
   name: string;
-  status: 'active' | 'paused' | 'completed' | 'archived';
+  status: 'active' | 'paused' | 'completed' | 'archived' | 'inactive';
 
   // Session metadata
   metadata: {
@@ -63,14 +63,14 @@ export interface ISession extends Document {
   storyEvents: Array<{
     timestamp: Date;
     type:
-    | 'action'
-    | 'dialogue'
-    | 'combat'
-    | 'exploration'
-    | 'skill_check'
-    | 'story'
-    | 'other'
-    | 'ai-response';
+      | 'action'
+      | 'dialogue'
+      | 'combat'
+      | 'exploration'
+      | 'skill_check'
+      | 'story'
+      | 'other'
+      | 'ai-response';
     title: string;
     description: string;
     participants: mongoose.Types.ObjectId[];
@@ -172,6 +172,9 @@ export interface ISession extends Document {
   createdAt: Date;
   updatedAt: Date;
   createdBy: string;
+
+  // Session activity tracking for auto-closing
+  lastActivity: Date;
 }
 
 const SessionSchema = new Schema<ISession>(
@@ -209,8 +212,8 @@ const SessionSchema = new Schema<ISession>(
     status: {
       type: String,
       enum: {
-        values: ['active', 'paused', 'completed', 'archived'],
-        message: 'Status must be one of: active, paused, completed, archived',
+        values: ['active', 'paused', 'completed', 'archived', 'inactive'],
+        message: 'Status must be one of: active, paused, completed, archived, inactive',
       },
       default: 'active',
       index: true,
@@ -617,6 +620,11 @@ const SessionSchema = new Schema<ISession>(
       type: String,
       required: true,
     },
+
+    lastActivity: {
+      type: Date,
+      default: Date.now,
+    },
   },
   {
     timestamps: true,
@@ -627,9 +635,10 @@ const SessionSchema = new Schema<ISession>(
 SessionSchema.index({ campaignId: 1, sessionNumber: 1 });
 SessionSchema.index({ status: 1, createdAt: 1 });
 SessionSchema.index({ 'metadata.players.characterId': 1 });
+SessionSchema.index({ status: 1, lastActivity: 1 }); // For inactivity monitoring
 
 // Virtual for session duration
-SessionSchema.virtual('calculatedDuration').get(function () {
+SessionSchema.virtual('calculatedDuration').get(function (_this) {
   if (this.metadata.endTime && this.metadata.startTime) {
     return Math.floor(
       (this.metadata.endTime.getTime() - this.metadata.startTime.getTime()) / (1000 * 60)
@@ -639,7 +648,7 @@ SessionSchema.virtual('calculatedDuration').get(function () {
 });
 
 // Method to end session
-SessionSchema.methods['endSession'] = function (this: any, endTime: Date, summary: string) {
+SessionSchema.methods['endSession'] = function (_this: any, endTime: Date, summary: string) {
   this.metadata.endTime = endTime;
   this.metadata.duration = this['calculatedDuration'];
   this.status = 'completed';
@@ -648,14 +657,28 @@ SessionSchema.methods['endSession'] = function (this: any, endTime: Date, summar
 };
 
 // Method to add story event
-SessionSchema.methods['addStoryEvent'] = function (this: any, eventData: any) {
+SessionSchema.methods['addStoryEvent'] = function (_this: any, eventData: any) {
   this.storyEvents.push(eventData);
   return this.save();
 };
 
 // Method to update game state
-SessionSchema.methods['updateGameState'] = function (this: any, stateData: any) {
-  Object.assign(this.gameState, stateData);
+SessionSchema.methods['updateGameState'] = function (_this: any, stateData: any) {
+  this.gameState = stateData;
+  return this.save();
+};
+
+// Method to update session activity
+SessionSchema.methods['updateActivity'] = function (_this: any) {
+  this.lastActivity = new Date();
+  return this.save();
+};
+
+// Method to close inactive session
+SessionSchema.methods['closeInactive'] = function (_this: any) {
+  this.status = 'inactive';
+  this.metadata.endTime = new Date();
+  this.metadata.duration = this['calculatedDuration'];
   return this.save();
 };
 

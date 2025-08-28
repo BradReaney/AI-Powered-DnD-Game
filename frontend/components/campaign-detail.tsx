@@ -11,7 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Campaign, Session, Character, Location } from "@/lib/types";
-import { SessionManager } from "./session-manager";
+// SessionManager component removed - functionality integrated elsewhere
 import { CharacterForm } from "./character-form";
 import { CharacterSheet } from "./character-sheet";
 import { LocationForm } from "./location-form";
@@ -24,10 +24,11 @@ import {
   Users,
   MapPin,
   Plus,
+  Trash2,
 } from "lucide-react";
 
 // Force dynamic rendering to prevent build-time prerendering issues
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 interface CampaignDetailProps {
   campaign: Campaign;
@@ -38,6 +39,7 @@ interface CampaignDetailProps {
   onPlaySession?: (session: Session) => void;
   onSaveCharacter: (character: Partial<Character>) => Promise<void>;
   onSaveLocation: (location: Partial<Location>) => Promise<void>;
+  onDeleteCampaign?: (campaign: Campaign) => Promise<void>;
 }
 
 export function CampaignDetail({
@@ -49,6 +51,7 @@ export function CampaignDetail({
   onPlaySession,
   onSaveCharacter,
   onSaveLocation,
+  onDeleteCampaign,
 }: CampaignDetailProps) {
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(
     null,
@@ -64,7 +67,31 @@ export function CampaignDetail({
   >("list");
 
   // Campaign settings state
-  const [settings, setSettings] = useState(campaign.settings || {});
+  const [settings, setSettings] = useState(
+    campaign.settings || {
+      difficulty: "medium" as const,
+      maxLevel: 20,
+      startingLevel: 1,
+      experienceRate: "normal" as const,
+      magicLevel: "medium" as const,
+      technologyLevel: "medieval" as const,
+      aiBehavior: {
+        creativity: "medium" as const,
+        detailLevel: "moderate" as const,
+        pacing: "normal" as const,
+        combatStyle: "balanced" as const,
+      },
+      playerSettings: {
+        maxPlayers: 6,
+        allowNewPlayers: true,
+        playerPermissions: {
+          canCreateCharacters: true,
+          canModifyWorld: false,
+          canManageSessions: false,
+        },
+      },
+    },
+  );
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [settingsSuccess, setSettingsSuccess] = useState<string | null>(null);
@@ -79,16 +106,18 @@ export function CampaignDetail({
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
         if (!apiUrl) {
-          console.error('NEXT_PUBLIC_API_URL environment variable is required');
+          console.error("NEXT_PUBLIC_API_URL environment variable is required");
           return;
         }
-        const response = await fetch(`${apiUrl}/api/campaign-settings/${campaign.id}/settings`);
+        const response = await fetch(
+          `${apiUrl}/api/campaign-settings/${campaign.id}/settings`,
+        );
         if (response.ok) {
           const data = await response.json();
           setSettings(data.settings || {});
         }
       } catch (error) {
-        console.error('Error loading campaign settings:', error);
+        console.error("Error loading campaign settings:", error);
       }
     };
 
@@ -124,7 +153,7 @@ export function CampaignDetail({
       setCharacterViewMode("list");
       setSelectedCharacter(null);
     } catch (error) {
-      console.error('Error saving character:', error);
+      console.error("Error saving character:", error);
       // You could add error handling UI here
     } finally {
       setIsSavingCharacter(false);
@@ -153,7 +182,7 @@ export function CampaignDetail({
       setLocationViewMode("list");
       setSelectedLocation(null);
     } catch (error) {
-      console.error('Error saving location:', error);
+      console.error("Error saving location:", error);
       // You could add error handling UI here
     } finally {
       setIsSavingLocation(false);
@@ -168,32 +197,36 @@ export function CampaignDetail({
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
       if (!apiUrl) {
-        throw new Error('NEXT_PUBLIC_API_URL environment variable is required');
+        throw new Error("NEXT_PUBLIC_API_URL environment variable is required");
       }
-      const response = await fetch(`${apiUrl}/api/campaign-settings/${campaign.id}/settings`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `${apiUrl}/api/campaign-settings/${campaign.id}/settings`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ settings }),
         },
-        body: JSON.stringify({ settings }),
-      });
+      );
 
       if (!response.ok) {
         throw new Error(`Failed to save settings: ${response.statusText}`);
       }
 
       const result = await response.json();
-      setSettingsSuccess('Settings saved successfully!');
+      setSettingsSuccess("Settings saved successfully!");
 
       // Update local settings with the response from server
       setSettings(result.settings || {});
 
       // Clear success message after 3 seconds
       setTimeout(() => setSettingsSuccess(null), 3000);
-
     } catch (error) {
-      console.error('Error saving settings:', error);
-      setSettingsError(error instanceof Error ? error.message : 'Failed to save settings');
+      console.error("Error saving settings:", error);
+      setSettingsError(
+        error instanceof Error ? error.message : "Failed to save settings",
+      );
 
       // Clear error message after 5 seconds
       setTimeout(() => setSettingsError(null), 5000);
@@ -203,8 +236,8 @@ export function CampaignDetail({
   };
 
   const handleSettingChange = (category: string, field: string, value: any) => {
-    setSettings(prev => {
-      if (category === '') {
+    setSettings((prev) => {
+      if (category === "") {
         // Handle top-level settings (basic settings)
         return {
           ...prev,
@@ -212,10 +245,20 @@ export function CampaignDetail({
         };
       } else {
         // Handle nested settings (aiBehavior, playerSettings, etc.)
+        const categorySettings = prev[category as keyof typeof prev];
+        if (categorySettings && typeof categorySettings === "object") {
+          return {
+            ...prev,
+            [category]: {
+              ...categorySettings,
+              [field]: value,
+            },
+          };
+        }
+        // If category doesn't exist, create it
         return {
           ...prev,
           [category]: {
-            ...prev[category],
             [field]: value,
           },
         };
@@ -234,16 +277,29 @@ export function CampaignDetail({
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-3xl font-bold">{campaign.name}</h1>
-            <Badge variant={campaign.status === 'active' ? "default" : "secondary"}>
-              {campaign.status === 'active' ? "Active" : campaign.status}
+            <Badge
+              variant={campaign.status === "active" ? "default" : "secondary"}
+            >
+              {campaign.status === "active" ? "Active" : campaign.status}
             </Badge>
           </div>
-          <p className="text-muted-foreground">{campaign.setting}</p>
+          <p className="text-muted-foreground">{campaign.theme}</p>
         </div>
-        <Button variant="outline" onClick={onEdit}>
-          <Edit className="h-4 w-4 mr-2" />
-          Edit Campaign
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={onEdit}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit Campaign
+          </Button>
+          {onDeleteCampaign && (
+            <Button
+              variant="destructive"
+              onClick={() => onDeleteCampaign(campaign)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Campaign
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Campaign Overview */}
@@ -263,15 +319,19 @@ export function CampaignDetail({
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Setting:</span>
-                    <span>{campaign.setting}</span>
+                    <span>{campaign.theme}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Created:</span>
-                    <span>{new Date(campaign.createdAt).toLocaleDateString()}</span>
+                    <span>
+                      {new Date(campaign.createdAt).toLocaleDateString()}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Last Updated:</span>
-                    <span>{new Date(campaign.updatedAt).toLocaleDateString()}</span>
+                    <span>
+                      {new Date(campaign.updatedAt).toLocaleDateString()}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -302,7 +362,30 @@ export function CampaignDetail({
         </TabsList>
 
         <TabsContent value="sessions">
-          <SessionManager campaign={campaign} onSessionSelect={onPlaySession} />
+          <Card>
+            <CardHeader>
+              <CardTitle>Session Management</CardTitle>
+              <CardDescription>
+                Sessions are automatically created and managed during gameplay
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <p className="text-muted-foreground mb-4">
+                  Sessions are automatically created when you start playing. No
+                  manual session management required!
+                </p>
+                <div className="text-sm text-muted-foreground">
+                  <p>• Sessions start automatically when you begin a story</p>
+                  <p>• Session data is automatically saved and managed</p>
+                  <p>
+                    • You can view session history and continue where you left
+                    off
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="characters">
@@ -563,8 +646,10 @@ export function CampaignDetail({
                       <label className="text-sm font-medium">Difficulty</label>
                       <select
                         className="w-full p-2 text-sm border rounded-md bg-background mt-1"
-                        value={settings.difficulty || 'medium'}
-                        onChange={(e) => handleSettingChange('', 'difficulty', e.target.value)}
+                        value={settings.difficulty || "medium"}
+                        onChange={(e) =>
+                          handleSettingChange("", "difficulty", e.target.value)
+                        }
                       >
                         <option value="easy">Easy</option>
                         <option value="medium">Medium</option>
@@ -580,7 +665,13 @@ export function CampaignDetail({
                         min="1"
                         max="20"
                         value={settings.maxLevel || 20}
-                        onChange={(e) => handleSettingChange('', 'maxLevel', parseInt(e.target.value))}
+                        onChange={(e) =>
+                          handleSettingChange(
+                            "",
+                            "maxLevel",
+                            parseInt(e.target.value),
+                          )
+                        }
                         className="w-full p-2 text-sm border rounded-md bg-background mt-1"
                       />
                     </div>
@@ -588,11 +679,19 @@ export function CampaignDetail({
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium">Experience Rate</label>
+                      <label className="text-sm font-medium">
+                        Experience Rate
+                      </label>
                       <select
                         className="w-full p-2 text-sm border rounded-md bg-background mt-1"
-                        value={settings.experienceRate || 'normal'}
-                        onChange={(e) => handleSettingChange('', 'experienceRate', e.target.value)}
+                        value={settings.experienceRate || "normal"}
+                        onChange={(e) =>
+                          handleSettingChange(
+                            "",
+                            "experienceRate",
+                            e.target.value,
+                          )
+                        }
                       >
                         <option value="slow">Slow</option>
                         <option value="normal">Normal</option>
@@ -604,8 +703,10 @@ export function CampaignDetail({
                       <label className="text-sm font-medium">Magic Level</label>
                       <select
                         className="w-full p-2 text-sm border rounded-md bg-background mt-1"
-                        value={settings.magicLevel || 'medium'}
-                        onChange={(e) => handleSettingChange('', 'magicLevel', e.target.value)}
+                        value={settings.magicLevel || "medium"}
+                        onChange={(e) =>
+                          handleSettingChange("", "magicLevel", e.target.value)
+                        }
                       >
                         <option value="low">Low</option>
                         <option value="medium">Medium</option>
@@ -624,8 +725,14 @@ export function CampaignDetail({
                       <label className="text-sm font-medium">Creativity</label>
                       <select
                         className="w-full p-2 text-sm border rounded-md bg-background mt-1"
-                        value={settings.aiBehavior?.creativity || 'medium'}
-                        onChange={(e) => handleSettingChange('aiBehavior', 'creativity', e.target.value)}
+                        value={settings.aiBehavior?.creativity || "medium"}
+                        onChange={(e) =>
+                          handleSettingChange(
+                            "aiBehavior",
+                            "creativity",
+                            e.target.value,
+                          )
+                        }
                       >
                         <option value="low">Low</option>
                         <option value="medium">Medium</option>
@@ -634,11 +741,19 @@ export function CampaignDetail({
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium">Detail Level</label>
+                      <label className="text-sm font-medium">
+                        Detail Level
+                      </label>
                       <select
                         className="w-full p-2 text-sm border rounded-md bg-background mt-1"
-                        value={settings.aiBehavior?.detailLevel || 'moderate'}
-                        onChange={(e) => handleSettingChange('aiBehavior', 'detailLevel', e.target.value)}
+                        value={settings.aiBehavior?.detailLevel || "moderate"}
+                        onChange={(e) =>
+                          handleSettingChange(
+                            "aiBehavior",
+                            "detailLevel",
+                            e.target.value,
+                          )
+                        }
                       >
                         <option value="minimal">Minimal</option>
                         <option value="moderate">Moderate</option>
@@ -652,8 +767,14 @@ export function CampaignDetail({
                       <label className="text-sm font-medium">Pacing</label>
                       <select
                         className="w-full p-2 text-sm border rounded-md bg-background mt-1"
-                        value={settings.aiBehavior?.pacing || 'normal'}
-                        onChange={(e) => handleSettingChange('aiBehavior', 'pacing', e.target.value)}
+                        value={settings.aiBehavior?.pacing || "normal"}
+                        onChange={(e) =>
+                          handleSettingChange(
+                            "aiBehavior",
+                            "pacing",
+                            e.target.value,
+                          )
+                        }
                       >
                         <option value="slow">Slow</option>
                         <option value="normal">Normal</option>
@@ -662,11 +783,19 @@ export function CampaignDetail({
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium">Combat Style</label>
+                      <label className="text-sm font-medium">
+                        Combat Style
+                      </label>
                       <select
                         className="w-full p-2 text-sm border rounded-md bg-background mt-1"
-                        value={settings.aiBehavior?.combatStyle || 'balanced'}
-                        onChange={(e) => handleSettingChange('aiBehavior', 'combatStyle', e.target.value)}
+                        value={settings.aiBehavior?.combatStyle || "balanced"}
+                        onChange={(e) =>
+                          handleSettingChange(
+                            "aiBehavior",
+                            "combatStyle",
+                            e.target.value,
+                          )
+                        }
                       >
                         <option value="tactical">Tactical</option>
                         <option value="balanced">Balanced</option>
@@ -688,7 +817,13 @@ export function CampaignDetail({
                         min="1"
                         max="10"
                         value={settings.playerSettings?.maxPlayers || 6}
-                        onChange={(e) => handleSettingChange('playerSettings', 'maxPlayers', parseInt(e.target.value))}
+                        onChange={(e) =>
+                          handleSettingChange(
+                            "playerSettings",
+                            "maxPlayers",
+                            parseInt(e.target.value),
+                          )
+                        }
                         className="w-full p-2 text-sm border rounded-md bg-background mt-1"
                       />
                     </div>
@@ -697,11 +832,21 @@ export function CampaignDetail({
                       <input
                         type="checkbox"
                         id="allowNewPlayers"
-                        checked={settings.playerSettings?.allowNewPlayers ?? true}
-                        onChange={(e) => handleSettingChange('playerSettings', 'allowNewPlayers', e.target.checked)}
+                        checked={
+                          settings.playerSettings?.allowNewPlayers ?? true
+                        }
+                        onChange={(e) =>
+                          handleSettingChange(
+                            "playerSettings",
+                            "allowNewPlayers",
+                            e.target.checked,
+                          )
+                        }
                         className="rounded"
                       />
-                      <label htmlFor="allowNewPlayers" className="text-sm">Allow New Players</label>
+                      <label htmlFor="allowNewPlayers" className="text-sm">
+                        Allow New Players
+                      </label>
                     </div>
                   </div>
 
@@ -710,40 +855,73 @@ export function CampaignDetail({
                       <input
                         type="checkbox"
                         id="canCreateCharacters"
-                        checked={settings.playerSettings?.playerPermissions?.canCreateCharacters ?? true}
-                        onChange={(e) => handleSettingChange('playerSettings', 'playerPermissions', {
-                          ...settings.playerSettings?.playerPermissions,
-                          canCreateCharacters: e.target.checked
-                        })}
+                        checked={
+                          settings.playerSettings?.playerPermissions
+                            ?.canCreateCharacters ?? true
+                        }
+                        onChange={(e) =>
+                          handleSettingChange(
+                            "playerSettings",
+                            "playerPermissions",
+                            {
+                              ...settings.playerSettings?.playerPermissions,
+                              canCreateCharacters: e.target.checked,
+                            },
+                          )
+                        }
                         className="rounded"
                       />
-                      <label htmlFor="canCreateCharacters" className="text-sm">Players can create characters</label>
+                      <label htmlFor="canCreateCharacters" className="text-sm">
+                        Players can create characters
+                      </label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <input
                         type="checkbox"
                         id="canModifyWorld"
-                        checked={settings.playerSettings?.playerPermissions?.canModifyWorld ?? false}
-                        onChange={(e) => handleSettingChange('playerSettings', 'playerPermissions', {
-                          ...settings.playerSettings?.playerPermissions,
-                          canModifyWorld: e.target.checked
-                        })}
+                        checked={
+                          settings.playerSettings?.playerPermissions
+                            ?.canModifyWorld ?? false
+                        }
+                        onChange={(e) =>
+                          handleSettingChange(
+                            "playerSettings",
+                            "playerPermissions",
+                            {
+                              ...settings.playerSettings?.playerPermissions,
+                              canModifyWorld: e.target.checked,
+                            },
+                          )
+                        }
                         className="rounded"
                       />
-                      <label htmlFor="canModifyWorld" className="text-sm">Players can modify world</label>
+                      <label htmlFor="canModifyWorld" className="text-sm">
+                        Players can modify world
+                      </label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <input
                         type="checkbox"
                         id="canManageSessions"
-                        checked={settings.playerSettings?.playerPermissions?.canManageSessions ?? false}
-                        onChange={(e) => handleSettingChange('playerSettings', 'playerPermissions', {
-                          ...settings.playerSettings?.playerPermissions,
-                          canManageSessions: e.target.checked
-                        })}
+                        checked={
+                          settings.playerSettings?.playerPermissions
+                            ?.canManageSessions ?? false
+                        }
+                        onChange={(e) =>
+                          handleSettingChange(
+                            "playerSettings",
+                            "playerPermissions",
+                            {
+                              ...settings.playerSettings?.playerPermissions,
+                              canManageSessions: e.target.checked,
+                            },
+                          )
+                        }
                         className="rounded"
                       />
-                      <label htmlFor="canManageSessions" className="text-sm">Players can manage sessions</label>
+                      <label htmlFor="canManageSessions" className="text-sm">
+                        Players can manage sessions
+                      </label>
                     </div>
                   </div>
                 </div>
@@ -768,7 +946,7 @@ export function CampaignDetail({
                     onClick={handleSaveSettings}
                     disabled={isSavingSettings}
                   >
-                    {isSavingSettings ? 'Saving...' : 'Save Settings'}
+                    {isSavingSettings ? "Saving..." : "Save Settings"}
                   </Button>
                 </div>
               </div>

@@ -1,0 +1,43 @@
+name: Quick Quality Check
+
+on:
+  push:
+    branches-ignore: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  quick-check:
+    name: Quick Quality Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install all dependencies
+        run: npm ci
+
+      - name: Backend TypeScript check
+        working-directory: ./backend
+        run: npx tsc --noEmit
+
+      - name: Frontend TypeScript check
+        working-directory: ./frontend
+        run: npx tsc --noEmit
+
+      - name: Backend linting
+        working-directory: ./backend
+        run: npm run lint
+
+      - name: Frontend linting
+        working-directory: ./frontend
+        run: npm run lint

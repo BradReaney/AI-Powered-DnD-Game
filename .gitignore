@@ -1,27 +1,87 @@
+# ===========================================
+# AI-Powered DnD Game - Comprehensive .gitignore
+# ===========================================
+
+# ===========================================
 # Dependencies
+# ===========================================
 node_modules/
 */node_modules/
+**/node_modules/
 
-# Build outputs
+# ===========================================
+# Build Outputs & Artifacts
+# ===========================================
+# Next.js
+.next/
+**/.next/
+frontend/.next/
+frontend/.next/**/*
+
+# Build directories
 dist/
 */dist/
+**/dist/
 build/
 */build/
+**/build/
 
-# Test results and reports
+# ===========================================
+# Cache & Temporary Files
+# ===========================================
+# Next.js cache
+.next/cache/
+**/.next/cache/
+frontend/.next/cache/
+
+# Webpack cache
+.cache/
+.parcel-cache/
+**/.cache/
+**/.parcel-cache/
+
+# TypeScript build info
+*.tsbuildinfo
+**/*.tsbuildinfo
+.tsbuildinfo
+**/.tsbuildinfo
+
+# ===========================================
+# Test Results & Coverage
+# ===========================================
+# Test results
 test-results/
 */test-results/
+**/test-results/
+*.test-results.json
+**/*.test-results.json
+
+# Playwright
 playwright-report/
 */playwright-report/
+**/playwright-report/
+.last-run.json
+**/.last-run.json
+
+# Coverage reports
 coverage/
 */coverage/
+**/coverage/
 .nyc_output/
 */nyc_output/
+**/.nyc_output/
+*.lcov
+**/*.lcov
 
-# Logs
+# ===========================================
+# Logs & Debug Files
+# ===========================================
+# Log files
 logs/
 */logs/
+**/logs/
 *.log
+**/*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -33,25 +93,34 @@ pids
 *.seed
 *.pid.lock
 
-# Coverage directory used by tools like istanbul
-*.lcov
+# Debug files
+debug-point-buy.png
+**/debug-point-buy.png
 
-# Optional npm cache directory
+# ===========================================
+# Package Manager Files
+# ===========================================
+# NPM
 .npm
+npm-debug.log*
+package-lock.json
+*/package-lock.json
 
-# Optional eslint cache
-.eslintcache
-
-# Optional REPL history
-.node_repl_history
-
-# Output of 'npm pack'
-*.tgz
-
-# Yarn Integrity file
+# Yarn
 .yarn-integrity
+yarn.lock
+*/yarn.lock
+**/yarn.lock
 
-# Environment variables file
+# PNPM
+pnpm-lock.yaml
+*/pnpm-lock.yaml
+**/pnpm-lock.yaml
+
+# ===========================================
+# Environment & Configuration
+# ===========================================
+# Environment variables
 .env
 .env.local
 .env.development.local
@@ -59,73 +128,122 @@ pids
 .env.production.local
 config/env.production
 *.env
+**/*.env
 
-# Security and certificates
+# ===========================================
+# Security & Certificates
+# ===========================================
 *.key
 *.pem
 *.crt
 *.p12
 *.pfx
 *.pwd
+**/*.key
+**/*.pem
+**/*.crt
+**/*.p12
+**/*.pfx
+**/*.pwd
 
-# Cache directories
-.cache
-.parcel-cache
+# ===========================================
+# Development Tools
+# ===========================================
+# ESLint
+.eslintcache
+**/.eslintcache
 
-# Temporary folders
-tmp/
-temp/
+# REPL history
+.node_repl_history
+**/.node_repl_history
 
-# Editor directories and files
+# NPM pack output
+*.tgz
+**/*.tgz
+
+# ===========================================
+# Editor & IDE Files
+# ===========================================
+# VS Code
 .vscode/
+**/.vscode/
+
+# IntelliJ IDEA
 .idea/
+**/.idea/
+
+# Vim
 *.swp
 *.swo
 *~
 
-# OS generated files
+# ===========================================
+# Operating System Files
+# ===========================================
+# macOS
 .DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
+
+# Windows
 ehthumbs.db
 Thumbs.db
 
-# Playwright MCP files
+# ===========================================
+# Project-Specific
+# ===========================================
+# Playwright MCP
 .playwright-mcp/
+**/.playwright-mcp/
 
-# Uploads directory
+# Uploads
 uploads/
-
-# TypeScript
-*.tsbuildinfo
-*.tsbuildinfo.*
-
-# Package manager files
-# package-lock.json files are needed for production builds
-# package-lock.json
-# */package-lock.json
-yarn.lock
-*/yarn.lock
-pnpm-lock.yaml
-*/pnpm-lock.yaml
+**/uploads/
 
 # Git hooks
 .husky/
+**/.husky/
 
 # Lint staged configs
 .lintstagedrc.js
 .lintstagedrc.cjs
+**/.lintstagedrc.js
+**/.lintstagedrc.cjs
 
-# Test artifacts
-.last-run.json
-*.test-results.json
+# ===========================================
+# Docker & Container
+# ===========================================
+# Docker volumes
+docker-volumes/
+**/docker-volumes/
 
-# Debug and performance files (specific to this project)
-debug-point-buy.png
-frontend/debug-point-buy.png
+# ===========================================
+# Temporary & Scratch Files
+# ===========================================
+tmp/
+temp/
+**/tmp/
+**/temp/
+*.tmp
+*.temp
+**/*.tmp
+**/*.temp
 
+# ===========================================
+# Backup Files
+# ===========================================
+*.bak
+*.backup
+*.old
+**/*.bak
+**/*.backup
+**/*.old
+
+# ===========================================
+# Performance & Monitoring
+# ===========================================
 # Performance test results
 frontend/test-results/
 frontend/playwright-report/

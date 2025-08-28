@@ -11,6 +11,7 @@ import config from './config';
 import logger from './services/LoggerService';
 import DatabaseService from './services/DatabaseService';
 import { cacheService } from './services/CacheService';
+import SessionCleanupScheduler from './services/SessionCleanupScheduler';
 
 // Import routes
 import campaignRoutes from './routes/campaigns';
@@ -111,8 +112,8 @@ class App {
           gameplay: '/api/gameplay',
           combat: '/api/combat',
           quests: '/api/quests',
-          locations: '/api/locations'
-        }
+          locations: '/api/locations',
+        },
       });
     });
 
@@ -132,15 +133,15 @@ class App {
           environment: config.server.nodeEnv,
           services: {
             database: dbHealthy ? 'healthy' : 'unhealthy',
-            redis: redisHealthy ? 'healthy' : 'unhealthy'
-          }
+            redis: redisHealthy ? 'healthy' : 'unhealthy',
+          },
         });
       } catch (error) {
         logger.error('Health check failed:', error);
         res.status(500).json({
           status: 'error',
           timestamp: new Date().toISOString(),
-          error: 'Health check failed'
+          error: 'Health check failed',
         });
       }
     });
@@ -156,15 +157,15 @@ class App {
           timestamp: new Date().toISOString(),
           redis: {
             connected: healthy,
-            stats: stats
-          }
+            stats: stats,
+          },
         });
       } catch (error) {
         logger.error('Redis health check failed:', error);
         res.status(500).json({
           status: 'error',
           timestamp: new Date().toISOString(),
-          error: 'Redis health check failed'
+          error: 'Redis health check failed',
         });
       }
     });
@@ -176,13 +177,13 @@ class App {
         res.status(200).json({
           status: 'success',
           data: stats,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       } catch (error) {
         logger.error('Failed to get cache stats:', error);
         res.status(500).json({
           status: 'error',
-          error: 'Failed to get cache stats'
+          error: 'Failed to get cache stats',
         });
       }
     });
@@ -193,13 +194,13 @@ class App {
         res.status(200).json({
           status: 'success',
           message: 'All cache cleared successfully',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       } catch (error) {
         logger.error('Failed to clear cache:', error);
         res.status(500).json({
           status: 'error',
-          error: 'Failed to clear cache'
+          error: 'Failed to clear cache',
         });
       }
     });
@@ -210,13 +211,13 @@ class App {
         res.status(200).json({
           status: 'success',
           message: 'Cache warming completed successfully',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       } catch (error) {
         logger.error('Failed to warm cache:', error);
         res.status(500).json({
           status: 'error',
-          error: 'Failed to warm cache'
+          error: 'Failed to warm cache',
         });
       }
     });
@@ -235,16 +236,16 @@ class App {
             performance: {
               hitRate: stats.hitRate,
               efficiency: stats.hitRate > 80 ? 'excellent' : stats.hitRate > 60 ? 'good' : 'poor',
-              recommendations: this.getCacheRecommendations(stats)
-            }
+              recommendations: this.getCacheRecommendations(stats),
+            },
           },
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       } catch (error) {
         logger.error('Failed to get cache performance:', error);
         res.status(500).json({
           status: 'error',
-          error: 'Failed to get cache performance'
+          error: 'Failed to get cache performance',
         });
       }
     });
@@ -286,7 +287,8 @@ class App {
       recommendations.push('Consider adding more data to cache');
     }
 
-    if (stats.memory > 100 * 1024 * 1024) { // 100MB
+    if (stats.memory > 100 * 1024 * 1024) {
+      // 100MB
       recommendations.push('Monitor memory usage - consider compression for large objects');
     }
 
@@ -372,6 +374,18 @@ class App {
         logger.warn('Redis cache service not available, continuing without caching:', error);
       }
 
+      // Initialize and start session cleanup scheduler
+      try {
+        const sessionCleanupScheduler = SessionCleanupScheduler.getInstance();
+        sessionCleanupScheduler.start();
+        logger.info('Session cleanup scheduler started successfully');
+      } catch (error) {
+        logger.warn(
+          'Session cleanup scheduler not available, continuing without automatic cleanup:',
+          error
+        );
+      }
+
       // Start server
       this.server.listen(config.server.port, () => {
         logger.info(`Server started on port ${config.server.port}`);
@@ -395,6 +409,15 @@ class App {
         logger.info('Cache service shutdown complete');
       } catch (error) {
         logger.error('Cache service shutdown failed:', error);
+      }
+
+      // Stop session cleanup scheduler
+      try {
+        const sessionCleanupScheduler = SessionCleanupScheduler.getInstance();
+        sessionCleanupScheduler.destroy();
+        logger.info('Session cleanup scheduler shutdown complete');
+      } catch (error) {
+        logger.error('Session cleanup scheduler shutdown failed:', error);
       }
 
       // Close database connection

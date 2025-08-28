@@ -150,11 +150,19 @@ export class MockResponseService {
    * Generate story response
    */
   private generateStoryResponse(): string {
-    return `The ancient forest stretches before you, its towering trees creating a natural canopy that filters the sunlight into dappled patterns on the forest floor. The air is thick with the scent of earth and the distant sound of rustling leaves echoes through the undergrowth.
+    const storyTemplates = [
+      "As you venture deeper into the ancient forest, you encounter a wise dwarf sage named Thrain Ironbeard. His weathered face and flowing beard speak of centuries of knowledge, and his eyes sparkle with ancient wisdom. \"Ah, a traveler seeking adventure,\" he says with a warm smile. \"I have been studying the ancient texts of this land for many years. Perhaps I can share some of what I've learned with you.\"\n\nThe forest around you seems to respond to his presence, the trees whispering ancient secrets and the air crackling with magical energy. Thrain gestures toward a hidden path that leads deeper into the woods. \"There are mysteries here that even I have not fully uncovered,\" he continues, his voice carrying the weight of countless discoveries.",
 
-As you move forward, the world around you responds with the weight of your quest. Every choice you make shapes the story, and the consequences of your actions ripple through the narrative like stones cast into a still pond.
+      "The path through the enchanted forest leads you to a clearing where you meet Sylvan Whisperwind, an elven ranger whose connection to nature is almost palpable. Her green eyes seem to see through the very essence of the forest, and her movements are as graceful as the wind through the trees. \"Welcome, wanderer,\" she greets you with a gentle nod. \"I am the guardian of these woods, and I sense that you carry the spirit of adventure within you.\"\n\nAround you, the forest comes alive with her presence - birds sing more sweetly, flowers bloom brighter, and the very air seems to shimmer with natural magic. Sylvan points toward a distant mountain peak. \"There are ancient secrets hidden in those peaks, secrets that could change the fate of this land.\"",
 
-The path ahead splits into three directions, each leading to different possibilities and challenges. Your decision will determine not only your immediate fate but also the course of the entire adventure.`;
+      "Deep in the shadowy depths of the forest, you encounter Grimtooth the Goblin, a crafty scout whose sharp eyes miss nothing. His small frame belies his cunning nature, and his quick movements suggest years of survival in dangerous territory. \"Well, well, what have we here?\" he says with a sly grin, his voice carrying the rough edge of one who has seen much. \"A brave adventurer, or perhaps just a foolish one?\"\n\nThe goblin's presence seems to make the shadows deeper and the forest more mysterious. He gestures toward a hidden cave entrance. \"There are treasures in those depths, treasures that could make you rich beyond your wildest dreams. But beware, for danger lurks in every shadow.\"",
+
+      "The ancient castle looms before you, its dark stone walls telling tales of centuries past. As you approach the massive gates, you're greeted by a wise sage named Elara the Learned, whose knowledge of the castle's history is unmatched. Her flowing robes and kind eyes speak of years spent studying ancient texts and uncovering forgotten secrets. \"Welcome, seeker of knowledge,\" she says warmly. \"This castle holds many mysteries, and I would be honored to share what I've discovered with you.\"\n\nThe castle's ancient stones seem to whisper stories of knights, kings, and magical battles long forgotten. Elara leads you through the grand entrance, pointing out architectural details that tell the story of a bygone era. \"There are chambers here that have not been opened in centuries,\" she explains, \"and artifacts that could unlock the secrets of this land's past.\""
+    ];
+
+    // Randomly select a story template
+    const randomIndex = Math.floor(Math.random() * storyTemplates.length);
+    return storyTemplates[randomIndex]!; // Use non-null assertion since we know the array has elements
   }
 
   /**
@@ -180,14 +188,164 @@ The path ahead splits into three directions, each leading to different possibili
    * Generate character extraction response
    */
   private generateCharacterExtractionResponse(): string {
-    return '[]';
+    const sampleCharacters = [
+      {
+        "name": "Thrain Ironbeard",
+        "race": "Dwarf",
+        "class": "Wizard",
+        "level": 1,
+        "characterType": "ai",
+        "attributes": {
+          "strength": 8, "dexterity": 12, "constitution": 14,
+          "intelligence": 16, "wisdom": 10, "charisma": 8
+        },
+        "hitPoints": { "maximum": 6, "current": 6, "temporary": 0 },
+        "armorClass": 12, "speed": 25,
+        "personality": {
+          "traits": ["Studious", "Traditional"],
+          "ideals": ["Knowledge"],
+          "bonds": ["Ancient Dwarven Lore"],
+          "flaws": ["Stubborn"],
+          "background": "Dwarven sage seeking lost knowledge",
+          "alignment": "lawful neutral"
+        },
+        "aiPersonality": {
+          "goals": ["Discover ancient secrets"],
+          "fears": ["Losing precious knowledge"],
+          "background": "Mentioned in story as a wise dwarf sage"
+        }
+      },
+      {
+        "name": "Sylvan Whisperwind",
+        "race": "Elf",
+        "class": "Ranger",
+        "level": 1,
+        "characterType": "ai",
+        "attributes": {
+          "strength": 10, "dexterity": 16, "constitution": 12,
+          "intelligence": 12, "wisdom": 14, "charisma": 10
+        },
+        "hitPoints": { "maximum": 10, "current": 10, "temporary": 0 },
+        "armorClass": 14, "speed": 35,
+        "personality": {
+          "traits": ["Nature-bound", "Vigilant"],
+          "ideals": ["Protection"],
+          "bonds": ["The natural world"],
+          "flaws": ["Distrustful of civilization"],
+          "background": "Elven guardian of the wilds",
+          "alignment": "neutral good"
+        },
+        "aiPersonality": {
+          "goals": ["Protect natural areas"],
+          "fears": ["Environmental destruction"],
+          "background": "Mentioned in story as a forest guardian"
+        }
+      },
+      {
+        "name": "Grimtooth the Goblin",
+        "race": "Goblin",
+        "class": "Rogue",
+        "level": 1,
+        "characterType": "ai",
+        "attributes": {
+          "strength": 8, "dexterity": 16, "constitution": 10,
+          "intelligence": 10, "wisdom": 8, "charisma": 12
+        },
+        "hitPoints": { "maximum": 6, "current": 6, "temporary": 0 },
+        "armorClass": 14, "speed": 30,
+        "personality": {
+          "traits": ["Sneaky", "Opportunistic"],
+          "ideals": ["Freedom"],
+          "bonds": ["Goblin tribe"],
+          "flaws": ["Greedy"],
+          "background": "Crafty goblin scout",
+          "alignment": "chaotic neutral"
+        },
+        "aiPersonality": {
+          "goals": ["Survive and prosper"],
+          "fears": ["Being caught"],
+          "background": "Mentioned in story as a goblin scout"
+        }
+      }
+    ];
+
+    // Randomly return 0-3 characters for variety
+    const characterCount = Math.floor(Math.random() * 4);
+    const selectedCharacters = sampleCharacters.slice(0, characterCount);
+    return JSON.stringify(selectedCharacters);
   }
 
   /**
    * Generate location extraction response
    */
   private generateLocationExtractionResponse(): string {
-    return '[]';
+    const sampleLocations = [
+      {
+        "name": "Castle Blackstone",
+        "type": "castle",
+        "description": "Ancient fortress perched on a rocky hill, its dark stone walls have withstood centuries of conflict",
+        "importance": "major",
+        "tags": ["castle", "fortress", "ancient", "strategic"],
+        "climate": "temperate",
+        "terrain": "hilltop",
+        "lighting": "dim",
+        "weather": "clear",
+        "resources": ["stone", "iron", "defensive position"],
+        "pointsOfInterest": [
+          {
+            "name": "Great Hall",
+            "description": "Massive chamber with high vaulted ceilings",
+            "type": "chamber",
+            "isExplored": false
+          }
+        ]
+      },
+      {
+        "name": "The Misty Forest",
+        "type": "wilderness",
+        "description": "Dense woodland shrouded in perpetual mist, home to ancient trees and mysterious creatures",
+        "importance": "moderate",
+        "tags": ["forest", "wilderness", "mysterious", "misty"],
+        "climate": "humid",
+        "terrain": "woodland",
+        "lighting": "dim",
+        "weather": "misty",
+        "resources": ["wood", "herbs", "game"],
+        "pointsOfInterest": [
+          {
+            "name": "Ancient Oak",
+            "description": "Massive tree that seems to watch over the forest",
+            "type": "landmark",
+            "isExplored": false
+          }
+        ]
+      },
+      {
+        "name": "The Red Dragon Inn",
+        "type": "settlement",
+        "description": "Cozy tavern with warm hearth and friendly atmosphere, a popular gathering place for adventurers",
+        "importance": "minor",
+        "tags": ["tavern", "inn", "settlement", "social"],
+        "climate": "temperate",
+        "terrain": "urban",
+        "lighting": "warm",
+        "weather": "indoor",
+        "resources": ["food", "drink", "information", "lodging"],
+        "pointsOfInterest": [
+          {
+            "name": "Common Room",
+            "description": "Main gathering area with tables and bar",
+            "type": "chamber",
+            "isExplored": false
+          }
+        ]
+      }
+    ];
+
+    // Randomly return 0-3 locations for variety
+    const locationCount = Math.floor(Math.random() * 4);
+    const selectedLocations = sampleLocations.slice(0, locationCount);
+    return JSON.stringify(selectedLocations);
   }
 
   /**

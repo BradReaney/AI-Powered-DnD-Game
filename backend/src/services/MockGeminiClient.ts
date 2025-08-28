@@ -4,178 +4,181 @@ import { config } from '../config';
 import PerformanceTracker from './PerformanceTracker';
 
 export class MockGeminiClient {
-    private performanceTracker: PerformanceTracker;
+  private performanceTracker: PerformanceTracker;
 
-    constructor() {
-        this.performanceTracker = PerformanceTracker.getInstance();
+  constructor() {
+    this.performanceTracker = PerformanceTracker.getInstance();
+  }
+
+  /**
+   * Send a prompt with automatic three-model selection and fallback
+   */
+  async sendPrompt(request: GeminiRequest): Promise<GeminiResponse> {
+    const taskId = this.generateTaskId();
+    let selectedModel: 'flash-lite' | 'flash' | 'pro';
+    const fallbackUsed = false;
+    const startTime = Date.now();
+
+    try {
+      // Determine which model to use
+      if (request.forceModel) {
+        selectedModel = request.forceModel;
+        logger.info('Using forced model selection', {
+          taskId,
+          model: selectedModel,
+        });
+      } else if (config.gemini.modelSelectionEnabled) {
+        // Use the same model selection logic as the real client
+        selectedModel = this.selectModelForTask(request.taskType || 'unknown');
+        logger.info('Model selection completed', {
+          taskId,
+          selectedModel,
+          reason: 'Mock service model selection',
+        });
+      } else {
+        // Fallback to Flash-Lite if model selection is disabled (most cost-effective)
+        selectedModel = 'flash-lite';
+        logger.info('Model selection disabled, using Flash-Lite model', { taskId });
+      }
+
+      // Start performance tracking
+      this.performanceTracker.startTask(taskId, request.taskType || 'unknown', selectedModel);
+
+      // Make request to mock service
+      const response = await this.callMockService(request, selectedModel);
+
+      // Track performance
+      const endTime = Date.now();
+      const responseTime = endTime - startTime;
+      this.performanceTracker.completeTask(taskId, responseTime, true);
+
+      logger.info('Mock LLM response generated successfully', {
+        taskId,
+        model: selectedModel,
+        responseTime,
+        fallbackUsed,
+        tokenCount: response.content.length,
+      });
+
+      return {
+        ...response,
+        modelUsed: selectedModel,
+        responseTime,
+        fallbackUsed,
+      };
+    } catch (error) {
+      // Track failed performance
+      const endTime = Date.now();
+      const responseTime = endTime - startTime;
+      this.performanceTracker.completeTask(taskId, responseTime, false);
+
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error('Error communicating with Mock LLM service:', error);
+
+      return {
+        success: false,
+        content:
+          'I apologize, but I am experiencing technical difficulties. Please try again in a moment.',
+        error: errorMessage,
+        modelUsed: selectedModel,
+        responseTime,
+        fallbackUsed,
+      };
     }
+  }
 
-    /**
-     * Send a prompt with automatic three-model selection and fallback
-     */
-    async sendPrompt(request: GeminiRequest): Promise<GeminiResponse> {
-        const taskId = this.generateTaskId();
-        let selectedModel: 'flash-lite' | 'flash' | 'pro';
-        let fallbackUsed = false;
-        const startTime = Date.now();
+  /**
+   * Call the mock LLM service
+   */
+  private async callMockService(
+    request: GeminiRequest,
+    model: 'flash-lite' | 'flash' | 'pro'
+  ): Promise<GeminiResponse> {
+    const mockServiceUrl = config.gemini.serviceUrl;
+    const startTime = Date.now();
 
-        try {
-            // Determine which model to use
-            if (request.forceModel) {
-                selectedModel = request.forceModel;
-                logger.info('Using forced model selection', {
-                    taskId,
-                    model: selectedModel,
-                });
-            } else if (config.gemini.modelSelectionEnabled) {
-                // Use the same model selection logic as the real client
-                selectedModel = this.selectModelForTask(request.taskType || 'unknown');
-                logger.info('Model selection completed', {
-                    taskId,
-                    selectedModel,
-                    reason: 'Mock service model selection',
-                });
-            } else {
-                // Fallback to Flash-Lite if model selection is disabled (most cost-effective)
-                selectedModel = 'flash-lite';
-                logger.info('Model selection disabled, using Flash-Lite model', { taskId });
-            }
+    try {
+      const response = await fetch(`${mockServiceUrl}/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...request,
+          forceModel: model,
+        }),
+      });
 
-            // Start performance tracking
-            this.performanceTracker.startTask(taskId, request.taskType || 'unknown', selectedModel);
+      if (!response.ok) {
+        throw new Error(`Mock service error: ${response.status} ${response.statusText}`);
+      }
 
-            // Make request to mock service
-            const response = await this.callMockService(request, selectedModel);
+      const result = (await response.json()) as any;
 
-            // Track performance
-            const endTime = Date.now();
-            const responseTime = endTime - startTime;
-            this.performanceTracker.completeTask(taskId, responseTime, true);
-
-            logger.info('Mock LLM response generated successfully', {
-                taskId,
-                model: selectedModel,
-                responseTime,
-                fallbackUsed,
-                tokenCount: response.content.length,
-            });
-
-            return {
-                ...response,
-                modelUsed: selectedModel,
-                responseTime,
-                fallbackUsed,
-            };
-        } catch (error) {
-            // Track failed performance
-            const endTime = Date.now();
-            const responseTime = endTime - startTime;
-            this.performanceTracker.completeTask(taskId, responseTime, false);
-
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            logger.error('Error communicating with Mock LLM service:', error);
-
-            return {
-                success: false,
-                content:
-                    'I apologize, but I am experiencing technical difficulties. Please try again in a moment.',
-                error: errorMessage,
-                modelUsed: selectedModel,
-                responseTime,
-                fallbackUsed,
-            };
-        }
-    }
-
-    /**
-     * Call the mock LLM service
-     */
-    private async callMockService(request: GeminiRequest, model: 'flash-lite' | 'flash' | 'pro'): Promise<GeminiResponse> {
-        const mockServiceUrl = config.gemini.serviceUrl;
-        const startTime = Date.now();
-
-        try {
-            const response = await fetch(`${mockServiceUrl}/generate`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    ...request,
-                    forceModel: model,
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error(`Mock service error: ${response.status} ${response.statusText}`);
-            }
-
-            const result = await response.json() as any;
-
-            // Ensure the response matches GeminiResponse interface
-            if (result.success === false) {
-                return {
-                    success: false,
-                    content: result.error || 'Unknown error',
-                    error: result.error,
-                    modelUsed: model,
-                    responseTime: Date.now() - startTime,
-                    fallbackUsed: false
-                };
-            }
-
-            return {
-                success: true,
-                content: result.content || result.message || 'Generated content',
-                modelUsed: model,
-                responseTime: Date.now() - startTime,
-                fallbackUsed: false,
-                usage: {
-                    promptTokens: 0,
-                    responseTokens: 0,
-                    totalTokens: 0
-                }
-            };
-        } catch (error) {
-            logger.error('Failed to call mock service:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Select model based on task type
-     */
-    private selectModelForTask(taskType: string): 'flash-lite' | 'flash' | 'pro' {
-        const modelMapping: Record<string, 'flash-lite' | 'flash' | 'pro'> = {
-            'character_generation': 'flash',
-            'campaign_scenario_generation': 'flash',
-            'story_response': 'pro',
-            'skill_check_result': 'flash-lite',
-            'context_compression': 'flash-lite',
-            'character_extraction': 'flash-lite',
-            'location_extraction': 'flash-lite',
-            'connection_test': 'flash-lite'
+      // Ensure the response matches GeminiResponse interface
+      if (result.success === false) {
+        return {
+          success: false,
+          content: result.error || 'Unknown error',
+          error: result.error,
+          modelUsed: model,
+          responseTime: Date.now() - startTime,
+          fallbackUsed: false,
         };
+      }
 
-        return modelMapping[taskType] || 'flash-lite';
+      return {
+        success: true,
+        content: result.content || result.message || 'Generated content',
+        modelUsed: model,
+        responseTime: Date.now() - startTime,
+        fallbackUsed: false,
+        usage: {
+          promptTokens: 0,
+          responseTokens: 0,
+          totalTokens: 0,
+        },
+      };
+    } catch (error) {
+      logger.error('Failed to call mock service:', error);
+      throw error;
     }
+  }
 
-    /**
-     * Generate a unique task ID
-     */
-    private generateTaskId(): string {
-        return `mock_task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    }
+  /**
+   * Select model based on task type
+   */
+  private selectModelForTask(taskType: string): 'flash-lite' | 'flash' | 'pro' {
+    const modelMapping: Record<string, 'flash-lite' | 'flash' | 'pro'> = {
+      character_generation: 'flash',
+      campaign_scenario_generation: 'flash',
+      story_response: 'pro',
+      skill_check_result: 'flash-lite',
+      context_compression: 'flash-lite',
+      character_extraction: 'flash-lite',
+      location_extraction: 'flash-lite',
+      connection_test: 'flash-lite',
+    };
 
-    /**
-     * Generate a character description based on role and campaign theme
-     */
-    async generateCharacter(
-        role: string,
-        campaignTheme: string,
-        partyComposition: string[]
-    ): Promise<GeminiResponse> {
-        const prompt = `You are a Dungeon Master creating a D&D 5e character for a ${campaignTheme} campaign.
+    return modelMapping[taskType] || 'flash-lite';
+  }
+
+  /**
+   * Generate a unique task ID
+   */
+  private generateTaskId(): string {
+    return `mock_task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
+   * Generate a character description based on role and campaign theme
+   */
+  async generateCharacter(
+    role: string,
+    campaignTheme: string,
+    partyComposition: string[]
+  ): Promise<GeminiResponse> {
+    const prompt = `You are a Dungeon Master creating a D&D 5e character for a ${campaignTheme} campaign.
 
 Role: ${role}
 Existing party members: ${partyComposition.join(', ')}
@@ -189,22 +192,22 @@ Generate a complete character with:
 
 Make the character fit the campaign theme and complement the existing party. Keep the response concise but detailed enough for gameplay.`;
 
-        return this.sendPrompt({
-            prompt,
-            temperature: 0.8,
-            taskType: 'character_generation',
-        });
-    }
+    return this.sendPrompt({
+      prompt,
+      temperature: 0.8,
+      taskType: 'character_generation',
+    });
+  }
 
-    /**
-     * Generate a campaign scenario based on theme
-     */
-    async generateScenario(
-        campaignTheme: string,
-        partyLevel: number,
-        partySize: number
-    ): Promise<GeminiResponse> {
-        const prompt = `You are a Dungeon Master creating a D&D 5e scenario for a ${campaignTheme} campaign.
+  /**
+   * Generate a campaign scenario based on theme
+   */
+  async generateScenario(
+    campaignTheme: string,
+    partyLevel: number,
+    partySize: number
+  ): Promise<GeminiResponse> {
+    const prompt = `You are a Dungeon Master creating a D&D 5e scenario for a ${campaignTheme} campaign.
 
 Party Details:
 - Level: ${partyLevel}
@@ -219,23 +222,23 @@ Generate a compelling scenario including:
 
 Make it appropriate for the party level and theme. Keep the response focused and actionable for immediate gameplay.`;
 
-        return this.sendPrompt({
-            prompt,
-            temperature: 0.7,
-            taskType: 'campaign_scenario_generation',
-        });
-    }
+    return this.sendPrompt({
+      prompt,
+      temperature: 0.7,
+      taskType: 'campaign_scenario_generation',
+    });
+  }
 
-    /**
-     * Generate a story response based on player action
-     */
-    async generateStoryResponse(
-        playerAction: string,
-        campaignContext: string,
-        characterContext: string,
-        worldState: string
-    ): Promise<GeminiResponse> {
-        const prompt = `You are the Dungeon Master responding to a player's action in a D&D campaign.
+  /**
+   * Generate a story response based on player action
+   */
+  async generateStoryResponse(
+    playerAction: string,
+    campaignContext: string,
+    characterContext: string,
+    worldState: string
+  ): Promise<GeminiResponse> {
+    const prompt = `You are the Dungeon Master responding to a player's action in a D&D campaign.
 
 Player Action: "${playerAction}"
 
@@ -252,27 +255,27 @@ Respond with a vivid, engaging story description that:
 
 Focus on storytelling and immersion. Don't worry about extracting character information - that will be handled separately.`;
 
-        return this.sendPrompt({
-            prompt,
-            temperature: 0.8,
-            taskType: 'story_response',
-        });
-    }
+    return this.sendPrompt({
+      prompt,
+      temperature: 0.8,
+      taskType: 'story_response',
+    });
+  }
 
-    /**
-     * Generate a skill check result description
-     */
-    async generateSkillCheckResult(
-        skillName: string,
-        rollResult: number,
-        targetDC: number,
-        actionDescription: string,
-        context: string
-    ): Promise<GeminiResponse> {
-        const success = rollResult >= targetDC;
-        const critical = rollResult === 20 || rollResult === 1;
+  /**
+   * Generate a skill check result description
+   */
+  async generateSkillCheckResult(
+    skillName: string,
+    rollResult: number,
+    targetDC: number,
+    actionDescription: string,
+    context: string
+  ): Promise<GeminiResponse> {
+    const success = rollResult >= targetDC;
+    const critical = rollResult === 20 || rollResult === 1;
 
-        const prompt = `You are the Dungeon Master describing the result of a skill check.
+    const prompt = `You are the Dungeon Master describing the result of a skill check.
 
 Skill: ${skillName}
 Roll Result: ${rollResult}
@@ -291,18 +294,18 @@ Generate a vivid, engaging description of what happens as a result of this ${ski
 
 Make it cinematic and engaging while maintaining game balance.`;
 
-        return this.sendPrompt({
-            prompt,
-            temperature: 0.7,
-            taskType: 'skill_check_result',
-        });
-    }
+    return this.sendPrompt({
+      prompt,
+      temperature: 0.7,
+      taskType: 'skill_check_result',
+    });
+  }
 
-    /**
-     * Summarize story events for context compression
-     */
-    async summarizeStoryEvents(events: string[], maxLength: number = 500): Promise<GeminiResponse> {
-        const prompt = `You are summarizing key story events for a D&D campaign to maintain context.
+  /**
+   * Summarize story events for context compression
+   */
+  async summarizeStoryEvents(events: string[], maxLength: number = 500): Promise<GeminiResponse> {
+    const prompt = `You are summarizing key story events for a D&D campaign to maintain context.
 
 Events to summarize:
 ${events.map((event, i) => `${i + 1}. ${event}`).join('\n')}
@@ -316,37 +319,37 @@ Create a concise summary (max ${maxLength} characters) that:
 
 Focus on what's most relevant for continuing the story.`;
 
-        return this.sendPrompt({
-            prompt,
-            temperature: 0.5,
-            taskType: 'context_compression',
-        });
-    }
+    return this.sendPrompt({
+      prompt,
+      temperature: 0.5,
+      taskType: 'context_compression',
+    });
+  }
 
-    /**
-     * Check if the API key is valid
-     */
-    async testConnection(): Promise<boolean> {
-        try {
-            const response = await this.sendPrompt({
-                prompt: 'Respond with "OK" if you can read this message.',
-                taskType: 'connection_test',
-            });
-            return response.success && response.content.includes('OK');
-        } catch (error) {
-            logger.error('Mock LLM service connection test failed:', error);
-            return false;
-        }
+  /**
+   * Check if the API key is valid
+   */
+  async testConnection(): Promise<boolean> {
+    try {
+      const response = await this.sendPrompt({
+        prompt: 'Respond with "OK" if you can read this message.',
+        taskType: 'connection_test',
+      });
+      return response.success && response.content.includes('OK');
+    } catch (error) {
+      logger.error('Mock LLM service connection test failed:', error);
+      return false;
     }
+  }
 
-    /**
-     * Extract character information from a story response using Mock LLM service
-     */
-    async extractCharacterInformation(
-        storyContent: string,
-        originalPrompt: string
-    ): Promise<GeminiResponse> {
-        const prompt = `You are analyzing a D&D story response to extract character information.
+  /**
+   * Extract character information from a story response using Mock LLM service
+   */
+  async extractCharacterInformation(
+    storyContent: string,
+    originalPrompt: string
+  ): Promise<GeminiResponse> {
+    const prompt = `You are analyzing a D&D story response to extract character information.
 
 STORY CONTENT:
 ${storyContent}
@@ -420,21 +423,21 @@ If no new characters, return: []
 
 Be precise and only extract living beings that can act and interact. Do not extract place names, building names, or location references.`;
 
-        return this.sendPrompt({
-            prompt,
-            taskType: 'character_extraction',
-            forceModel: 'flash-lite', // Use Flash-Lite for this specific task
-        });
-    }
+    return this.sendPrompt({
+      prompt,
+      taskType: 'character_extraction',
+      forceModel: 'flash-lite', // Use Flash-Lite for this specific task
+    });
+  }
 
-    /**
-     * Extract location information from a story response using Mock LLM service
-     */
-    async extractLocationInformation(
-        storyContent: string,
-        originalPrompt: string
-    ): Promise<GeminiResponse> {
-        const prompt = `You are analyzing a D&D story response to extract location information.
+  /**
+   * Extract location information from a story response using Mock LLM service
+   */
+  async extractLocationInformation(
+    storyContent: string,
+    originalPrompt: string
+  ): Promise<GeminiResponse> {
+    const prompt = `You are analyzing a D&D story response to extract location information.
 
 STORY CONTENT:
 ${storyContent}
@@ -505,12 +508,12 @@ Return ONLY a JSON array with this exact structure:
 
 Be thorough and extract ALL locations mentioned, whether they are named places, described areas, or referenced locations.`;
 
-        return this.sendPrompt({
-            prompt,
-            taskType: 'location_extraction',
-            forceModel: 'flash-lite', // Use Flash-Lite for this specific task
-        });
-    }
+    return this.sendPrompt({
+      prompt,
+      taskType: 'location_extraction',
+      forceModel: 'flash-lite', // Use Flash-Lite for this specific task
+    });
+  }
 }
 
 export default MockGeminiClient;

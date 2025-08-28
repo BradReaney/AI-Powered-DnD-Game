@@ -9,6 +9,8 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 12,
     sourceType: 'module',
+    // Suppress TypeScript version warnings
+    warnOnUnsupportedTypeScriptVersion: false,
   },
   plugins: ['prettier'],
   rules: {
