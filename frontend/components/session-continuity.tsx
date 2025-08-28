@@ -92,7 +92,7 @@ export default function SessionContinuity({
       if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
       return `${Math.floor(diffInMinutes / 1440)}d ago`;
     } catch (error) {
-      console.warn('Error formatting timestamp:', timestamp, error);
+      console.warn("Error formatting timestamp:", timestamp, error);
       return "Unknown time";
     }
   };

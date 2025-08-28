@@ -487,7 +487,9 @@ export function useSlashCommands(character: Character, campaign: Campaign) {
   }, []);
 
   // Dice rolling function
-  const rollDice = (notation: string): { total: number; rolls: number[]; modifier: number } => {
+  const rollDice = (
+    notation: string,
+  ): { total: number; rolls: number[]; modifier: number } => {
     // Parse dice notation (e.g., "3d6+2", "1d20", "2d10-1")
     const match = notation.match(/^(\d+)d(\d+)([+-]\d+)?$/);
     if (!match) {

@@ -159,10 +159,10 @@ export function adaptCharacter(backendCharacter: any): Character {
     if (Array.isArray(skills)) {
       return skills;
     }
-    if (skills && typeof skills === 'object') {
+    if (skills && typeof skills === "object") {
       // Handle Map format from backend
       return Object.keys(skills).filter(
-        (skill) => skills[skill]?.proficient === true
+        (skill) => skills[skill]?.proficient === true,
       );
     }
     return [];
@@ -173,17 +173,21 @@ export function adaptCharacter(backendCharacter: any): Character {
     if (Array.isArray(equipment)) {
       return equipment;
     }
-    if (equipment && typeof equipment === 'object') {
+    if (equipment && typeof equipment === "object") {
       // Handle backend equipment format
       const result: string[] = [];
       if (equipment.weapons && Array.isArray(equipment.weapons)) {
-        result.push(...equipment.weapons.map((w: any) => w.name || w).filter(Boolean));
+        result.push(
+          ...equipment.weapons.map((w: any) => w.name || w).filter(Boolean),
+        );
       }
       if (equipment.armor && equipment.armor.name) {
         result.push(equipment.armor.name);
       }
       if (equipment.items && Array.isArray(equipment.items)) {
-        result.push(...equipment.items.map((i: any) => i.name || i).filter(Boolean));
+        result.push(
+          ...equipment.items.map((i: any) => i.name || i).filter(Boolean),
+        );
       }
       return result;
     }

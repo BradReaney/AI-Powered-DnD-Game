@@ -448,7 +448,7 @@ export function GameChat({
         minute: "2-digit",
       });
     } catch (error) {
-      console.warn('Error formatting timestamp:', timestamp, error);
+      console.warn("Error formatting timestamp:", timestamp, error);
       return "Unknown time";
     }
   };
@@ -582,20 +582,23 @@ export function GameChat({
                       )}
                     </div>
                     <div
-                      className={`p-2 md:p-3 rounded-lg ${message.sender === "dm"
-                        ? "bg-muted"
-                        : (message.type === "system-discovery" ||
-                          message.content.includes("🆕") || message.content.includes("🔄"))
-                          ? "bg-green-50 border border-green-200 dark:bg-green-950 dark:border-green-800"
-                          : message.type === "roll"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-primary text-primary-foreground"
-                        }`}
+                      className={`p-2 md:p-3 rounded-lg ${
+                        message.sender === "dm"
+                          ? "bg-muted"
+                          : message.type === "system-discovery" ||
+                              message.content.includes("🆕") ||
+                              message.content.includes("🔄")
+                            ? "bg-green-50 border border-green-200 dark:bg-green-950 dark:border-green-800"
+                            : message.type === "roll"
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-primary text-primary-foreground"
+                      }`}
                     >
                       {/* Check if this is a discovery message by content or type */}
-                      {(message.type === "system-discovery" ||
-                        (message.sender === "system" &&
-                          (message.content.includes("🆕") || message.content.includes("🔄")))) ? (
+                      {message.type === "system-discovery" ||
+                      (message.sender === "system" &&
+                        (message.content.includes("🆕") ||
+                          message.content.includes("🔄"))) ? (
                         <div className="text-xs md:text-sm">
                           <div className="whitespace-pre-wrap text-green-800 dark:text-green-200">
                             {message.content.split("\n").map((line, index) => {
@@ -640,7 +643,9 @@ export function GameChat({
                                     <span className="font-bold">
                                       {headerText}
                                     </span>{" "}
-                                    <span className={`font-semibold ${textColor}`}>
+                                    <span
+                                      className={`font-semibold ${textColor}`}
+                                    >
                                       {entityName}
                                     </span>
                                   </div>
@@ -689,16 +694,25 @@ export function GameChat({
                                   </>
                                 )}
                               </div>
-                              {message.metadata.discovery.changes && message.metadata.discovery.changes.length > 0 && (
-                                <div className="mt-2 text-xs text-blue-600 dark:text-blue-400">
-                                  <div className="font-medium mb-1">Changes Made:</div>
-                                  {message.metadata.discovery.changes.map((change, idx) => (
-                                    <div key={idx} className="ml-2 text-blue-700 dark:text-blue-300">
-                                      • {change}
+                              {message.metadata.discovery.changes &&
+                                message.metadata.discovery.changes.length >
+                                  0 && (
+                                  <div className="mt-2 text-xs text-blue-600 dark:text-blue-400">
+                                    <div className="font-medium mb-1">
+                                      Changes Made:
                                     </div>
-                                  ))}
-                                </div>
-                              )}
+                                    {message.metadata.discovery.changes.map(
+                                      (change, idx) => (
+                                        <div
+                                          key={idx}
+                                          className="ml-2 text-blue-700 dark:text-blue-300"
+                                        >
+                                          • {change}
+                                        </div>
+                                      ),
+                                    )}
+                                  </div>
+                                )}
                             </div>
                           )}
                         </div>
