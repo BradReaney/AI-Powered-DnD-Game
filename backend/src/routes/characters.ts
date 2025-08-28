@@ -1,7 +1,6 @@
 import express from 'express';
 import CharacterService, { CharacterCreationData } from '../services/CharacterService';
 import logger from '../services/LoggerService';
-import crypto from 'crypto';
 
 const router = express.Router();
 const characterService = new CharacterService();

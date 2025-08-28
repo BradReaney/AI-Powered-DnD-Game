@@ -882,11 +882,11 @@ class CharacterService {
 
       // If not in cache, get from database
       // Note: sessionId is now optional, so we need to handle characters without sessions
-      const characters = await Character.find({ 
+      const characters = await Character.find({
         $or: [
           { sessionId, isActive: true },
-          { sessionId: { $exists: false }, isActive: true }
-        ]
+          { sessionId: { $exists: false }, isActive: true },
+        ],
       });
 
       // Cache the result for 3 minutes
