@@ -67,29 +67,31 @@ export function CampaignDetail({
   >("list");
 
   // Campaign settings state
-  const [settings, setSettings] = useState(campaign.settings || {
-    difficulty: "medium" as const,
-    maxLevel: 20,
-    startingLevel: 1,
-    experienceRate: "normal" as const,
-    magicLevel: "medium" as const,
-    technologyLevel: "medieval" as const,
-    aiBehavior: {
-      creativity: "medium" as const,
-      detailLevel: "moderate" as const,
-      pacing: "normal" as const,
-      combatStyle: "balanced" as const,
-    },
-    playerSettings: {
-      maxPlayers: 6,
-      allowNewPlayers: true,
-      playerPermissions: {
-        canCreateCharacters: true,
-        canModifyWorld: false,
-        canManageSessions: false,
+  const [settings, setSettings] = useState(
+    campaign.settings || {
+      difficulty: "medium" as const,
+      maxLevel: 20,
+      startingLevel: 1,
+      experienceRate: "normal" as const,
+      magicLevel: "medium" as const,
+      technologyLevel: "medieval" as const,
+      aiBehavior: {
+        creativity: "medium" as const,
+        detailLevel: "moderate" as const,
+        pacing: "normal" as const,
+        combatStyle: "balanced" as const,
+      },
+      playerSettings: {
+        maxPlayers: 6,
+        allowNewPlayers: true,
+        playerPermissions: {
+          canCreateCharacters: true,
+          canModifyWorld: false,
+          canManageSessions: false,
+        },
       },
     },
-  });
+  );
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [settingsSuccess, setSettingsSuccess] = useState<string | null>(null);
@@ -244,7 +246,7 @@ export function CampaignDetail({
       } else {
         // Handle nested settings (aiBehavior, playerSettings, etc.)
         const categorySettings = prev[category as keyof typeof prev];
-        if (categorySettings && typeof categorySettings === 'object') {
+        if (categorySettings && typeof categorySettings === "object") {
           return {
             ...prev,
             [category]: {

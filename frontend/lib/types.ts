@@ -17,11 +17,11 @@ export interface Campaign {
     experienceRate: "slow" | "normal" | "fast";
     magicLevel: "low" | "medium" | "high";
     technologyLevel:
-    | "primitive"
-    | "medieval"
-    | "renaissance"
-    | "modern"
-    | "futuristic";
+      | "primitive"
+      | "medieval"
+      | "renaissance"
+      | "modern"
+      | "futuristic";
     aiBehavior?: {
       creativity: "low" | "medium" | "high";
       detailLevel: "minimal" | "moderate" | "detailed";
@@ -50,30 +50,30 @@ export interface Campaign {
     factions: Array<{
       name: string;
       type:
-      | "guild"
-      | "noble house"
-      | "religious order"
-      | "mercenary company"
-      | "criminal syndicate"
-      | "other";
+        | "guild"
+        | "noble house"
+        | "religious order"
+        | "mercenary company"
+        | "criminal syndicate"
+        | "other";
       alignment: string;
       influence: number;
       relationship:
-      | "hostile"
-      | "unfriendly"
-      | "neutral"
-      | "friendly"
-      | "allied";
+        | "hostile"
+        | "unfriendly"
+        | "neutral"
+        | "friendly"
+        | "allied";
       description: string;
     }>;
     activeThreats: Array<{
       name: string;
       type:
-      | "monster"
-      | "organization"
-      | "natural disaster"
-      | "political"
-      | "other";
+        | "monster"
+        | "organization"
+        | "natural disaster"
+        | "political"
+        | "other";
       threatLevel: "low" | "medium" | "high" | "critical";
       description: string;
       location: string;
@@ -234,16 +234,16 @@ export interface Location {
   campaignId: string;
   name: string;
   type:
-  | "settlement"
-  | "dungeon"
-  | "wilderness"
-  | "landmark"
-  | "shop"
-  | "tavern"
-  | "temple"
-  | "castle"
-  | "city"
-  | "other";
+    | "settlement"
+    | "dungeon"
+    | "wilderness"
+    | "landmark"
+    | "shop"
+    | "tavern"
+    | "temple"
+    | "castle"
+    | "city"
+    | "other";
   description: string;
   difficulty: string;
   inhabitants?: string[];

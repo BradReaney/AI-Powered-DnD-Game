@@ -33,12 +33,12 @@ export async function GET(
     // Transform backend data to frontend format (same as campaigns route)
     const transformedLocations = Array.isArray(data)
       ? data.map((location) => ({
-        ...location,
-        id:
-          location._id?.toString() ||
-          location.id ||
-          `location-${Math.random()}`,
-      }))
+          ...location,
+          id:
+            location._id?.toString() ||
+            location.id ||
+            `location-${Math.random()}`,
+        }))
       : data;
 
     return NextResponse.json(transformedLocations);

@@ -29,7 +29,7 @@ class ApiService {
     const headers: Record<string, string> = {
       "Cache-Control": "no-cache",
       Pragma: "no-cache",
-      ...(options.headers as Record<string, string> || {}),
+      ...((options.headers as Record<string, string>) || {}),
     };
 
     // Only set Content-Type for requests with a body

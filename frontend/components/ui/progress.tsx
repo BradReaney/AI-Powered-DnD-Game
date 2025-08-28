@@ -23,7 +23,7 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
         style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
       />
     </div>
-  )
+  ),
 );
 Progress.displayName = "Progress";
 

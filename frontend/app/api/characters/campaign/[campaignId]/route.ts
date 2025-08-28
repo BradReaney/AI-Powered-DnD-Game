@@ -31,10 +31,10 @@ export async function GET(
     // Transform backend data to frontend format
     const transformedData = Array.isArray(data)
       ? data.map((char) => ({
-        ...char,
-        id: char._id?.toString() || char.id || `char-${Math.random()}`,
-        campaignId: char.campaignId?.toString() || char.campaignId,
-      }))
+          ...char,
+          id: char._id?.toString() || char.id || `char-${Math.random()}`,
+          campaignId: char.campaignId?.toString() || char.campaignId,
+        }))
       : data;
 
     return NextResponse.json(transformedData);
