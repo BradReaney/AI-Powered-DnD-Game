@@ -80,7 +80,7 @@ export function CampaignCharacterSelector({
     };
 
     fetchData();
-  }, [apiService]); // Add apiService as dependency to ensure proper re-fetching
+  }, []); // Empty dependency array - fetch only on mount
 
   // Manual refresh function
   const handleRefresh = () => {
