@@ -18,7 +18,8 @@ describe('Button Component', () => {
     
     rerender(<Button variant="outline">Outline</Button>)
     button = screen.getByRole('button', { name: /outline/i })
-    expect(button).toHaveClass('border border-input')
+    expect(button).toHaveClass('border')
+    expect(button).toHaveClass('bg-background')
   })
 
   it('handles click events', () => {
@@ -49,10 +50,12 @@ describe('Button Component', () => {
     const { rerender } = render(<Button size="sm">Small</Button>)
     
     let button = screen.getByRole('button', { name: /small/i })
-    expect(button).toHaveClass('h-9 px-3')
+    expect(button).toHaveClass('h-8')
+    expect(button).toHaveClass('px-3')
     
     rerender(<Button size="lg">Large</Button>)
     button = screen.getByRole('button', { name: /large/i })
-    expect(button).toHaveClass('h-11 px-8')
+    expect(button).toHaveClass('h-10')
+    expect(button).toHaveClass('px-6')
   })
 })

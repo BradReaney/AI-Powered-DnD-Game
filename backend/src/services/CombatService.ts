@@ -68,16 +68,16 @@ interface CombatEncounterData {
       actorId: string;
       targetId?: string;
       actionType:
-      | 'attack'
-      | 'spell'
-      | 'move'
-      | 'dash'
-      | 'dodge'
-      | 'help'
-      | 'hide'
-      | 'ready'
-      | 'search'
-      | 'use-object';
+        | 'attack'
+        | 'spell'
+        | 'move'
+        | 'dash'
+        | 'dodge'
+        | 'help'
+        | 'hide'
+        | 'ready'
+        | 'search'
+        | 'use-object';
       description: string;
       attackRoll?: number;
       attackModifier?: number;
@@ -146,16 +146,16 @@ export interface CombatAction {
   actorId: string;
   targetId?: string;
   actionType:
-  | 'attack'
-  | 'spell'
-  | 'move'
-  | 'dash'
-  | 'dodge'
-  | 'help'
-  | 'hide'
-  | 'ready'
-  | 'search'
-  | 'use-object';
+    | 'attack'
+    | 'spell'
+    | 'move'
+    | 'dash'
+    | 'dodge'
+    | 'help'
+    | 'hide'
+    | 'ready'
+    | 'search'
+    | 'use-object';
   description: string;
   attackRoll?: number;
   attackModifier?: number;
@@ -1663,15 +1663,15 @@ export class CombatService {
     actionData: {
       participantId: string;
       actionType:
-      | 'attack'
-      | 'spell'
-      | 'move'
-      | 'dash'
-      | 'dodge'
-      | 'help'
-      | 'ready'
-      | 'search'
-      | 'use-item';
+        | 'attack'
+        | 'spell'
+        | 'move'
+        | 'dash'
+        | 'dodge'
+        | 'help'
+        | 'ready'
+        | 'search'
+        | 'use-item';
       targetId?: string;
       description: string;
       modifiers?: any;
