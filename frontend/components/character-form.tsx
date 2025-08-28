@@ -550,7 +550,13 @@ export function CharacterForm({
                     id="traits"
                     value={formData.traits}
                     onChange={(e) =>
-                      setFormData({ ...formData, traits: e.target.value.split(',').map(t => t.trim()).filter(t => t) })
+                      setFormData({
+                        ...formData,
+                        traits: e.target.value
+                          .split(",")
+                          .map((t) => t.trim())
+                          .filter((t) => t),
+                      })
                     }
                     placeholder="Describe your character's personality traits..."
                     rows={3}
@@ -563,7 +569,13 @@ export function CharacterForm({
                     id="ideals"
                     value={formData.ideals}
                     onChange={(e) =>
-                      setFormData({ ...formData, ideals: e.target.value.split(',').map(t => t.trim()).filter(t => t) })
+                      setFormData({
+                        ...formData,
+                        ideals: e.target.value
+                          .split(",")
+                          .map((t) => t.trim())
+                          .filter((t) => t),
+                      })
                     }
                     placeholder="What ideals drive your character?"
                     rows={3}
@@ -576,7 +588,13 @@ export function CharacterForm({
                     id="bonds"
                     value={formData.bonds}
                     onChange={(e) =>
-                      setFormData({ ...formData, bonds: e.target.value.split(',').map(t => t.trim()).filter(t => t) })
+                      setFormData({
+                        ...formData,
+                        bonds: e.target.value
+                          .split(",")
+                          .map((t) => t.trim())
+                          .filter((t) => t),
+                      })
                     }
                     placeholder="What bonds connect your character to the world?"
                     rows={3}
@@ -589,7 +607,13 @@ export function CharacterForm({
                     id="flaws"
                     value={formData.flaws}
                     onChange={(e) =>
-                      setFormData({ ...formData, flaws: e.target.value.split(',').map(t => t.trim()).filter(t => t) })
+                      setFormData({
+                        ...formData,
+                        flaws: e.target.value
+                          .split(",")
+                          .map((t) => t.trim())
+                          .filter((t) => t),
+                      })
                     }
                     placeholder="What flaws or weaknesses does your character have?"
                     rows={3}

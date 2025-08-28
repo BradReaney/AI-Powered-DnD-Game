@@ -1,0 +1,118 @@
+name: Quality Checks
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+  BACKEND_URL: 'http://localhost:5001'
+  NEXT_PUBLIC_API_URL: 'http://localhost:5001'
+
+jobs:
+  backend-quality:
+    name: Backend Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install all dependencies
+        run: npm ci
+
+      - name: Run backend linting
+        working-directory: ./backend
+        run: npm run lint
+
+      - name: Check backend formatting
+        working-directory: ./backend
+        run: npm run format:check
+
+      - name: Run backend TypeScript compilation
+        working-directory: ./backend
+        run: npx tsc --noEmit
+
+  frontend-quality:
+    name: Frontend Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install all dependencies
+        run: npm ci
+
+      - name: Run frontend linting
+        working-directory: ./frontend
+        run: npm run lint
+
+      - name: Check frontend formatting
+        working-directory: ./frontend
+        run: npm run format:check
+
+      - name: Run frontend TypeScript compilation
+        working-directory: ./frontend
+        run: npx tsc --noEmit
+
+  e2e-tests:
+    name: End-to-End Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install all dependencies
+        run: npm ci
+
+      - name: Verify Playwright configuration
+        working-directory: ./frontend
+        run: npx playwright --version
+
+  quality-report:
+    name: Quality Report
+    runs-on: ubuntu-latest
+    needs: [backend-quality, frontend-quality, e2e-tests]
+    if: always()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate quality report
+        run: |
+          echo "## 🎯 Quality Check Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Backend Quality: ${{ needs.backend-quality.result == 'success' && '✅ PASSED' || '❌ FAILED' }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Frontend Quality: ${{ needs.frontend-quality.result == 'success' && '✅ PASSED' || '❌ FAILED' }}" >> $GITHUB_STEP_SUMMARY
+          echo "### E2E Tests: ${{ needs.e2e-tests.result == 'success' && '✅ PASSED' || '❌ FAILED' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.backend-quality.result }}" == "success" && "${{ needs.frontend-quality.result }}" == "success" && "${{ needs.e2e-tests.result }}" == "success" ]]; then
+            echo "🎉 **All quality checks passed!** The project maintains its 100% quality status." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ **Some quality checks failed.** Please review the logs above and fix any issues." >> $GITHUB_STEP_SUMMARY
+          fi

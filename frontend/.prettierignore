@@ -1,0 +1,26 @@
+# Build outputs
+.next/
+dist/
+build/
+coverage/
+
+# Cache files
+.cache/
+*.cache
+
+# Generated files
+*.d.ts
+*.js.map
+
+# Dependencies
+node_modules/
+
+# Test coverage
+coverage/
+
+# Playwright
+playwright-report/
+test-results/
+
+# Environment files
+.env*

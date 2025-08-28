@@ -7,7 +7,6 @@ if (!BACKEND_URL) {
 
 export async function GET(request: NextRequest) {
   try {
-
     const { searchParams } = new URL(request.url);
     const campaignId = searchParams.get("campaignId");
     const sessionId = searchParams.get("sessionId");
