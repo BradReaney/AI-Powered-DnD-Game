@@ -172,6 +172,8 @@ router.post('/', async (req, res) => {
       name: sessionName,
       dm: 'AI Dungeon Master',
       location: location,
+      weather: 'Clear', // Default weather
+      timeOfDay: 'morning' as const, // Default time of day
     };
 
     const session = await gameEngineService.createSession(sessionData.campaignId, sessionConfig);
