@@ -68,7 +68,14 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+
+    // Transform backend data to frontend format (same as GET route)
+    const transformedData = {
+      ...data,
+      id: data._id?.toString() || data.id || `campaign-${Math.random()}`,
+    };
+
+    return NextResponse.json(transformedData);
   } catch (error) {
     console.error("Error creating campaign:", error);
     return NextResponse.json(

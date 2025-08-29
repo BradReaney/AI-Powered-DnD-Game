@@ -95,25 +95,25 @@ describe('QuestService', () => {
   });
 
   describe('getQuestTemplates', () => {
-    it('should return quest templates', () => {
-      const templates = questService.getQuestTemplates();
+    it('should return quest templates', async () => {
+      const templates = await questService.getQuestTemplates();
       expect(Array.isArray(templates)).toBe(true);
       expect(templates.length).toBeGreaterThan(0);
     });
 
-    it('should filter templates by type', () => {
-      const mainTemplates = questService.getQuestTemplates('main');
+    it('should filter templates by type', async () => {
+      const mainTemplates = await questService.getQuestTemplates('main');
       expect(mainTemplates.every(t => t.type === 'main')).toBe(true);
     });
 
-    it('should filter templates by difficulty', () => {
-      const easyTemplates = questService.getQuestTemplates(undefined, 'easy');
+    it('should filter templates by difficulty', async () => {
+      const easyTemplates = await questService.getQuestTemplates(undefined, 'easy');
       expect(easyTemplates.every(t => t.difficulty === 'easy')).toBe(true);
     });
 
-    it('should filter templates by level range', () => {
+    it('should filter templates by level range', async () => {
       const levelRange = { min: 1, max: 3 };
-      const templates = questService.getQuestTemplates(undefined, undefined, levelRange);
+      const templates = await questService.getQuestTemplates(undefined, undefined, levelRange);
       expect(
         templates.every(
           t => t.levelRange.min <= levelRange.max && t.levelRange.max >= levelRange.min
@@ -123,8 +123,8 @@ describe('QuestService', () => {
   });
 
   describe('Quest Template Structure', () => {
-    it('should have valid quest template structure', () => {
-      const templates = questService.getQuestTemplates();
+    it('should have valid quest template structure', async () => {
+      const templates = await questService.getQuestTemplates();
       const template = templates[0];
 
       expect(template).toHaveProperty('id');
@@ -150,8 +150,8 @@ describe('QuestService', () => {
       expect(Array.isArray(template.tags)).toBe(true);
     });
 
-    it('should have valid objective structure', () => {
-      const templates = questService.getQuestTemplates();
+    it('should have valid objective structure', async () => {
+      const templates = await questService.getQuestTemplates();
       const template = templates[0];
       const objective = template.objectives[0];
 

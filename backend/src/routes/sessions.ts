@@ -390,7 +390,7 @@ router.get('/active/continuity', async (req, res) => {
     res.json({
       message: 'Session continuity data retrieved successfully',
       campaignId,
-      sessions: activeSessions,
+      activeSessions: activeSessions,
     });
   } catch (error) {
     logger.error('Error getting session continuity data:', error);

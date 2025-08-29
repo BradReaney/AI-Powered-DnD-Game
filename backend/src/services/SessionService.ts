@@ -378,7 +378,7 @@ export class SessionService {
         ];
       }
 
-      const sessions = await Session.find(query).sort({ startTime: -1 }).lean();
+      const sessions = await Session.find(query).sort({ 'metadata.startTime': -1 }).lean();
 
       // Cache the result for 2 minutes
       await cacheService.set(cacheKey, sessions, { ttl: 120 });
@@ -826,80 +826,6 @@ export class SessionService {
       logger.info(`Deleted session: ${session.name} and all related data`);
     } catch (error) {
       logger.error('Error deleting session:', error);
-      throw error;
-    }
-  }
-
-  // Create a new session automatically for gameplay
-  public async createAutomaticSession(
-    campaignId: string,
-    characterId: string,
-    sessionId: string
-  ): Promise<any> {
-    try {
-      // Get the next session number for this campaign
-      const lastSession = await Session.findOne({ campaignId })
-        .sort({ sessionNumber: -1 })
-        .limit(1);
-
-      const nextSessionNumber = lastSession ? lastSession.sessionNumber + 1 : 1;
-
-      // Create a new session with minimal required data
-      const newSession = new Session({
-        _id: sessionId,
-        campaignId,
-        sessionNumber: nextSessionNumber,
-        name: `Session ${nextSessionNumber}`,
-        status: 'active',
-        createdBy: 'AI Dungeon Master',
-        createdAt: new Date(),
-        metadata: {
-          dm: 'AI Dungeon Master',
-          location: 'Starting Location',
-          weather: 'Clear',
-          timeOfDay: 'morning',
-          startTime: new Date(),
-          players: [
-            {
-              playerId: 'ai-dm', // Use a default player ID for AI-created sessions
-              characterId,
-              joinedAt: new Date(),
-            },
-          ],
-          tags: ['auto-created', 'gameplay'],
-          difficulty: 'medium',
-          sessionType: 'mixed',
-        },
-        gameState: {
-          currentScene: 'Starting Location',
-          sceneDescription: 'Your adventure begins here...',
-          activeCharacters: [characterId],
-          currentTurn: 1,
-          initiativeOrder: [],
-          combatState: {
-            isActive: false,
-            round: 0,
-            currentCharacter: null,
-            conditions: [],
-          },
-          worldState: {
-            currentLocation: 'Starting Location',
-            discoveredLocations: [],
-            activeEffects: [],
-          },
-        },
-        storyEvents: [],
-      });
-
-      await newSession.save();
-      logger.info(`Created automatic session ${sessionId} for campaign ${campaignId}`);
-
-      // Invalidate cache
-      await this.invalidateSessionCache(sessionId);
-
-      return newSession;
-    } catch (error) {
-      logger.error('Error creating automatic session:', error);
       throw error;
     }
   }

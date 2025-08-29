@@ -984,105 +984,19 @@ The campaign begins in a world of ${campaign.theme.toLowerCase()}. ${campaign.de
 Your journey starts now. What would you like to do first?`;
       }
 
-      // Create a proper Session record using the provided sessionId
-      const Session = require('../models').Session;
-      const session = new Session({
-        _id: sessionId, // Use the UUID provided by the frontend
-        campaignId: campaign._id,
-        sessionNumber: campaign.sessions.length + 1,
-        name: `Session ${new Date().toLocaleDateString('en-GB')}`,
-        status: 'active',
-        createdBy: 'ai-dm',
-        metadata: {
-          startTime: new Date(),
-          players: characterIds
-            ? characterIds.map(id => ({
-                playerId: 'ai-dm',
-                characterId: id,
-                joinedAt: new Date(),
-              }))
-            : [],
-          dm: 'AI Dungeon Master',
-          location: 'Starting Location',
-          weather: 'Clear',
-          timeOfDay: 'morning',
-        },
-        gameState: {
-          currentScene: 'Campaign Opening',
-          sceneDescription: 'The beginning of a new adventure',
-          activeCharacters: characterIds || [],
-          currentTurn: 1,
-          initiativeOrder: [],
-          combatState: {
-            isActive: false,
-            round: 0,
-            currentCharacter: null,
-            conditions: [],
-          },
-          worldState: {
-            currentLocation: 'Starting Location',
-            discoveredLocations: ['Starting Location'],
-            activeEffects: [],
-          },
-        },
-        storyEvents: [],
-        aiContext: {
-          sessionSummary: 'Campaign initialization',
-          keyDecisions: [],
-          characterDevelopment: [],
-          worldChanges: [],
-          nextSessionHooks: [],
-          aiNotes: '',
-        },
-        outcomes: {
-          experienceGained: 0,
-          itemsFound: [],
-          questsCompleted: [],
-          newLocationsDiscovered: [],
-        },
-      });
-      await session.save();
-
-      // Save the initial message to the database using the session's ObjectId
-      const Message = require('../models').Message;
-      const initialMessage = new Message({
-        sessionId: session._id,
-        campaignId,
-        type: 'ai',
-        sender: 'Dungeon Master',
-        content: campaignContent,
-        timestamp: new Date(),
-        metadata: {
-          aiResponse: true,
-          originalMessage: 'Campaign initialization',
-          campaignId,
-          sessionId: session._id,
-          characterCount: characterIds?.length || 0,
-          importance: 'major',
-          tags: ['campaign-start', 'opening-scene'],
-        },
-      });
-      await initialMessage.save();
-
-      // Update campaign status to indicate it has been initialized
-      campaign.status = 'active';
-      await campaign.save();
-
-      // Ensure all database operations are committed before proceeding
-      // This prevents race conditions where other services might try to access
-      // the session before it's fully initialized
-      await campaign.save(); // Double-save to ensure transaction completion
-
-      logger.info(`Campaign ${campaignId} initialized with opening scene`);
+      // Don't create a new Session here - the session should already exist
+      // Just return the campaign initialization content
+      logger.info(`Campaign ${campaignId} initialized successfully for session ${sessionId}`);
 
       return {
         message: 'Campaign initialized successfully',
         content: campaignContent,
         metadata: {
           campaignId,
-          sessionId: session._id,
-          characterCount: characterIds?.length || 0,
-          timestamp: new Date(),
+          sessionId,
+          characterIds,
+          theme: campaign.theme,
+          description: campaign.description,
         },
       };
     } catch (error) {

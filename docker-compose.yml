@@ -64,6 +64,17 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    develop:
+      watch:
+        - action: rebuild
+          path: ./backend/src
+        - action: sync
+          path: ./backend
+          target: /app
+          ignore:
+            - node_modules/
+            - dist/
+            - logs/
 
   # Frontend
   frontend:
@@ -91,6 +102,17 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    develop:
+      watch:
+        - action: rebuild
+          path: ./frontend/src
+        - action: sync
+          path: ./frontend
+          target: /app
+          ignore:
+            - node_modules/
+            - .next/
+            - dist/
 
   # Redis Cache
   redis:
@@ -135,6 +157,16 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    develop:
+      watch:
+        - action: rebuild
+          path: ./mock-llm-service/src
+        - action: sync
+          path: ./mock-llm-service
+          target: /app
+          ignore:
+            - node_modules/
+            - dist/
 
 volumes:
   mongodb_data:

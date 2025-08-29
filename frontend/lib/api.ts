@@ -194,8 +194,12 @@ class ApiService {
     return adaptSession(backendSession);
   }
 
-  async createSession(sessionData: Partial<Session>): Promise<Session> {
-    return this.request<Session>("/sessions", {
+  async createSession(sessionData: {
+    campaignId: string;
+    characterId?: string;
+    sessionId?: string;
+  }): Promise<any> {
+    return this.request<any>("/sessions", {
       method: "POST",
       body: JSON.stringify(sessionData),
     });
@@ -214,21 +218,6 @@ class ApiService {
   async deleteSession(sessionId: string): Promise<void> {
     return this.request<void>(`/sessions/${sessionId}`, {
       method: "DELETE",
-    });
-  }
-
-  async createAutomaticSession(
-    campaignId: string,
-    characterId: string,
-    sessionId: string,
-  ): Promise<any> {
-    return this.request<any>("/sessions/auto-create", {
-      method: "POST",
-      body: JSON.stringify({
-        campaignId,
-        characterId,
-        sessionId,
-      }),
     });
   }
 
