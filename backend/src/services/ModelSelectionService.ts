@@ -174,6 +174,18 @@ export class ModelSelectionService {
         };
       }
 
+      // Check if task type has predefined complexity rules
+      const predefinedComplexity = this.taskComplexityRules.get(task.type);
+      if (predefinedComplexity) {
+        const model = this.selectModelBasedOnComplexity(predefinedComplexity);
+        return {
+          model,
+          reason: `Predefined complexity for task type: ${task.type}`,
+          confidence: predefinedComplexity.confidence,
+          fallbackEnabled: config.gemini.threeModelFallbackEnabled,
+        };
+      }
+
       // Analyze task dynamically
       const complexity = await this.assessTaskComplexity(task);
       const model = this.selectModelBasedOnComplexity(complexity);

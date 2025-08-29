@@ -89,8 +89,8 @@ export default function HomePage() {
       try {
         setLoading(true);
         setError(null);
-
-        const [campaignsData] = await Promise.all([apiService.getCampaigns()]);
+        // Fetch campaigns first
+        const campaignsData = await apiService.getCampaigns();
 
         // Ensure campaigns is always an array
         const campaignsArray = Array.isArray(campaignsData)
@@ -176,6 +176,24 @@ export default function HomePage() {
       } else {
         const newCampaign = await apiService.createCampaign(campaignData);
         setCampaigns([...campaigns, newCampaign]);
+
+        // Fetch characters for the new campaign to ensure they're available in the selector
+        try {
+          const campaignCharacters = await apiService.getCharactersByCampaign(
+            newCampaign.id,
+          );
+          if (Array.isArray(campaignCharacters)) {
+            setCharacters((prevCharacters) => [
+              ...prevCharacters,
+              ...campaignCharacters,
+            ]);
+          }
+        } catch (err) {
+          console.error(
+            `Failed to fetch characters for new campaign ${newCampaign.id}:`,
+            err,
+          );
+        }
       }
       setViewMode("overview");
       setSelectedCampaign(null);
@@ -373,12 +391,11 @@ export default function HomePage() {
     character: Character,
   ) => {
     try {
-      // Actually create the session in the backend
-      const session = await apiService.createAutomaticSession(
-        campaign.id,
-        character.id,
-        crypto.randomUUID(),
-      );
+      // Create the session using the consolidated endpoint
+      const session = await apiService.createSession({
+        campaignId: campaign.id,
+        characterId: character.id,
+      });
 
       // Set the active game session with the real session data
       setActiveGameSession({
@@ -392,7 +409,7 @@ export default function HomePage() {
 
       setViewMode("gameplay");
     } catch (error) {
-      console.error("Failed to create automatic session:", error);
+      console.error("Failed to create session:", error);
       // You could add error handling here, like showing a toast notification
       alert("Failed to create session. Please try again.");
     }
@@ -608,10 +625,48 @@ export default function HomePage() {
           </div>
         </header>
         <div className="container mx-auto px-4 py-8">
-          <CampaignCharacterSelector
-            onStartGame={handleStartGameWithSelection}
-            onBack={() => setViewMode("overview")}
-          />
+          {/* Only render CampaignCharacterSelector when data is loaded */}
+          {loading ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground mb-4">
+                Loading campaigns and characters... Please wait.
+              </p>
+            </div>
+          ) : campaigns.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground mb-4">
+                No campaigns available. Create a campaign first to get started.
+              </p>
+              <Button
+                onClick={() => setViewMode("create-campaign")}
+                className="mt-4"
+              >
+                Create Campaign
+              </Button>
+            </div>
+          ) : characters.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground mb-4">
+                No characters available. Create a character first to get
+                started.
+              </p>
+              <Button
+                onClick={() => setViewMode("create-character")}
+                className="mt-4"
+              >
+                Create Character
+              </Button>
+            </div>
+          ) : (
+            <>
+              <CampaignCharacterSelector
+                campaigns={campaigns}
+                characters={characters}
+                onStartGame={handleStartGameWithSelection}
+                onBack={() => setViewMode("overview")}
+              />
+            </>
+          )}
         </div>
       </div>
     );

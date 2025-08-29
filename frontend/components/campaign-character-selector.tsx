@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,77 +19,36 @@ import {
 } from "@/components/ui/select";
 import { MessageSquare, Play, User, Sword } from "lucide-react";
 import type { Campaign, Character } from "@/lib/types";
-import apiService from "@/lib/api";
 
 interface CampaignCharacterSelectorProps {
+  campaigns: Campaign[];
+  characters: Character[];
   onStartGame: (campaign: Campaign, character: Character) => void;
   onBack: () => void;
 }
 
 export function CampaignCharacterSelector({
+  campaigns,
+  characters,
   onStartGame,
   onBack,
 }: CampaignCharacterSelectorProps) {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [characters, setCharacters] = useState<Character[]>([]);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
   const [selectedCharacterId, setSelectedCharacterId] = useState<string>("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  // Fetch campaigns and characters
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  // Filter campaigns that have characters available
+  const availableCampaigns = campaigns.filter((campaign) => {
+    const campaignCharacters = characters.filter(
+      (char) => char.campaignId === campaign.id,
+    );
+    return campaignCharacters.length > 0;
+  });
 
-        const [campaignsData] = await Promise.all([apiService.getCampaigns()]);
-        const campaignsArray = Array.isArray(campaignsData)
-          ? campaignsData
-          : [];
-
-        // Only show active campaigns
-        const activeCampaigns = campaignsArray.filter(
-          (campaign) => campaign.status === "active",
-        );
-        setCampaigns(activeCampaigns);
-
-        // Fetch characters for all active campaigns
-        const allCharacters: Character[] = [];
-        for (const campaign of activeCampaigns) {
-          try {
-            const campaignCharacters = await apiService.getCharactersByCampaign(
-              campaign.id,
-            );
-            allCharacters.push(...campaignCharacters);
-          } catch (err) {
-            console.error(
-              `Failed to fetch characters for campaign ${campaign.id}:`,
-              err,
-            );
-          }
-        }
-        setCharacters(allCharacters);
-      } catch (err) {
-        console.error("Failed to fetch data:", err);
-        setError(err instanceof Error ? err.message : "Failed to fetch data");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []); // Empty dependency array - fetch only on mount
-
-  // Manual refresh function
+  // Manual refresh function - now just triggers a re-render
   const handleRefresh = () => {
-    setLoading(true);
-    setError(null);
-    // Force re-fetch by updating a dependency
-    setCampaigns([]);
-    setCharacters([]);
-    // The useEffect will run again due to state changes
+    // Reset selections to force re-render
+    setSelectedCampaignId("");
+    setSelectedCharacterId("");
   };
 
   // Get characters for selected campaign
@@ -107,7 +66,9 @@ export function CampaignCharacterSelector({
   const handleStartGame = () => {
     if (!selectedCampaignId || !selectedCharacterId) return;
 
-    const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId);
+    const selectedCampaign = availableCampaigns.find(
+      (c) => c.id === selectedCampaignId,
+    );
     const selectedCharacter = characters.find(
       (c) => c.id === selectedCharacterId,
     );
@@ -120,36 +81,29 @@ export function CampaignCharacterSelector({
   // Check if we can start the game
   const canStartGame = selectedCampaignId && selectedCharacterId;
 
-  if (loading) {
+  // Show loading state if data is not yet available
+  if (!campaigns || campaigns.length === 0) {
     return (
       <div className="text-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-        <p className="text-muted-foreground">
-          Loading campaigns and characters...
+        <p className="text-muted-foreground mb-4">
+          Loading campaigns... Please wait.
         </p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-destructive mb-4">{error}</p>
-        <Button onClick={() => window.location.reload()} variant="outline">
-          Try Again
+        <Button onClick={onBack} variant="outline">
+          Back to Overview
         </Button>
       </div>
     );
   }
 
-  if (campaigns.length === 0) {
+  if (availableCampaigns.length === 0) {
     return (
       <div className="text-center py-8">
         <p className="text-muted-foreground mb-4">
-          No campaigns available. Create a campaign first to get started.
+          No campaigns with characters available. Create a campaign and
+          character first to get started.
         </p>
-        <Button onClick={handleRefresh} variant="outline">
-          Refresh
+        <Button onClick={onBack} variant="outline">
+          Back to Overview
         </Button>
       </div>
     );
@@ -201,6 +155,7 @@ export function CampaignCharacterSelector({
         </CardHeader>
         <CardContent>
           <Select
+            key={`campaign-select-${availableCampaigns.length}-${Date.now()}`}
             value={selectedCampaignId}
             onValueChange={handleCampaignChange}
           >
@@ -208,16 +163,25 @@ export function CampaignCharacterSelector({
               <SelectValue placeholder="Select a campaign" />
             </SelectTrigger>
             <SelectContent>
-              {campaigns.map((campaign) => (
-                <SelectItem key={campaign.id} value={campaign.id}>
-                  <div className="flex items-center gap-2">
-                    <span>{campaign.name}</span>
-                    <Badge variant="outline" className="text-xs">
-                      {campaign.theme || "Custom"}
-                    </Badge>
-                  </div>
+              {availableCampaigns && availableCampaigns.length > 0 ? (
+                availableCampaigns.map((campaign) => (
+                  <SelectItem
+                    key={`campaign-${campaign.id}`}
+                    value={campaign.id}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>{campaign.name}</span>
+                      <Badge variant="outline" className="text-xs">
+                        {campaign.theme || "Custom"}
+                      </Badge>
+                    </div>
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value="" disabled>
+                  No campaigns available
                 </SelectItem>
-              ))}
+              )}
             </SelectContent>
           </Select>
         </CardContent>

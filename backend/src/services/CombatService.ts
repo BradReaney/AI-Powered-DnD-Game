@@ -3,7 +3,7 @@ import { ContextManager } from './ContextManager';
 import { CombatEncounter } from '../models/CombatEncounter';
 
 // Plain interface for service layer (without Mongoose Document properties)
-interface CombatEncounterData {
+export interface CombatEncounterData {
   id: string;
   campaignId: string;
   sessionId: string;

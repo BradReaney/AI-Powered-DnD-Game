@@ -402,54 +402,6 @@ export function useSlashCommands(character: Character, campaign: Campaign) {
     [],
   );
 
-  // Main command execution
-  const executeCommand = useCallback(
-    async (input: string): Promise<CommandResponse | null> => {
-      const parsed = parseCommand(input);
-      if (!parsed) return null;
-
-      const { command, args } = parsed;
-
-      // Handle character update commands
-      if (command === "/character") {
-        return handleCharacterUpdate(args);
-      }
-
-      // Handle location update commands
-      if (command === "/location") {
-        return handleLocationUpdate(args);
-      }
-
-      // Handle existing commands
-      switch (command) {
-        case "/roll":
-          return handleRollCommand(args);
-        case "/status":
-          return {
-            success: true,
-            content: `Character: ${character.name}, Level: ${character.level}, HP: ${character.hitPoints?.current || "N/A"}/${character.hitPoints?.maximum || "N/A"}, AC: ${character.armorClass || "N/A"}`,
-            type: "info",
-          };
-        case "/inventory":
-          const equipment = Array.isArray(character.equipment)
-            ? character.equipment.join(", ")
-            : "None";
-          return {
-            success: true,
-            content: `Equipment: ${equipment}`,
-            type: "info",
-          };
-        default:
-          return {
-            success: false,
-            content: `Unknown command: ${command}. Use /help for available commands.`,
-            type: "error",
-          };
-      }
-    },
-    [character, handleCharacterUpdate, handleLocationUpdate, parseCommand],
-  );
-
   // Dice rolling command handler
   const handleRollCommand = useCallback((args: string[]): CommandResponse => {
     if (args.length === 0) {
@@ -485,6 +437,77 @@ export function useSlashCommands(character: Character, campaign: Campaign) {
       };
     }
   }, []);
+
+  // Main command execution
+  const executeCommand = useCallback(
+    async (input: string): Promise<CommandResponse | null> => {
+      const parsed = parseCommand(input);
+      if (!parsed) return null;
+
+      const { command, args } = parsed;
+
+      // Handle character update commands
+      if (command === "/character") {
+        return handleCharacterUpdate(args);
+      }
+
+      // Handle location update commands
+      if (command === "/location") {
+        return handleLocationUpdate(args);
+      }
+
+      // Handle existing commands
+      switch (command) {
+        case "/help":
+          return {
+            success: true,
+            content: `Available commands:
+• /help - Show this help message
+• /status - Show character status (HP, AC, level)
+• /inventory - Show character equipment
+• /roll <dice> - Roll dice (e.g., /roll 1d20, /roll 3d6+2)
+• /character <field> <value> - Update character (e.g., /character hp 25)
+• /location <field> <value> - Update location info
+
+Examples:
+• /roll 1d20 - Roll a d20
+• /character hp 25 - Set HP to 25
+• /location name "Ancient Temple" - Set location name`,
+            type: "info",
+          };
+        case "/roll":
+          return handleRollCommand(args);
+        case "/status":
+          return {
+            success: true,
+            content: `Character: ${character.name}, Level: ${character.level}, HP: ${character.hitPoints?.current || "N/A"}/${character.hitPoints?.maximum || "N/A"}, AC: ${character.armorClass || "N/A"}`,
+            type: "info",
+          };
+        case "/inventory":
+          const equipment = Array.isArray(character.equipment)
+            ? character.equipment.join(", ")
+            : "None";
+          return {
+            success: true,
+            content: `Equipment: ${equipment}`,
+            type: "info",
+          };
+        default:
+          return {
+            success: false,
+            content: `Unknown command: ${command}. Use /help for available commands.`,
+            type: "error",
+          };
+      }
+    },
+    [
+      character,
+      handleCharacterUpdate,
+      handleLocationUpdate,
+      parseCommand,
+      handleRollCommand,
+    ],
+  );
 
   // Dice rolling function
   const rollDice = (

@@ -70,14 +70,8 @@ export function GameChat({
   const startNewSession = useCallback(
     async (sessionId: string) => {
       try {
-        // First, create the session automatically
-        await apiService.createAutomaticSession(
-          campaign.id,
-          character.id,
-          sessionId,
-        );
-
-        // Then call the campaign initialization API
+        // The session is already created by the parent component
+        // Just call the campaign initialization API
         const initialization = await apiService.initializeCampaign(
           campaign.id,
           sessionId,
@@ -195,12 +189,39 @@ export function GameChat({
     const initializeCampaign = async () => {
       try {
         if (existingSessionId) {
-          // Resume existing session - load messages from database
-          await loadExistingSession(existingSessionId);
+          // Check if this is a new session (no messages) or existing session
+          try {
+            const response = await fetch(
+              `/api/sessions/${existingSessionId}/messages`,
+            );
+            if (response.ok) {
+              const data = await response.json();
+              if (data.messages && data.messages.length > 0) {
+                // Existing session with messages - load them
+                await loadExistingSession(existingSessionId);
+              } else {
+                // New session without messages - initialize it
+                await startNewSession(existingSessionId);
+              }
+            } else {
+              // New session - initialize it
+              await startNewSession(existingSessionId);
+            }
+          } catch (error) {
+            // If there's an error checking messages, assume it's a new session
+            console.log(
+              "Error checking session messages, initializing as new session:",
+              error,
+            );
+            await startNewSession(existingSessionId);
+          }
         } else {
-          // Start new session - generate new session ID
-          const sessionId = crypto.randomUUID();
-          await startNewSession(sessionId);
+          // For new sessions, we need to wait for the parent component to provide the session ID
+          // The session should already be created by the parent component
+          console.log(
+            "No existing session ID provided, waiting for session creation...",
+          );
+          setIsInitializing(false);
         }
       } catch (error) {
         console.error("Failed to initialize campaign:", error);

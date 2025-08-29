@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
-import { CombatService, CombatEncounter, CombatAction } from '../src/services/CombatService';
+import { CombatService, CombatAction, CombatEncounterData } from '../src/services/CombatService';
 import { ContextManager } from '../src/services/ContextManager';
 
 // Mock ContextManager
@@ -208,7 +208,7 @@ describe('CombatService', () => {
   });
 
   describe('processCombatAction', () => {
-    let testEncounter: CombatEncounter;
+    let testEncounter: CombatEncounterData;
     let testEncounterId: string;
 
     beforeEach(async () => {
@@ -421,7 +421,7 @@ describe('CombatService', () => {
         {
           id: 'char1',
           name: 'Test Character',
-          type: 'player' as const,
+          type: 'character' as const,
           maxHP: 20,
           currentHP: 20,
           armorClass: 15,

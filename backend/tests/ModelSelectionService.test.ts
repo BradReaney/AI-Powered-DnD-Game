@@ -16,8 +16,8 @@ describe('ModelSelectionService', () => {
     };
 
     const selection = await service.selectOptimalModel(task);
-    expect(selection.model).toBe('flash');
-    expect(selection.confidence).toBeGreaterThan(0.8);
+    expect(selection.model).toBe('flash-lite'); // skill_check_result is ultra-simple = flash-lite
+    expect(selection.confidence).toBeGreaterThanOrEqual(0.8);
   });
 
   it('should select Pro model for complex tasks', async () => {
