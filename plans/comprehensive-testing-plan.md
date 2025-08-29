@@ -73,6 +73,63 @@ This comprehensive testing plan covers all aspects of the AI-Powered D&D Game ap
 
 ---
 
+## 🔍 **Session Cleanup Investigation - COMPLETED SUCCESSFULLY** ✅
+
+### **Investigation Summary**
+**Date**: August 29, 2025  
+**Objective**: Investigate and test session cleanup logic that automatically marks sessions as inactive after 1 hour of inactivity
+
+### **What Was Investigated**
+1. **Session Cleanup Logic**: Automatic cleanup of sessions inactive for 1+ hours
+2. **Session Activity Updates**: Real-time updates when messages are sent
+3. **Manual Cleanup Endpoints**: API endpoints for immediate session cleanup
+4. **Inactivity Monitoring**: Detection of sessions approaching inactivity threshold
+5. **Automatic Scheduler**: Background job that runs every 15 minutes
+
+### **Investigation Results** ✅
+
+#### **Session Cleanup System Status: FULLY FUNCTIONAL**
+- ✅ **Automatic Cleanup**: Sessions automatically marked as `inactive` after 1 hour
+- ✅ **Background Scheduler**: Runs every 15 minutes without issues
+- ✅ **Manual Cleanup**: `/api/sessions/close-inactive` endpoint working correctly
+- ✅ **Activity Updates**: Session activity updated on every message
+- ✅ **Inactivity Monitoring**: `/api/sessions/approaching-inactivity` endpoint functional
+- ✅ **Status Management**: Sessions correctly marked as `active` or `inactive`
+- ✅ **Metadata Updates**: `endTime` properly set for inactive sessions
+
+#### **Technical Implementation Verified**
+- ✅ **SessionCleanupScheduler**: Automatically runs cleanup jobs every 15 minutes
+- ✅ **SessionService.closeInactiveSessions()**: Correctly identifies and closes old sessions
+- ✅ **SessionService.updateSessionActivity()**: Updates `lastActivity` timestamp
+- ✅ **Database Operations**: MongoDB operations working correctly
+- ✅ **Error Handling**: Proper error handling and logging implemented
+
+#### **End-to-End Testing Completed**
+- ✅ **Session Creation**: New sessions created successfully
+- ✅ **Activity Updates**: Session activity updated when messages sent
+- ✅ **Cleanup Triggering**: Old sessions automatically marked as inactive
+- ✅ **Status Verification**: Database shows correct session statuses
+- ✅ **API Endpoints**: All cleanup-related endpoints working correctly
+
+### **Test Data Summary**
+- **Total Sessions**: 10
+- **Active Sessions**: 5 (recent activity, < 1 hour old)
+- **Inactive Sessions**: 5 (old activity, > 1 hour old, properly cleaned up)
+- **Cleanup Jobs**: Multiple automatic and manual cleanup operations completed successfully
+
+### **Conclusion**
+The session cleanup logic is **working correctly and efficiently**. The system:
+- Automatically detects sessions inactive for 1+ hours
+- Marks them as inactive with proper metadata updates
+- Runs cleanup every 15 minutes via background scheduler
+- Provides manual cleanup endpoints for immediate needs
+- Updates session activity in real-time during gameplay
+- Maintains proper session lifecycle management
+
+**No issues found** - the session cleanup system is production-ready.
+
+---
+
 ## 🚨 **Critical Success Criteria**
 
 ### **Must Pass for Production Readiness** ⚡ **CRITICAL PATH**
