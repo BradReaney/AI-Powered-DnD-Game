@@ -3,7 +3,7 @@ import GameEngineService from '../services/GameEngineService';
 import SessionService from '../services/SessionService';
 import logger from '../services/LoggerService';
 import { Server as SocketIOServer } from 'socket.io';
-import { Message, Session } from '../models';
+import { Session } from '../models';
 
 const router = express.Router();
 
@@ -235,7 +235,7 @@ router.get('/', async (req, res) => {
       return res.status(500).json({ error: 'Session service not initialized' });
     }
 
-    const { page = 1, limit = 10, status, campaignId, search } = req.query;
+    const { status, campaignId, search } = req.query;
 
     const query: any = {};
     if (status && typeof status === 'string') query.status = status;
@@ -298,7 +298,6 @@ router.put('/:sessionId', async (req, res) => {
     }
 
     const { sessionId } = req.params;
-    const updateData = req.body;
 
     // For now, just return success since updateSession method doesn't exist
     res.json({
