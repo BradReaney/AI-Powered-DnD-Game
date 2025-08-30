@@ -241,6 +241,16 @@ export default function HomePage() {
     }
   };
 
+  const handleLocationDeleted = (locationId: string) => {
+    // Remove the deleted location from the locations state
+    setLocations(locations.filter((l) => l.id !== locationId));
+  };
+
+  const handleCharacterDeleted = (characterId: string) => {
+    // Remove the deleted character from the characters state
+    setCharacters(characters.filter((c) => c.id !== characterId));
+  };
+
   const handleBackToOverview = () => {
     setViewMode("overview");
     setSelectedCampaign(null);
@@ -638,6 +648,8 @@ export default function HomePage() {
             onSaveCharacter={handleSaveCharacter}
             onSaveLocation={handleSaveLocation}
             onDeleteCampaign={handleDeleteCampaign}
+            onLocationDeleted={handleLocationDeleted}
+            onCharacterDeleted={handleCharacterDeleted}
           />
         </div>
       </div>
