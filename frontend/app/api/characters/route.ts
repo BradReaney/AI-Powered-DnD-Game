@@ -79,3 +79,50 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    // Get backend URL for server-side requests (use service name in Docker)
+    const backendUrl = process.env.BACKEND_URL;
+    if (!backendUrl) {
+      throw new Error("BACKEND_URL environment variable is required");
+    }
+
+    // Get the character ID from the URL path
+    const { searchParams } = new URL(request.url);
+    const characterId = searchParams.get("id");
+
+    if (!characterId) {
+      return NextResponse.json(
+        { error: "Character ID is required" },
+        { status: 400 },
+      );
+    }
+
+    // Forward the delete request to the backend
+    const response = await fetch(
+      `${backendUrl}/api/characters/${characterId}`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(
+        `Backend responded with status: ${response.status}: ${JSON.stringify(errorData)}`,
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Characters DELETE API route error:", error);
+    return NextResponse.json(
+      { error: "Failed to delete character" },
+      { status: 500 },
+    );
+  }
+}

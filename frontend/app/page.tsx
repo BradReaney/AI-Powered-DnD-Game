@@ -415,6 +415,44 @@ export default function HomePage() {
     }
   };
 
+  const handleDeleteCharacter = async (character: Character) => {
+    if (
+      confirm(
+        `Are you sure you want to delete "${character.name}"? This action cannot be undone.`,
+      )
+    ) {
+      try {
+        await apiService.deleteCharacter(character.id);
+        setCharacters(characters.filter((c) => c.id !== character.id));
+        setError(null);
+      } catch (err) {
+        console.error("Failed to delete character:", err);
+        setError(
+          err instanceof Error ? err.message : "Failed to delete character",
+        );
+      }
+    }
+  };
+
+  const handleDeleteLocation = async (location: Location) => {
+    if (
+      confirm(
+        `Are you sure you want to delete "${location.name}"? This action cannot be undone.`,
+      )
+    ) {
+      try {
+        await apiService.deleteLocation(location.id);
+        setLocations(locations.filter((l) => l.id !== location.id));
+        setError(null);
+      } catch (err) {
+        console.error("Failed to delete location:", err);
+        setError(
+          err instanceof Error ? err.message : "Failed to delete location",
+        );
+      }
+    }
+  };
+
   // Render different views based on viewMode
   if (viewMode === "create-campaign" || viewMode === "edit-campaign") {
     return (
@@ -1005,6 +1043,13 @@ export default function HomePage() {
                               >
                                 <Play className="h-4 w-4 mr-2" />
                                 View
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleDeleteCharacter(character)}
+                              >
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </div>
