@@ -189,6 +189,52 @@ export function CampaignDetail({
     }
   };
 
+  const handleDeleteCharacter = async (character: Character) => {
+    if (
+      confirm(
+        `Are you sure you want to delete "${character.name}"? This action cannot be undone.`,
+      )
+    ) {
+      try {
+        const response = await fetch(`/api/characters/${character.id}`, {
+          method: "DELETE",
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to delete character: ${response.statusText}`);
+        }
+        setCharacterViewMode("list");
+        setSelectedCharacter(null);
+        window.location.reload(); // Trigger a page refresh to update the character list
+      } catch (error) {
+        console.error("Error deleting character:", error);
+        alert("Failed to delete character. Please try again.");
+      }
+    }
+  };
+
+  const handleDeleteLocation = async (location: Location) => {
+    if (
+      confirm(
+        `Are you sure you want to delete "${location.name}"? This action cannot be undone.`,
+      )
+    ) {
+      try {
+        const response = await fetch(`/api/locations/${location.id}`, {
+          method: "DELETE",
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to delete location: ${response.statusText}`);
+        }
+        setLocationViewMode("list");
+        setSelectedLocation(null);
+        window.location.reload(); // Trigger a page refresh to update the location list
+      } catch (error) {
+        console.error("Error deleting location:", error);
+        alert("Failed to delete location. Please try again.");
+      }
+    }
+  };
+
   const handleSaveSettings = async () => {
     try {
       setIsSavingSettings(true);
@@ -410,6 +456,7 @@ export function CampaignDetail({
               <CharacterSheet
                 character={selectedCharacter}
                 onEdit={() => handleEditCharacter(selectedCharacter)}
+                onDelete={() => handleDeleteCharacter(selectedCharacter)}
               />
             </div>
           ) : (
@@ -483,6 +530,14 @@ export function CampaignDetail({
                               >
                                 View
                               </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleDeleteCharacter(character)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </Button>
                             </div>
                           </div>
                         </CardContent>
@@ -519,6 +574,7 @@ export function CampaignDetail({
                 location={selectedLocation}
                 onBack={() => setLocationViewMode("list")}
                 onEdit={() => handleEditLocation(selectedLocation)}
+                onDelete={() => handleDeleteLocation(selectedLocation)}
                 allLocations={campaignLocations}
               />
             </div>
@@ -614,6 +670,14 @@ export function CampaignDetail({
                                 onClick={() => handleViewLocation(location)}
                               >
                                 View
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleDeleteLocation(location)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
                               </Button>
                             </div>
                           </div>

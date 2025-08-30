@@ -21,15 +21,21 @@ import {
   Scroll,
   User,
   MapPin,
+  Trash2,
 } from "lucide-react";
 
 interface CharacterSheetProps {
   character: Character;
   onEdit?: () => void;
   onBack?: () => void;
+  onDelete?: () => void;
 }
 
-export function CharacterSheet({ character, onEdit }: CharacterSheetProps) {
+export function CharacterSheet({
+  character,
+  onEdit,
+  onDelete,
+}: CharacterSheetProps) {
   const getModifier = (score: number) => {
     const mod = Math.floor((score - 10) / 2);
     return mod >= 0 ? `+${mod}` : `${mod}`;
@@ -69,6 +75,12 @@ export function CharacterSheet({ character, onEdit }: CharacterSheetProps) {
               <Button variant="outline" onClick={onEdit}>
                 <Edit className="h-4 w-4 mr-2" />
                 Edit
+              </Button>
+            )}
+            {onDelete && (
+              <Button variant="destructive" onClick={onDelete}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
               </Button>
             )}
           </div>

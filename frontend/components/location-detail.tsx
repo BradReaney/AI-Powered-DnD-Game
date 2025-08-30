@@ -10,13 +10,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { Location } from "@/lib/types";
-import { ArrowLeft, Edit, MapPin, Users, Link } from "lucide-react";
+import { ArrowLeft, Edit, MapPin, Users, Link, Trash2 } from "lucide-react";
 
 interface LocationDetailProps {
   location: Location;
   onBack: () => void;
   onEdit: () => void;
   allLocations?: Location[];
+  onDelete?: () => void;
 }
 
 const getLocationTypeIcon = (type: string) => {
@@ -54,6 +55,7 @@ export function LocationDetail({
   onBack,
   onEdit,
   allLocations = [],
+  onDelete,
 }: LocationDetailProps) {
   const getConnectedLocationName = (id: string) => {
     const connectedLocation = allLocations.find((loc) => loc.id === id);
@@ -92,6 +94,12 @@ export function LocationDetail({
           <Edit className="h-4 w-4 mr-2" />
           Edit Location
         </Button>
+        {onDelete && (
+          <Button variant="destructive" onClick={onDelete}>
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete Location
+          </Button>
+        )}
       </div>
 
       {/* Location Overview */}

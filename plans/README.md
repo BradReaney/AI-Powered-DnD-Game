@@ -13,6 +13,71 @@ This directory contains development plans, testing strategies, and project docum
 - Mock LLM service for testing
 - Comprehensive testing framework
 - **Redis cache clearing for Railway deployments** 🆕
+- **Character and Location Delete Functionality** 🆕
+
+### 🔄 Recent Refactoring (August 30, 2025)
+
+#### Character and Location Delete Functionality Implementation
+**Status**: ✅ COMPLETED
+
+**Problem**: The application lacked a method to delete saved characters and locations from the UI. Users needed the ability to remove unwanted or obsolete characters and locations to maintain clean data.
+
+**Solution**: Implemented comprehensive delete functionality across all three required locations with proper confirmation dialogs, API integration, and UI updates.
+
+**Changes Made**:
+1. **Frontend API Routes**: Created dynamic Next.js API routes for character and location deletion
+   - `/api/characters/[characterId]/route.ts` - Handles character deletion
+   - `/api/locations/[locationId]/route.ts` - Handles location deletion
+2. **Homepage Character Tab**: Added delete buttons with trash icons to character cards
+3. **Campaign Management Characters**: Added delete functionality to campaign character management
+4. **Campaign Management Locations**: Added delete functionality to campaign location management
+5. **Component Updates**: Enhanced CharacterSheet and LocationDetail components with delete capabilities
+6. **Delete Handlers**: Implemented proper confirmation dialogs and error handling
+
+**Key Features**:
+- **Confirmation Dialogs**: User confirmation before deletion with clear warning messages
+- **Visual Indicators**: Trash icons and "Delete" text on all delete buttons
+- **Proper API Integration**: Uses Next.js API routes as proxy to backend services
+- **Error Handling**: Comprehensive error handling with user-friendly messages
+- **State Management**: Proper state updates and page refreshes after deletion
+- **Consistent UI**: Delete buttons appear in all three required locations
+
+**Implementation Locations**:
+1. ✅ **Homepage > Character tab**: Delete buttons on character cards
+2. ✅ **Homepage > Campaign tab > Manage > Characters**: Delete buttons in campaign character management
+3. ✅ **Homepage > Campaign tab > Manage > Locations**: Delete buttons in campaign location management
+
+**Testing Results**:
+- ✅ Character deletion working in homepage Characters tab
+- ✅ Character deletion working in campaign management Characters tab
+- ✅ Location deletion working in campaign management Locations tab
+- ✅ Delete buttons properly rendered with trash icons and text
+- ✅ Confirmation dialogs appearing with correct messages
+- ✅ API routes returning 200 OK status for successful deletions
+- ✅ Page refreshes working correctly after deletion
+- ✅ Error handling functioning properly
+
+**Files Modified**:
+- `frontend/app/api/characters/[characterId]/route.ts` (new)
+- `frontend/app/api/locations/[locationId]/route.ts` (new)
+- `frontend/app/page.tsx`
+- `frontend/components/campaign-detail.tsx`
+- `frontend/components/character-sheet.tsx`
+- `frontend/components/location-detail.tsx`
+
+**Technical Details**:
+- Uses Next.js dynamic API routes with path parameters
+- Integrates with existing backend DELETE endpoints
+- Maintains consistent UI/UX patterns across all delete locations
+- Implements proper error handling and user feedback
+- Uses `window.location.reload()` for state refresh after deletion
+
+**Benefits**:
+- Users can now clean up unwanted characters and locations
+- Improved data management and organization
+- Consistent delete functionality across all relevant UI sections
+- Better user experience with confirmation dialogs
+- Maintains data integrity through proper API integration
 
 ### 🔄 Recent Refactoring (August 30, 2025)
 
@@ -159,4 +224,4 @@ The `archive/` directory contains completed plans and historical development doc
 
 ---
 
-*Last updated: August 28, 2025*
+*Last updated: August 30, 2025*
