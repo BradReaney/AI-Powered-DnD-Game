@@ -107,7 +107,6 @@ export class CharacterNameSimilarityService {
     // Calculate edit distance
     const editDistance = leven(normalizedName1, normalizedName2);
     const maxLength = Math.max(normalizedName1.length, normalizedName2.length);
-    const minLength = Math.min(normalizedName1.length, normalizedName2.length);
 
     // Calculate similarity percentage based on edit distance
     let similarity = Math.max(0, 100 - (editDistance / maxLength) * 100);
@@ -401,11 +400,11 @@ export class CharacterNameSimilarityService {
   /**
    * Calculate confidence level for a similarity match
    * @param similarityScore Raw similarity score
-   * @param name1 First character name
-   * @param name2 Second character name
+   * @param _name1 First character name (unused but kept for future extensibility)
+   * @param _name2 Second character name (unused but kept for future extensibility)
    * @returns Confidence percentage (0-100)
    */
-  private calculateConfidence(similarityScore: number, name1: string, name2: string): number {
+  private calculateConfidence(similarityScore: number, _name1: string, _name2: string): number {
     if (similarityScore >= 95) {
       return 100; // Very high confidence for near-exact matches
     }
