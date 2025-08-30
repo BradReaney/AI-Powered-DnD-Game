@@ -465,13 +465,16 @@ router.post('/story-response', async (req, res) => {
 
       for (const charData of charactersData) {
         try {
-          // Check if character already exists
-          const existingCharacter = await characterService.getCharacterByName(
+          // Check if character already exists using similarity detection
+          const characterMatch = await characterService.findCharacterByNameSimilarity(
             charData.name,
             campaignId
           );
 
-          if (existingCharacter) {
+          if (characterMatch.character) {
+            // Character found (either exact match or high-confidence similarity)
+            const existingCharacter = characterMatch.character;
+
             // Store previous data for change detection
             const previousData = {
               race: existingCharacter.race,
@@ -479,6 +482,17 @@ router.post('/story-response', async (req, res) => {
               level: existingCharacter.level,
               personality: existingCharacter.personality,
             };
+
+            // Log the match type for debugging
+            if (characterMatch.isExactMatch) {
+              logger.info(
+                `Exact character match found: "${charData.name}" -> "${existingCharacter.name}"`
+              );
+            } else {
+              logger.info(
+                `Similarity character match found: "${charData.name}" -> "${existingCharacter.name}" (${characterMatch.matchDetails.confidence}% confidence)`
+              );
+            }
 
             // Update existing character if needed
             const updatedCharacter = await characterService.updateCharacter(
@@ -491,7 +505,9 @@ router.post('/story-response', async (req, res) => {
               isNew: false,
             });
           } else {
-            // Create new character
+            // No match found, create new character
+            logger.info(`Creating new character: "${charData.name}" (no existing matches found)`);
+
             const newCharacter = await characterService.createAICharacter({
               ...charData,
               campaignId,

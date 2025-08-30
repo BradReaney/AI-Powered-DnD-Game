@@ -14,6 +14,56 @@ This directory contains development plans, testing strategies, and project docum
 - Comprehensive testing framework
 - **Redis cache clearing for Railway deployments** 🆕
 
+### 🔄 Recent Refactoring (August 30, 2025)
+
+#### Character Name Similarity Detection Implementation
+**Status**: ✅ COMPLETED
+
+**Problem**: The application was creating duplicate character records when the same person was referenced with slightly different names (e.g., "The old man", "Old Finnan", "Finnan"). This caused character clutter and inconsistent data.
+
+**Solution**: Implemented intelligent character name similarity detection that can identify when different name references refer to the same person, using both similarity matching and progressive identification algorithms.
+
+**Changes Made**:
+1. **New Service**: Created `CharacterNameSimilarityService` with progressive identification logic
+2. **CharacterService Integration**: Updated to use similarity detection when finding existing characters
+3. **Gameplay Route Updates**: Modified character processing to use similarity detection instead of exact name matching
+4. **Configuration**: Added environment variables for tuning similarity thresholds
+5. **Comprehensive Testing**: Created extensive test suite covering all scenarios
+
+**Key Features**:
+- **Progressive Identification**: Detects generic descriptions progressing to specific names (e.g., "The old man" → "Finnan")
+- **Similarity Matching**: Uses edit distance and pattern recognition for name variations
+- **Configurable Thresholds**: Adjustable confidence levels via environment variables
+- **Multiple Match Types**: Supports exact, similarity, and progressive matching
+- **Intelligent Scoring**: Combines multiple factors for accurate character identification
+
+**Benefits**:
+- Eliminates duplicate character records
+- Maintains character continuity across story progression
+- Improves data quality and consistency
+- Reduces manual character management overhead
+- Provides flexible matching for various naming patterns
+
+**Testing Results**:
+- ✅ All 26 unit tests passing
+- ✅ Progressive identification working correctly
+- ✅ Similarity matching functioning properly
+- ✅ findBestNameMatch returning appropriate results
+- ✅ Confidence thresholds working as expected
+
+**Files Modified**:
+- `backend/src/services/CharacterNameSimilarityService.ts` (new)
+- `backend/src/services/CharacterService.ts`
+- `backend/src/routes/gameplay.ts`
+- `backend/tests/CharacterNameSimilarityService.test.ts` (new)
+- `config/env.example`
+
+**Environment Variables Added**:
+- `CHARACTER_SIMILARITY_CONFIDENCE_THRESHOLD`: Minimum confidence for matches (default: 70)
+- `CHARACTER_SIMILARITY_MIN_SCORE`: Minimum similarity score (default: 60)
+- `CHARACTER_SIMILARITY_MAX_EDIT_DISTANCE_SHORT`: Max edit distance for short names (default: 2)
+- `CHARACTER_SIMILARITY_MAX_EDIT_DISTANCE_LONG`: Max edit distance for long names (default: 3)
+
 ### 🔄 Recent Refactoring (August 28, 2025)
 
 #### Redis Cache Clearing Implementation
