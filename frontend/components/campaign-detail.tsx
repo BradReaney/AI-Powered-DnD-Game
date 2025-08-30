@@ -40,6 +40,8 @@ interface CampaignDetailProps {
   onSaveCharacter: (character: Partial<Character>) => Promise<void>;
   onSaveLocation: (location: Partial<Location>) => Promise<void>;
   onDeleteCampaign?: (campaign: Campaign) => Promise<void>;
+  onLocationDeleted?: (locationId: string) => void;
+  onCharacterDeleted?: (characterId: string) => void;
 }
 
 export function CampaignDetail({
@@ -52,6 +54,8 @@ export function CampaignDetail({
   onSaveCharacter,
   onSaveLocation,
   onDeleteCampaign,
+  onLocationDeleted,
+  onCharacterDeleted,
 }: CampaignDetailProps) {
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(
     null,
@@ -204,7 +208,11 @@ export function CampaignDetail({
         }
         setCharacterViewMode("list");
         setSelectedCharacter(null);
-        window.location.reload(); // Trigger a page refresh to update the character list
+
+        // Call the callback to update parent state instead of page reload
+        if (onCharacterDeleted) {
+          onCharacterDeleted(character.id);
+        }
       } catch (error) {
         console.error("Error deleting character:", error);
         alert("Failed to delete character. Please try again.");
@@ -227,7 +235,11 @@ export function CampaignDetail({
         }
         setLocationViewMode("list");
         setSelectedLocation(null);
-        window.location.reload(); // Trigger a page refresh to update the location list
+
+        // Call the callback to update parent state instead of page reload
+        if (onLocationDeleted) {
+          onLocationDeleted(location.id);
+        }
       } catch (error) {
         console.error("Error deleting location:", error);
         alert("Failed to delete location. Please try again.");
