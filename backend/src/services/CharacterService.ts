@@ -2,6 +2,7 @@ import logger from './LoggerService';
 import { Character, ICharacter, Campaign, ICampaign, Session } from '../models';
 import LLMClientFactory from './LLMClientFactory';
 import { cacheService } from './CacheService';
+import CharacterNameSimilarityService from './CharacterNameSimilarityService';
 
 export interface CharacterCreationData {
   name: string;
@@ -922,6 +923,68 @@ class CharacterService {
       return character;
     } catch (error) {
       logger.error('Error getting character by name:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Find character by name similarity instead of exact match
+   * @param name Character name to find
+   * @param campaignId Campaign ID to search in
+   * @returns Character if found with high confidence, null otherwise
+   */
+  public async findCharacterByNameSimilarity(
+    name: string,
+    campaignId: string
+  ): Promise<{
+    character: ICharacter | null;
+    matchDetails: any;
+    isExactMatch: boolean;
+  }> {
+    try {
+      // First try exact match
+      const exactMatch = await this.getCharacterByName(name, campaignId);
+      if (exactMatch) {
+        return {
+          character: exactMatch,
+          matchDetails: { type: 'exact', confidence: 100 },
+          isExactMatch: true,
+        };
+      }
+
+      // If no exact match, try similarity matching
+      const allCharacters = await this.getCharactersByCampaign(campaignId);
+      const similarityService = CharacterNameSimilarityService.getInstance();
+      const bestMatch = similarityService.findBestNameMatch(name, allCharacters);
+
+      if (bestMatch && bestMatch.isMatch) {
+        logger.info(
+          `Found character by similarity: "${name}" matches "${bestMatch.existingCharacter.name}" with ${bestMatch.confidence}% confidence`
+        );
+
+        // Cache the result for 5 minutes
+        const cacheKey = `character:similarity:${name}:campaign:${campaignId}`;
+        await cacheService.set(cacheKey, bestMatch.existingCharacter, { ttl: 300 });
+
+        return {
+          character: bestMatch.existingCharacter,
+          matchDetails: {
+            type: 'similarity',
+            confidence: bestMatch.confidence,
+            similarityScore: bestMatch.similarityScore,
+            matchedName: bestMatch.existingCharacter.name,
+          },
+          isExactMatch: false,
+        };
+      }
+
+      return {
+        character: null,
+        matchDetails: { type: 'no_match', confidence: 0 },
+        isExactMatch: false,
+      };
+    } catch (error) {
+      logger.error('Error finding character by name similarity:', error);
       throw error;
     }
   }
