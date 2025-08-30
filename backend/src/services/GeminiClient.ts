@@ -555,7 +555,7 @@ Be precise and only extract living beings that can act and interact. Do not extr
     storyContent: string,
     originalPrompt: string
   ): Promise<GeminiResponse> {
-    const prompt = `You are analyzing a D&D story response to extract location information.
+    const prompt = `You are analyzing a D&D story response to extract ONLY SIGNIFICANT location information.
 
 STORY CONTENT:
 ${storyContent}
@@ -563,31 +563,52 @@ ${storyContent}
 ORIGINAL PROMPT:
 ${originalPrompt}
 
-Your task is to identify any NEW locations mentioned in the story and extract their information.
+Your task is to identify any NEW SIGNIFICANT locations mentioned in the story and extract their information.
 
 IMPORTANT RULES:
 1. Only extract locations that are NEWLY mentioned (not previously visited places)
 2. Use the EXACT location name as mentioned in the story
 3. Infer location type and details from context clues in the story
-4. If no new locations are mentioned, return an empty array
-5. **CRITICAL: Extract ALL types of locations mentioned, including:**
-   - Castles, fortresses, towers (e.g., "Castle Blackstone", "The Iron Tower")
-   - Towns, cities, villages, settlements (e.g., "Waterdeep", "The Village of Hommlet")
-   - Dungeons, caves, ruins (e.g., "The Lost Mine of Phandelver", "Ancient Ruins")
-   - Wilderness areas, forests, mountains (e.g., "The Misty Forest", "Mount Hotenow")
-   - Shops, taverns, inns (e.g., "The Red Dragon Inn", "Blacksmith's Forge")
-   - Temples, shrines, religious sites (e.g., "The Temple of Lathander", "Sacred Grove")
-   - Landmarks, monuments, special places (e.g., "The Standing Stones", "The Crystal Cave")
+4. If no new significant locations are mentioned, return an empty array
+5. **CRITICAL: Extract ONLY SIGNIFICANT locations, including:**
+   - Castles, fortresses, towers, citadels (e.g., "Castle Blackstone", "The Iron Tower", "Citadel of the Sun")
+   - Towns, cities, villages, settlements, metropolises (e.g., "Waterdeep", "The Village of Hommlet", "Neverwinter", "Baldur's Gate")
+   - Dungeons, caves, ruins, ancient complexes (e.g., "The Lost Mine of Phandelver", "Ancient Ruins", "The Underdark")
+   - Major wilderness areas, forests, mountains, regions (e.g., "The Misty Forest", "Mount Hotenow", "The Sword Coast")
+   - Notable shops, taverns, inns with names (e.g., "The Red Dragon Inn", "Blacksmith's Forge", "The Prancing Pony")
+   - Temples, shrines, religious sites, holy places (e.g., "The Temple of Lathander", "Sacred Grove", "The High Cathedral")
+   - Landmarks, monuments, special places of importance (e.g., "The Standing Stones", "The Crystal Cave", "The World Tree")
 
-6. **CRITICAL: Look for both explicit names and descriptive locations**
-7. **CRITICAL: If a location is mentioned with a name, extract it even if briefly described**
+6. **CRITICAL: DO NOT extract generic or insignificant locations:**
+   - Generic alleys, streets, or paths (e.g., "narrow alley", "dark street", "hidden path", "King's Way")
+   - Generic walls, doors, or architectural features (e.g., "warehouse wall", "stone door", "wooden gate", "warehouse")
+   - Generic rooms or areas within buildings (e.g., "main hall", "storage room", "corridor")
+   - Generic outdoor areas (e.g., "clearing", "meadow", "hillside", "nearby harbor")
+   - Temporary or transient locations (e.g., "camp", "resting place", "stopping point")
+   - Generic city areas without specific names (e.g., "the Gutters", "downtown", "market district")
 
-Examples of what to INCLUDE:
-- "Castle Blackstone" (even if just mentioned by name)
-- "The mysterious cave" (if described as a location)
-- "An ancient temple" (if described as a place)
-- "The bustling marketplace" (if described as a location)
-- "A hidden grove" (if described as a place)
+7. **CRITICAL: Look for both explicit names and descriptive significant locations**
+8. **CRITICAL: If a location is mentioned with a name, extract it only if it's significant**
+
+Examples of what to INCLUDE (significant locations):
+- "Castle Blackstone" (named fortress)
+- "The City of Neverwinter" (named city)
+- "The Red Dragon Inn" (named establishment)
+- "The Temple of Lathander" (named religious site)
+- "The Misty Forest" (named wilderness region)
+- "Baldur's Gate" (major city)
+- "Myth Drannor" (ancient ruins)
+
+Examples of what to EXCLUDE (insignificant locations):
+- "narrow alley" (generic feature)
+- "warehouse wall" (generic architectural element)
+- "warehouse" (generic building)
+- "King's Way" (generic path/road)
+- "nearby harbor" (generic area)
+- "the Gutters" (generic city area)
+- "dark corner" (generic area)
+- "stone path" (generic path)
+- "small clearing" (generic outdoor area)
 
 **CRITICAL: You MUST return ONLY a valid JSON array. Do NOT include any text before or after the JSON.**
 
@@ -622,9 +643,9 @@ Return ONLY a JSON array with this exact structure:
 
 **CRITICAL: The response must be ONLY the JSON array. No explanations, no additional text.**
 **CRITICAL: Ensure all arrays and objects are properly formatted as JSON.**
-**CRITICAL: If no new locations, return exactly: []**
+**CRITICAL: If no new significant locations, return exactly: []**
 
-Be thorough and extract ALL locations mentioned, whether they are named places, described areas, or referenced locations.`;
+Be selective and only extract locations that are truly significant to the story and world-building. Focus on named places, major landmarks, and locations that characters would remember and return to.`;
 
     return this.sendPrompt({
       prompt,
