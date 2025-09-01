@@ -217,25 +217,16 @@ export default function SessionContinuity({
                       variant="destructive"
                       size="sm"
                       onClick={async () => {
-                        console.log(
-                          "Delete button clicked for session:",
-                          session.sessionId,
-                        );
                         if (
                           confirm(
                             `Are you sure you want to delete the session "${session.name}"? This action cannot be undone and will remove all session data including messages, characters, and locations.`,
                           )
                         ) {
                           try {
-                            console.log("Calling deleteSession API...");
                             await apiService.deleteSession(session.sessionId);
-                            console.log(
-                              "Delete successful, refreshing sessions...",
-                            );
                             // Refresh the sessions list
                             fetchActiveSessions();
                           } catch (error) {
-                            console.error("Error deleting session:", error);
                             alert(
                               "Failed to delete session. Please try again.",
                             );

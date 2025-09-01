@@ -2,15 +2,15 @@ name: Quality Checks
 
 on:
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   workflow_dispatch:
 
 env:
-  NODE_VERSION: '18'
-  BACKEND_URL: 'http://localhost:5001'
-  NEXT_PUBLIC_API_URL: 'http://localhost:5001'
+  NODE_VERSION: "18"
+  BACKEND_URL: "http://localhost:5001"
+  NEXT_PUBLIC_API_URL: "http://localhost:5001"
 
 jobs:
   backend-quality:
@@ -25,7 +25,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install all dependencies
         run: npm ci
@@ -54,7 +54,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install all dependencies
         run: npm ci
@@ -83,7 +83,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install all dependencies
         run: npm ci

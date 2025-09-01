@@ -103,8 +103,9 @@ debug-point-buy.png
 # NPM
 .npm
 npm-debug.log*
-package-lock.json
-*/package-lock.json
+# package-lock.json files are needed for CI/CD and reproducible builds
+# package-lock.json
+# */package-lock.json
 
 # Yarn
 .yarn-integrity

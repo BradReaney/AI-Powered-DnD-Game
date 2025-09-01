@@ -146,6 +146,42 @@ class App {
       }
     });
 
+    // Lightweight health check endpoint for Docker health checks
+    this.app.get('/health/light', (_req, res) => {
+      res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: config.server.nodeEnv,
+        message: 'Service is running',
+      });
+    });
+
+    // Database connection pool status endpoint
+    this.app.get('/health/db-pool', async (_req, res) => {
+      try {
+        const dbService = DatabaseService.getInstance();
+        const poolStatus = dbService.getConnectionPoolStatus();
+        const isConnected = dbService.isDatabaseConnected();
+
+        res.status(200).json({
+          status: isConnected ? 'healthy' : 'unhealthy',
+          timestamp: new Date().toISOString(),
+          connectionPool: poolStatus,
+          database: {
+            connected: isConnected,
+            readyState: poolStatus.readyState,
+          },
+        });
+      } catch (error) {
+        logger.error('Database pool status check failed:', error);
+        res.status(500).json({
+          status: 'error',
+          error: 'Database pool status check failed',
+        });
+      }
+    });
+
     // Redis health check endpoint
     this.app.get('/health/redis', async (_req, res) => {
       try {
