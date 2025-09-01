@@ -59,7 +59,8 @@ jest.mock('ioredis', () => {
 
 // Mock LoggerService
 jest.mock('../src/services/LoggerService', () => ({
-  LoggerService: {
+  __esModule: true,
+  default: {
     getInstance: jest.fn(() => ({
       info: jest.fn(),
       warn: jest.fn(),
@@ -72,7 +73,8 @@ jest.mock('../src/services/LoggerService', () => ({
 
 // Mock CacheService
 jest.mock('../src/services/CacheService', () => ({
-  CacheService: {
+  __esModule: true,
+  default: {
     getInstance: jest.fn(() => ({
       get: jest.fn().mockResolvedValue(null),
       set: jest.fn().mockResolvedValue('OK'),
@@ -92,7 +94,8 @@ jest.mock('../src/services/CacheService', () => ({
 
 // Mock LLM client
 jest.mock('../src/services/LLMClientFactory', () => ({
-  LLMClientFactory: {
+  __esModule: true,
+  default: {
     createClient: jest.fn(() => ({
       generateResponse: jest.fn().mockResolvedValue('Mock response'),
       generateStreamingResponse: jest.fn().mockResolvedValue(['Mock', 'response']),
