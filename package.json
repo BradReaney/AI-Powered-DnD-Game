@@ -51,7 +51,7 @@
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",
-    "prepare": "husky install"
+    "prepare": "if [ \"$CI\" != \"true\" ]; then husky install; fi"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
