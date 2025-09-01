@@ -1,92 +1,47 @@
 import { SessionService } from '../src/services/SessionService';
 
 // Mock the models
-jest.mock('../src/models/Session', () => ({
-  __esModule: true,
-  default: {
-    findById: jest.fn(),
-    findOne: jest.fn(),
-    find: jest.fn(),
-    create: jest.fn(),
+jest.mock('../src/models', () => ({
+  Character: {
+    deleteMany: jest.fn(),
+  },
+  Campaign: {
     findByIdAndUpdate: jest.fn(),
+  },
+  Session: {
+    findOne: jest.fn(),
     findOneAndUpdate: jest.fn(),
-    updateMany: jest.fn(),
-    deleteOne: jest.fn(),
-  },
-}));
-
-jest.mock('../src/models/Campaign', () => ({
-  __esModule: true,
-  default: {
-    findById: jest.fn(),
-    findOne: jest.fn(),
-    find: jest.fn(),
-    create: jest.fn(),
     findByIdAndUpdate: jest.fn(),
-    updateMany: jest.fn(),
+    findOneAndDelete: jest.fn(),
   },
-}));
-
-jest.mock('../src/models/Character', () => ({
-  __esModule: true,
-  default: {
-    findById: jest.fn(),
-    findOne: jest.fn(),
-    find: jest.fn(),
-    create: jest.fn(),
-    findByIdAndUpdate: jest.fn(),
-    updateMany: jest.fn(),
+  Location: {
+    deleteMany: jest.fn(),
+  },
+  Message: {
+    deleteMany: jest.fn(),
+  },
+  StoryEvent: {
+    deleteMany: jest.fn(),
   },
 }));
 
 describe('SessionService', () => {
-  let sessionService: SessionService;
+  let sessionService: any;
   let mockSession: any;
-  let mockCampaign: any;
   let mockCharacter: any;
+  let mockLocation: any;
+  let mockMessage: any;
+  let mockStoryEvent: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockSession = {
-      findById: jest.fn(),
-      findOne: jest.fn(),
-      find: jest.fn(),
-      create: jest.fn(),
-      findByIdAndUpdate: jest.fn(),
-      findOneAndUpdate: jest.fn(),
-      updateMany: jest.fn(),
-      deleteOne: jest.fn(),
-    };
-
-    mockCampaign = {
-      findById: jest.fn(),
-      findOne: jest.fn(),
-      find: jest.fn(),
-      create: jest.fn(),
-      findByIdAndUpdate: jest.fn(),
-      updateMany: jest.fn(),
-    };
-
-    mockCharacter = {
-      findById: jest.fn(),
-      findOne: jest.fn(),
-      find: jest.fn(),
-      create: jest.fn(),
-      findByIdAndUpdate: jest.fn(),
-      updateMany: jest.fn(),
-    };
-
-    const {
-      Session: MockSession,
-      Campaign: MockCampaign,
-      Character: MockCharacter,
-    } = require('../src/models');
-
-    // Properly assign the mock functions
-    Object.assign(MockSession, mockSession);
-    Object.assign(MockCampaign, mockCampaign);
-    Object.assign(MockCharacter, mockCharacter);
+    const models = require('../src/models');
+    mockSession = models.Session;
+    mockCharacter = models.Character;
+    mockLocation = models.Location;
+    mockMessage = models.Message;
+    mockStoryEvent = models.StoryEvent;
 
     sessionService = SessionService.getInstance();
   });
@@ -115,7 +70,6 @@ describe('SessionService', () => {
 
     it('should throw error if session not found', async () => {
       mockSession.findOneAndUpdate.mockRejectedValue(new Error('Session not found'));
-
       await expect(sessionService.addSessionTags('nonexistent', ['new-tag'])).rejects.toThrow(
         'Session not found'
       );
@@ -126,28 +80,27 @@ describe('SessionService', () => {
     it('should remove session tags successfully', async () => {
       const mockSessionData = {
         _id: 'session123',
-        tags: ['tag1', 'tag2', 'tag3'],
+        tags: ['existing-tag', 'tag-to-remove'],
       };
 
       mockSession.findOneAndUpdate.mockResolvedValue({
         ...mockSessionData,
-        tags: ['tag1'],
+        tags: ['existing-tag'],
       });
 
       await expect(
-        sessionService.removeSessionTags('session123', ['tag2', 'tag3'])
+        sessionService.removeSessionTags('session123', ['tag-to-remove'])
       ).resolves.not.toThrow();
 
       expect(mockSession.findOneAndUpdate).toHaveBeenCalledWith(
         { _id: 'session123' },
-        { $pull: { tags: { $in: ['tag2', 'tag3'] } } }
+        { $pullAll: { tags: ['tag-to-remove'] } }
       );
     });
 
     it('should throw error if session not found', async () => {
       mockSession.findOneAndUpdate.mockRejectedValue(new Error('Session not found'));
-
-      await expect(sessionService.removeSessionTags('nonexistent', ['tag1'])).rejects.toThrow(
+      await expect(sessionService.removeSessionTags('nonexistent', ['tag'])).rejects.toThrow(
         'Session not found'
       );
     });
@@ -155,21 +108,22 @@ describe('SessionService', () => {
 
   describe('updateSessionActivity', () => {
     it('should update session activity successfully', async () => {
-      const mockSessionData = {
+      mockSession.findByIdAndUpdate.mockResolvedValue({
         _id: 'session123',
-        lastActivity: new Date('2023-01-01'),
-      };
-
-      mockSession.findOneAndUpdate.mockResolvedValue({
-        ...mockSessionData,
         lastActivity: new Date(),
       });
 
       await expect(sessionService.updateSessionActivity('session123')).resolves.not.toThrow();
 
-      expect(mockSession.findOneAndUpdate).toHaveBeenCalledWith(
-        { _id: 'session123' },
-        { $set: { lastActivity: expect.any(Date) } }
+      expect(mockSession.findByIdAndUpdate).toHaveBeenCalledWith('session123', {
+        lastActivity: expect.any(Date),
+      });
+    });
+
+    it('should throw error if session not found', async () => {
+      mockSession.findByIdAndUpdate.mockRejectedValue(new Error('Session not found'));
+      await expect(sessionService.updateSessionActivity('nonexistent')).rejects.toThrow(
+        'Session not found'
       );
     });
   });
@@ -178,26 +132,31 @@ describe('SessionService', () => {
     it('should delete session successfully', async () => {
       const mockSessionData = {
         _id: 'session123',
+        name: 'Test Session',
         campaignId: 'campaign123',
         characterIds: ['char1', 'char2'],
       };
 
-      mockSession.findById.mockResolvedValue(mockSessionData);
-      mockSession.deleteOne.mockResolvedValue({ deletedCount: 1 });
+      mockSession.findOne.mockResolvedValue(mockSessionData);
 
-      // Mock the models index to return our mocked models
-      const models = require('../src/models');
-      models.Character = mockCharacter;
-      models.Campaign = mockCampaign;
+      mockCharacter.deleteMany.mockResolvedValue({ deletedCount: 2 });
+      mockLocation.deleteMany.mockResolvedValue({ deletedCount: 1 });
+      mockMessage.deleteMany.mockResolvedValue({ deletedCount: 5 });
+      mockStoryEvent.deleteMany.mockResolvedValue({ deletedCount: 3 });
+      mockSession.findOneAndDelete.mockResolvedValue({ deletedCount: 1 });
 
       await expect(sessionService.deleteSession('session123')).resolves.not.toThrow();
 
-      expect(mockSession.findById).toHaveBeenCalledWith('session123');
-      expect(mockSession.deleteOne).toHaveBeenCalledWith({ _id: 'session123' });
+      expect(mockSession.findOne).toHaveBeenCalledWith({ _id: 'session123' });
+      expect(mockCharacter.deleteMany).toHaveBeenCalledWith({ sessionId: 'session123' });
+      expect(mockLocation.deleteMany).toHaveBeenCalledWith({ sessionId: 'session123' });
+      expect(mockMessage.deleteMany).toHaveBeenCalledWith({ sessionId: 'session123' });
+      expect(mockStoryEvent.deleteMany).toHaveBeenCalledWith({ sessionId: 'session123' });
+      expect(mockSession.findOneAndDelete).toHaveBeenCalledWith({ _id: 'session123' });
     });
 
     it('should throw error if session not found', async () => {
-      mockSession.findById.mockResolvedValue(null);
+      mockSession.findOne.mockResolvedValue(null);
 
       await expect(sessionService.deleteSession('nonexistent')).rejects.toThrow(
         'Session not found'
