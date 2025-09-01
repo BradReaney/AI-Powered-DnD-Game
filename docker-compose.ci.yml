@@ -137,6 +137,28 @@ services:
       retries: 5
       start_period: 90s
 
+  # Playwright service for running E2E tests
+  playwright-ci:
+    image: mcr.microsoft.com/playwright/chromium:v1.46.0-jammy
+    container_name: playwright-ci
+    volumes:
+      - .:/app
+      - /tmp/playwright:/tmp/playwright
+    working_dir: /app/frontend
+    environment:
+      NODE_ENV: test
+      CI: "true"
+      NEXT_PUBLIC_API_URL: http://frontend-ci:3000
+      BACKEND_URL: http://backend-ci:5001
+      PLAYWRIGHT_BASE_URL: http://frontend-ci:3000
+      # Only install Chrome to speed up CI
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "0"
+      PLAYWRIGHT_CHROMIUM_ONLY: "1"
+    depends_on:
+      frontend-ci:
+        condition: service_healthy
+    command: npm run test:e2e:ci
+
 networks:
   default:
     name: dnd-game-ci-network

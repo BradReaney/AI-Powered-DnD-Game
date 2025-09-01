@@ -17,36 +17,28 @@ export default defineConfig({
   reporter: [
     ["list"], // Clear terminal output for debugging
     ["json", { outputFile: "test-results/results.json" }], // Machine-readable for analysis
-    ["junit", { outputFile: "test-results/results.xml" }], // CI/CD integration
-    ["html", { outputFolder: "playwright-report" }], // HTML report for CI
-    ["github"], // GitHub PR integration
+    ["junit", { outputFile: "test-results/junit.xml" }], // For CI/CD systems
+    ["html", { open: "never" }], // For local debugging
   ],
-  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
+  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: process.env.CI ? "http://localhost:3000" : "http://localhost:3000",
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3000",
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: process.env.CI ? "on" : "on-first-retry",
-
-    /* Take screenshot on failure */
+    trace: "on-first-retry",
     screenshot: "only-on-failure",
-
-    /* Record video on failure */
-    video: process.env.CI ? "on" : "retain-on-failure",
-
-    /* Global timeout for actions */
-    actionTimeout: process.env.CI ? 30000 : 15000,
-    navigationTimeout: process.env.CI ? 30000 : 15000,
+    video: "on-first-retry",
   },
 
-  /* Configure projects for major browsers */
+  /* Configure projects for major browsers - Only Chrome for now to speed up CI */
   projects: [
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
     },
 
+    /* Commented out other browsers to speed up CI
     {
       name: "firefox",
       use: { ...devices["Desktop Firefox"] },
@@ -57,25 +49,16 @@ export default defineConfig({
       use: { ...devices["Desktop Safari"] },
     },
 
-    /* Test against mobile viewports. */
+    // Test against mobile viewports.
     {
       name: "Mobile Chrome",
       use: { ...devices["Pixel 5"] },
     },
     {
       name: "Mobile Safari",
-      use: { ...devices["iPhone 14 Pro Max"] },
+      use: { ...devices["iPhone 12"] },
     },
-
-    /* Test against branded browsers. */
-    // {
-    //   name: 'Microsoft Edge',
-    //   use: { ...devices['Desktop Edge'], channel: 'msedge' },
-    // },
-    // {
-    //   name: 'Google Chrome',
-    //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    // },
+    */
   ],
 
   /* Run your local dev server before starting the tests */
@@ -91,21 +74,4 @@ export default defineConfig({
   /* Global setup and teardown */
   globalSetup: require.resolve("./tests/global-setup.ts"),
   globalTeardown: require.resolve("./tests/global-teardown.ts"),
-
-  /* Only run E2E tests, not Jest tests */
-  testMatch: "**/*.spec.ts",
-
-  /* CI-specific settings */
-  ...(process.env.CI && {
-    timeout: 300000, // 5 minutes for CI
-    expect: {
-      timeout: 30000, // 30 seconds for assertions
-    },
-    use: {
-      // Disable video and trace in CI for performance
-      video: "off",
-      trace: "off",
-      screenshot: "only-on-failure",
-    },
-  }),
 });

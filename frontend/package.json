@@ -29,7 +29,8 @@
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report",
-    "test:e2e:quick": "playwright test --reporter=dot"
+    "test:e2e:quick": "playwright test --reporter=dot",
+    "test:e2e:ci": "playwright test --project=chromium --reporter=junit,html"
   },
   "dependencies": {
     "@ai-sdk/openai": "latest",
@@ -111,5 +112,10 @@
     "ts-jest": "^29.4.1",
     "tw-animate-css": "1.3.3",
     "typescript": "^5"
+  },
+  "playwright": {
+    "installBrowsers": [
+      "chromium"
+    ]
   }
 }
