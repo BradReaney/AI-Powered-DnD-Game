@@ -1,4 +1,3 @@
-import type { Config } from "jest";
 import nextJest from "next/jest.js";
 
 const createJestConfig = nextJest({
@@ -7,7 +6,7 @@ const createJestConfig = nextJest({
 });
 
 // Add any custom config to be passed to Jest
-const config: Config = {
+const config = {
   // Add more setup options before each test is run
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
 
@@ -25,6 +24,7 @@ const config: Config = {
     "!<rootDir>/coverage/**",
     "!<rootDir>/jest.config.ts",
     "!<rootDir>/jest.setup.ts",
+    "!<rootDir>/tests/e2e/**", // Exclude E2E tests from coverage
   ],
 
   // Test path patterns
@@ -42,9 +42,6 @@ const config: Config = {
     "^@/lib/(.*)$": "<rootDir>/lib/$1",
     "^@/hooks/(.*)$": "<rootDir>/hooks/$1",
   },
-
-  // Transform patterns - use next/jest which handles TypeScript automatically
-  // No need for explicit transform configuration with next/jest
 
   // Test file patterns - exclude E2E tests by only including specific patterns
   testMatch: [
@@ -65,7 +62,7 @@ const config: Config = {
       [
         "jest-junit",
         {
-          outputDirectory: "coverage",
+          outputDirectory: "test-results",
           outputName: "junit.xml",
           classNameTemplate: "{classname}",
           titleTemplate: "{title}",
@@ -79,12 +76,6 @@ const config: Config = {
     testResultsProcessor: "jest-junit",
     maxWorkers: 2, // Limit workers in CI for stability
     testTimeout: 30000, // Increased timeout for CI
-  }),
-
-  // Test retry for flaky tests in CI
-  ...(process.env.CI && {
-    retryTimes: 2,
-    retryDelay: 1000,
   }),
 };
 

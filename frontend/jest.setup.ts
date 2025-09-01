@@ -1,5 +1,16 @@
 import "@testing-library/jest-dom";
 
+// Ensure React is loaded from the correct location
+jest.mock("react", () => {
+  const actualReact = jest.requireActual("react");
+  return actualReact;
+});
+
+jest.mock("react-dom", () => {
+  const actualReactDom = jest.requireActual("react-dom");
+  return actualReactDom;
+});
+
 // Mock Next.js router
 jest.mock("next/navigation", () => ({
   useRouter() {
@@ -34,57 +45,62 @@ process.env.NEXT_PUBLIC_API_URL = "http://localhost:5001";
 process.env.BACKEND_URL = "http://localhost:5001";
 
 // Mock localStorage and sessionStorage
-const mockStorage = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
-  length: 0,
-  key: jest.fn(),
-};
+const localStorageMock = (() => {
+  let store: { [key: string]: string } = {};
+  return {
+    getItem: jest.fn((key: string) => store[key] || null),
+    setItem: jest.fn((key: string, value: string) => {
+      store[key] = value.toString();
+    }),
+    removeItem: jest.fn((key: string) => {
+      delete store[key];
+    }),
+    clear: jest.fn(() => {
+      store = {};
+    }),
+    length: Object.keys(store).length,
+    key: jest.fn((index: number) => Object.keys(store)[index] || null),
+  };
+})();
 
-Object.defineProperty(window, "localStorage", {
-  value: mockStorage,
-  writable: true,
-});
-
-Object.defineProperty(window, "sessionStorage", {
-  value: mockStorage,
-  writable: true,
-});
+Object.defineProperty(global, "localStorage", { value: localStorageMock });
+Object.defineProperty(global, "sessionStorage", { value: localStorageMock });
 
 // Mock WebSocket
-const mockWebSocket = jest.fn().mockImplementation(() => ({
-  send: jest.fn(),
-  close: jest.fn(),
-  addEventListener: jest.fn(),
-  removeEventListener: jest.fn(),
-  readyState: 1,
-}));
-
-// Add required WebSocket properties
-Object.defineProperty(mockWebSocket, "CONNECTING", { value: 0 });
-Object.defineProperty(mockWebSocket, "OPEN", { value: 1 });
-Object.defineProperty(mockWebSocket, "CLOSING", { value: 2 });
-Object.defineProperty(mockWebSocket, "CLOSED", { value: 3 });
-Object.defineProperty(mockWebSocket, "prototype", {
-  value: WebSocket.prototype,
+Object.defineProperty(global, "WebSocket", {
+  value: jest.fn().mockImplementation(() => ({
+    send: jest.fn(),
+    close: jest.fn(),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    CONNECTING: 0,
+    OPEN: 1,
+    CLOSING: 2,
+    CLOSED: 3,
+    readyState: 1,
+    url: "",
+    protocol: "",
+    extensions: "",
+    bufferedAmount: 0,
+    onopen: null,
+    onclose: null,
+    onmessage: null,
+    onerror: null,
+    binaryType: "blob",
+    close: jest.fn(),
+    send: jest.fn(),
+  })),
 });
 
-global.WebSocket = mockWebSocket as any;
-
-// Mock fetch
-global.fetch = jest.fn();
-
-// Mock IntersectionObserver
-global.IntersectionObserver = jest.fn().mockImplementation(() => ({
+// Mock ResizeObserver
+global.ResizeObserver = jest.fn().mockImplementation(() => ({
   observe: jest.fn(),
   unobserve: jest.fn(),
   disconnect: jest.fn(),
 }));
 
-// Mock ResizeObserver
-global.ResizeObserver = jest.fn().mockImplementation(() => ({
+// Mock IntersectionObserver
+global.IntersectionObserver = jest.fn().mockImplementation(() => ({
   observe: jest.fn(),
   unobserve: jest.fn(),
   disconnect: jest.fn(),
