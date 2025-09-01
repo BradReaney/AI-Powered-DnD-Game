@@ -162,7 +162,7 @@ describe('SessionService', () => {
 
       mockSession.findOneAndUpdate.mockResolvedValue({
         ...mockSessionData,
-        lastActivity: expect.any(Date),
+        lastActivity: new Date(),
       });
 
       await expect(sessionService.updateSessionActivity('session123')).resolves.not.toThrow();
@@ -178,43 +178,26 @@ describe('SessionService', () => {
     it('should delete session successfully', async () => {
       const mockSessionData = {
         _id: 'session123',
-        status: 'active',
+        campaignId: 'campaign123',
+        characterIds: ['char1', 'char2'],
       };
 
-      mockSession.findOne.mockResolvedValue(mockSessionData);
-      mockSession.findOneAndUpdate.mockResolvedValue({
-        ...mockSessionData,
-        status: 'archived',
-        'metadata.archivedAt': expect.any(Date),
-        'metadata.archiveReason': 'Test deletion',
-      });
-
-      // Mock the Character model that deleteSession uses
-      const mockCharacter = {
-        deleteMany: jest.fn().mockResolvedValue({ deletedCount: 0 }),
-      };
+      mockSession.findById.mockResolvedValue(mockSessionData);
+      mockSession.deleteOne.mockResolvedValue({ deletedCount: 1 });
 
       // Mock the models index to return our mocked models
-      const { models } = require('../src/models');
+      const models = require('../src/models');
       models.Character = mockCharacter;
       models.Campaign = mockCampaign;
 
       await expect(sessionService.deleteSession('session123')).resolves.not.toThrow();
 
-      expect(mockSession.findOneAndUpdate).toHaveBeenCalledWith(
-        { _id: 'session123' },
-        {
-          $set: {
-            status: 'archived',
-            'metadata.archivedAt': expect.any(Date),
-            'metadata.archiveReason': 'Test deletion',
-          },
-        }
-      );
+      expect(mockSession.findById).toHaveBeenCalledWith('session123');
+      expect(mockSession.deleteOne).toHaveBeenCalledWith({ _id: 'session123' });
     });
 
     it('should throw error if session not found', async () => {
-      mockSession.findOne.mockResolvedValue(null);
+      mockSession.findById.mockResolvedValue(null);
 
       await expect(sessionService.deleteSession('nonexistent')).rejects.toThrow(
         'Session not found'
