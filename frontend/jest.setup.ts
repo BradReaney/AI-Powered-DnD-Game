@@ -87,8 +87,6 @@ Object.defineProperty(global, "WebSocket", {
     onmessage: null,
     onerror: null,
     binaryType: "blob",
-    close: jest.fn(),
-    send: jest.fn(),
   })),
 });
 

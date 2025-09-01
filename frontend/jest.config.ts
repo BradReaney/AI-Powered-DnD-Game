@@ -13,20 +13,6 @@ const config = {
   // Test environment
   testEnvironment: "jsdom",
 
-  // Coverage settings
-  collectCoverage: true,
-  coverageProvider: "v8",
-  collectCoverageFrom: [
-    "**/*.{js,jsx,ts,tsx}",
-    "!**/*.d.ts",
-    "!**/node_modules/**",
-    "!<rootDir>/.next/**",
-    "!<rootDir>/coverage/**",
-    "!<rootDir>/jest.config.ts",
-    "!<rootDir>/jest.setup.ts",
-    "!<rootDir>/tests/e2e/**", // Exclude E2E tests from coverage
-  ],
-
   // Test path patterns
   testPathIgnorePatterns: [
     "<rootDir>/node_modules/",
@@ -71,7 +57,6 @@ const config = {
         },
       ],
     ],
-    collectCoverage: true,
     coverageReporters: ["text", "lcov", "html", "json", "cobertura"],
     testResultsProcessor: "jest-junit",
     maxWorkers: 2, // Limit workers in CI for stability
