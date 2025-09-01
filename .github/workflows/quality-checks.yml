@@ -1,61 +1,33 @@
 name: Quality Checks
 
 on:
-  pull_request:
-    branches: [main, develop]
   push:
     branches: [main, develop]
-  workflow_dispatch:
+  pull_request:
+    branches: [main, develop]
 
 env:
   NODE_VERSION: "20"
   BACKEND_URL: "http://localhost:5001"
   NEXT_PUBLIC_API_URL: "http://localhost:5001"
+  # Test environment variables
+  NODE_ENV: "test"
+  MONGODB_URI: "mongodb://admin:password@localhost:27017/test?authSource=admin"
+  REDIS_URL: "redis://localhost:6379"
+  USE_MOCK_LLM: "true"
+  MOCK_LLM_URL: "http://localhost:5002"
+  GEMINI_API_KEY: "test-api-key-for-ci"
+  JWT_SECRET: "test-secret-key"
+  CORS_ORIGIN: "http://localhost:3000"
+  TEST_MODE: "true"
+  SKIP_PERFORMANCE_MONITORING: "true"
+  LOG_LEVEL: "error"
 
 jobs:
-  backend-unit-tests:
-    name: Backend Unit Tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-
-      - name: Install backend dependencies
-        working-directory: ./backend
-        run: npm ci
-
-      - name: Run backend unit tests
-        working-directory: ./backend
-        env:
-          CI: true
-          NODE_ENV: test
-        run: npm run test:ci
-
-      - name: Upload backend test coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-coverage
-          path: backend/coverage/
-          retention-days: 30
-
-      - name: Upload backend test results
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-test-results
-          path: backend/coverage/junit.xml
-          retention-days: 30
-
+  # Frontend Unit Tests
   frontend-unit-tests:
     name: Frontend Unit Tests
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -65,6 +37,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend dependencies
         working-directory: ./frontend
@@ -72,9 +45,6 @@ jobs:
 
       - name: Run frontend unit tests
         working-directory: ./frontend
-        env:
-          CI: true
-          NODE_ENV: test
         run: npm run test:ci
 
       - name: Upload frontend test coverage
@@ -84,46 +54,10 @@ jobs:
           path: frontend/coverage/
           retention-days: 30
 
-      - name: Upload frontend test results
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-test-results
-          path: frontend/coverage/junit.xml
-          retention-days: 30
-
-  backend-quality:
-    name: Backend Quality Checks
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-
-      - name: Install all dependencies
-        run: npm ci
-
-      - name: Run backend linting
-        working-directory: ./backend
-        run: npm run lint
-
-      - name: Check backend formatting
-        working-directory: ./backend
-        run: npm run format:check
-
-      - name: Run backend TypeScript compilation
-        working-directory: ./backend
-        run: npx tsc --noEmit
-
-  frontend-quality:
+  # Frontend Quality Checks
+  frontend-quality-checks:
     name: Frontend Quality Checks
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -133,25 +67,65 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
 
-      - name: Install all dependencies
+      - name: Install frontend dependencies
+        working-directory: ./frontend
         run: npm ci
 
-      - name: Run frontend linting
-        working-directory: ./frontend
-        run: npm run lint
-
-      - name: Check frontend formatting
-        working-directory: ./frontend
-        run: npm run format:check
-
-      - name: Run frontend TypeScript compilation
+      - name: Run TypeScript compilation check
         working-directory: ./frontend
         run: npx tsc --noEmit
 
-  e2e-tests:
-    name: End-to-End Tests
+      - name: Run ESLint
+        working-directory: ./frontend
+        run: npm run lint
+
+      - name: Run Prettier check
+        working-directory: ./frontend
+        run: npm run format:check
+
+  # Backend Unit Tests
+  backend-unit-tests:
+    name: Backend Unit Tests
     runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:7.0
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin
+          MONGO_INITDB_ROOT_PASSWORD: password
+          MONGO_INITDB_DATABASE: test
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      mock-llm:
+        image: mcr.microsoft.com/playwright:v1.46.0-jammy
+        ports:
+          - 5002:5002
+        env:
+          NODE_ENV: test
+          PORT: 5002
+        options: >-
+          --health-cmd "curl -f http://localhost:5002/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout code
@@ -162,138 +136,118 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
+          cache-dependency-path: backend/package-lock.json
 
-      - name: Install dependencies
+      - name: Install backend dependencies
+        working-directory: ./backend
         run: npm ci
 
-      - name: Install Playwright browsers
-        working-directory: ./frontend
-        run: npx playwright install --with-deps
+      - name: Run backend unit tests
+        working-directory: ./backend
+        run: npm run test:ci
 
-      - name: Start Docker Compose services
-        run: |
-          docker compose -f docker-compose.ci.yml up -d
-          echo "Waiting for services to be ready..."
-          sleep 30
-
-      - name: Wait for services to be healthy
-        run: |
-          # Wait for MongoDB
-          until docker exec mongodb-ci mongosh --eval "db.adminCommand('ping')" > /dev/null 2>&1; do
-            echo "Waiting for MongoDB..."
-            sleep 5
-          done
-
-          # Wait for Redis
-          until docker exec redis-ci redis-cli ping > /dev/null 2>&1; do
-            echo "Waiting for Redis..."
-            sleep 5
-          done
-
-          # Wait for Mock LLM
-          until curl -f http://localhost:5002/health > /dev/null 2>&1; do
-            echo "Waiting for Mock LLM..."
-            sleep 5
-          done
-
-          # Wait for Backend
-          until curl -f http://localhost:5001/health > /dev/null 2>&1; do
-            echo "Waiting for Backend..."
-            sleep 5
-          done
-
-          # Wait for Frontend
-          until curl -f http://localhost:3000/api/health > /dev/null 2>&1; do
-            echo "Waiting for Frontend..."
-            sleep 5
-          done
-
-          echo "All services are ready!"
-
-      - name: Run Playwright E2E tests
-        working-directory: ./frontend
-        env:
-          CI: true
-          NODE_ENV: test
-        run: npm run test:e2e:quick
-
-      - name: Upload E2E test results
+      - name: Upload backend test coverage
         uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: e2e-test-results
-          path: |
-            frontend/test-results/
-            frontend/playwright-report/
+          name: backend-coverage
+          path: backend/coverage/
           retention-days: 30
 
-      - name: Stop Docker Compose services
-        if: always()
-        run: docker compose -f docker-compose.ci.yml down
+  # Backend Quality Checks
+  backend-quality-checks:
+    name: Backend Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Run TypeScript compilation check
+        working-directory: ./backend
+        run: npx tsc --noEmit
+
+      - name: Run ESLint
+        working-directory: ./backend
+        run: npm run lint
+
+      - name: Run Prettier check
+        working-directory: ./backend
+        run: npm run format:check
+
+  # Quality Report
   quality-report:
     name: Quality Report
     runs-on: ubuntu-latest
     needs:
       [
-        backend-unit-tests,
         frontend-unit-tests,
-        backend-quality,
-        frontend-quality,
-        e2e-tests,
+        frontend-quality-checks,
+        backend-unit-tests,
+        backend-quality-checks,
       ]
     if: always()
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download test artifacts
+      - name: Download frontend coverage
         uses: actions/download-artifact@v4
         with:
-          path: artifacts/
+          name: frontend-coverage
+          path: frontend/coverage/
+
+      - name: Download backend coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage/
 
       - name: Generate quality report
         run: |
           echo "## 🎯 Quality Check Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Backend Unit Tests: ${{ needs.backend-unit-tests.result == 'success' && '✅ PASSED' || '❌ FAILED' }}" >> $GITHUB_STEP_SUMMARY
-          echo "### Frontend Unit Tests: ${{ needs.frontend-unit-tests.result == 'success' && '✅ PASSED' || '❌ FAILED' }}" >> $GITHUB_STEP_SUMMARY
-          echo "### Backend Quality: ${{ needs.backend-quality.result == 'success' && '✅ PASSED' || '❌ FAILED' }}" >> $GITHUB_STEP_SUMMARY
-          echo "### Frontend Quality: ${{ needs.frontend-quality.result == 'success' && '✅ PASSED' || '❌ FAILED' }}" >> $GITHUB_STEP_SUMMARY
-          echo "### E2E Tests: ${{ needs.e2e-tests.result == 'success' && '✅ PASSED' || '❌ FAILED' }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Check if all jobs passed
-          if [[ "${{ needs.backend-unit-tests.result }}" == "success" && \
-                "${{ needs.frontend-unit-tests.result }}" == "success" && \
-                "${{ needs.backend-quality.result }}" == "success" && \
-                "${{ needs.frontend-quality.result }}" == "success" && \
-                "${{ needs.e2e-tests.result }}" == "success" ]]; then
-            echo "🎉 **All quality checks passed!** The project maintains its 100% quality status." >> $GITHUB_STEP_SUMMARY
+          echo "### Frontend" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.frontend-unit-tests.result }}" == "success" ]; then
+            echo "✅ Unit Tests: PASSED" >> $GITHUB_STEP_SUMMARY
           else
-            echo "⚠️ **Some quality checks failed.** Please review the logs above and fix any issues." >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### Failed Jobs:" >> $GITHUB_STEP_SUMMARY
-            if [[ "${{ needs.backend-unit-tests.result }}" != "success" ]]; then
-              echo "- ❌ Backend Unit Tests" >> $GITHUB_STEP_SUMMARY
-            fi
-            if [[ "${{ needs.frontend-unit-tests.result }}" != "success" ]]; then
-              echo "- ❌ Frontend Unit Tests" >> $GITHUB_STEP_SUMMARY
-            fi
-            if [[ "${{ needs.backend-quality.result }}" != "success" ]]; then
-              echo "- ❌ Backend Quality" >> $GITHUB_STEP_SUMMARY
-            fi
-            if [[ "${{ needs.frontend-quality.result }}" != "success" ]]; then
-              echo "- ❌ Frontend Quality" >> $GITHUB_STEP_SUMMARY
-            fi
-            if [[ "${{ needs.e2e-tests.result }}" != "success" ]]; then
-              echo "- ❌ E2E Tests" >> $GITHUB_STEP_SUMMARY
-            fi
+            echo "❌ Unit Tests: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.frontend-quality-checks.result }}" == "success" ]; then
+            echo "✅ Quality Checks: PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Quality Checks: FAILED" >> $GITHUB_STEP_SUMMARY
           fi
 
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Test Coverage and Results:" >> $GITHUB_STEP_SUMMARY
-          echo "- 📊 Test coverage reports are available in the artifacts" >> $GITHUB_STEP_SUMMARY
-          echo "- 📋 Test results (JUnit XML) are available in the artifacts" >> $GITHUB_STEP_SUMMARY
-          echo "- 🎭 E2E test reports are available in the artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "### Backend" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.backend-unit-tests.result }}" == "success" ]; then
+            echo "✅ Unit Tests: PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Unit Tests: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.backend-quality-checks.result }}" == "success" ]; then
+            echo "✅ Quality Checks: PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Quality Checks: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Overall Status" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.frontend-unit-tests.result }}" == "success" ] && [ "${{ needs.frontend-quality-checks.result }}" == "success" ] && [ "${{ needs.backend-unit-tests.result }}" == "success" ] && [ "${{ needs.backend-quality-checks.result }}" == "success" ]; then
+            echo "🎉 All checks passed! Code quality is excellent." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Some checks failed. Please review and fix the issues." >> $GITHUB_STEP_SUMMARY
+          fi

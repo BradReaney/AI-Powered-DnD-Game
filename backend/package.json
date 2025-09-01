@@ -28,7 +28,7 @@
     "format:check": "prettier --check .",
     "quality": "npm run lint && npm run format:check",
     "quality:fix": "npm run lint:fix && npm run format",
-    "prepare": "husky install"
+    "prepare": "if [ \"$CI\" != \"true\" ]; then husky install; fi"
   },
   "dependencies": {
     "@google/generative-ai": "^0.2.1",
