@@ -7,21 +7,23 @@ on:
     branches: [main, develop]
 
 env:
+  # Workflow-specific configuration
   NODE_VERSION: "20"
   BACKEND_URL: "http://localhost:5001"
   NEXT_PUBLIC_API_URL: "http://localhost:5001"
-  # Test environment variables
-  NODE_ENV: "test"
-  MONGODB_URI: "mongodb://admin:password@localhost:27017/test?authSource=admin"
-  REDIS_URL: "redis://localhost:6379"
-  USE_MOCK_LLM: "true"
-  MOCK_LLM_URL: "http://localhost:5002"
-  GEMINI_API_KEY: "test-api-key-for-ci"
-  JWT_SECRET: "test-secret-key"
-  CORS_ORIGIN: "http://localhost:3000"
-  TEST_MODE: "true"
-  SKIP_PERFORMANCE_MONITORING: "true"
-  LOG_LEVEL: "error"
+
+  # Test environment variables (referenced from GitHub variables)
+  NODE_ENV: ${{ vars.NODE_ENV }}
+  MONGODB_URI: ${{ vars.MONGODB_URI }}
+  REDIS_URL: "redis://${{ vars.REDIS_HOST }}:${{ vars.REDIS_PORT }}"
+  USE_MOCK_LLM: ${{ vars.USE_MOCK_LLM }}
+  MOCK_LLM_URL: ${{ vars.LLM_SERVICE_URL }}
+  GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+  JWT_SECRET: ${{ vars.JWT_SECRET }}
+  CORS_ORIGIN: ${{ vars.CORS_ORIGIN }}
+  TEST_MODE: ${{ vars.TEST_MODE }}
+  SKIP_PERFORMANCE_MONITORING: ${{ vars.SKIP_PERFORMANCE_MONITORING }}
+  LOG_LEVEL: ${{ vars.LOG_LEVEL }}
 
 jobs:
   # Frontend Unit Tests
