@@ -94,7 +94,7 @@ describe('SessionService', () => {
 
       expect(mockSession.findOneAndUpdate).toHaveBeenCalledWith(
         { _id: 'session123' },
-        { $pullAll: { tags: ['tag-to-remove'] } }
+        { $pull: { tags: { $in: ['tag-to-remove'] } } }
       );
     });
 
