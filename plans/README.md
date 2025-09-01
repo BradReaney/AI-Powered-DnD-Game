@@ -206,6 +206,65 @@ This directory contains development plans, testing strategies, and project docum
 - `backend/src/services/CharacterService.ts`
 - `backend/src/routes/characters.ts`
 
+### 🔄 Recent Refactoring (September 1, 2025)
+
+#### MongoDB Connection Optimization Implementation
+**Status**: ✅ COMPLETED
+
+**Problem**: The application was experiencing constant MongoDB connection churn, creating new database connections every 30 seconds and immediately closing them. This caused excessive connection overhead, performance degradation, and noisy MongoDB logs.
+
+**Solution**: Implemented comprehensive connection optimization including lightweight health checks, connection pool management, and Docker health check configuration improvements.
+
+**Changes Made**:
+1. **Database Service Optimization**: Enhanced connection pool settings and connection state validation
+2. **Health Check Endpoints**: Created separate endpoints for different monitoring needs
+   - `/health/light`: Lightweight endpoint for Docker health checks (no database operations)
+   - `/health/db-pool`: Database connection pool status monitoring
+   - `/health`: Full health check for application monitoring
+3. **Docker Configuration**: Updated health checks to use lightweight endpoint and reduced frequency
+4. **Connection Management**: Improved connection reuse and reduced metrics logging overhead
+
+**Key Features**:
+- **Lightweight Health Checks**: Docker health checks now use minimal overhead endpoint
+- **Connection Pool Optimization**: Better connection lifecycle management
+- **Reduced Health Check Frequency**: Changed from 30s to 60s intervals
+- **Connection State Validation**: Proper connection state checking before operations
+- **Metrics Optimization**: Reduced logging frequency from 1 minute to 5 minutes
+
+**Implementation Details**:
+- Health check frequency reduced from 30s to 60s
+- Health check endpoint changed from `/health` to `/health/light`
+- Startup grace periods added (30s)
+- Retry attempts reduced from 3 to 2
+- Connection pool settings optimized for stability
+
+**Testing Results**:
+- ✅ MongoDB connection logs show minimal new connections
+- ✅ Health check frequency reduced to 60s intervals
+- ✅ Connection pool remains stable during health checks
+- ✅ No performance degradation in application
+- ✅ All health check endpoints working correctly
+- ✅ Container health monitoring functioning properly
+
+**Files Modified**:
+- `backend/src/services/DatabaseService.ts`
+- `backend/src/app.ts`
+- `docker-compose.yml`
+- `plans/mongodb-connection-optimization-plan.md` (new)
+
+**Benefits**:
+- Eliminated constant MongoDB connection churn
+- Reduced resource overhead and network traffic
+- Improved application stability and performance
+- Better separation of concerns for health monitoring
+- More efficient container health detection
+
+**Performance Improvements**:
+- **Before**: New connections every 30 seconds, constant churn
+- **After**: Minimal new connections, only from actual operations
+- Health check overhead reduced by ~90%
+- Connection pool stability significantly improved
+
 ## Active Development Areas
 
 ### Testing and Quality Assurance

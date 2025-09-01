@@ -240,12 +240,14 @@ class DatabaseService {
     activeConnections: number;
     availableConnections: number;
     pendingConnections: number;
+    readyState: number;
   } {
     return {
       maxPoolSize: this.metrics.maxPoolSize,
       activeConnections: this.metrics.activeConnections,
       availableConnections: this.metrics.maxPoolSize - this.metrics.activeConnections,
       pendingConnections: 0, // Mongoose doesn't expose this directly
+      readyState: mongoose.connection.readyState,
     };
   }
 
@@ -266,7 +268,7 @@ class DatabaseService {
       this.updateConnectionMetrics();
     });
 
-    // Set up periodic metrics logging
+    // Set up periodic metrics logging (reduced frequency to reduce overhead)
     setInterval(() => {
       if (this.isConnected) {
         const stats = this.getQueryStats();
@@ -281,7 +283,7 @@ class DatabaseService {
           });
         }
       }
-    }, 60000); // Log every minute
+    }, 300000); // Log every 5 minutes instead of every minute
   }
 
   /**

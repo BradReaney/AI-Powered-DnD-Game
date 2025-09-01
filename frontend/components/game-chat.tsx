@@ -101,7 +101,6 @@ export function GameChat({
         // Instead of a generic fallback, retry the initialization
         // This handles temporary backend issues
         try {
-          console.log("Retrying campaign initialization...");
           await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second before retry
 
           const retryInitialization = await apiService.initializeCampaign(
@@ -122,8 +121,6 @@ export function GameChat({
           setMessages([welcomeMessage]);
           setIsInitializing(false);
         } catch (retryError) {
-          console.error("Retry failed, using minimal fallback:", retryError);
-
           // Only use minimal fallback if retry also fails
           const minimalFallback: ChatMessage = {
             id: "1",
@@ -136,11 +133,6 @@ export function GameChat({
 
           setMessages([minimalFallback]);
           setIsInitializing(false);
-
-          // Show user-friendly error message
-          console.error(
-            "Campaign initialization failed after retry. Please refresh the page or contact support.",
-          );
         }
       }
     },
@@ -209,31 +201,17 @@ export function GameChat({
             }
           } catch (error) {
             // If there's an error checking messages, assume it's a new session
-            console.log(
-              "Error checking session messages, initializing as new session:",
-              error,
-            );
             await startNewSession(existingSessionId);
           }
         } else {
           // For new sessions, we need to wait for the parent component to provide the session ID
           // The session should already be created by the parent component
-          console.log(
-            "No existing session ID provided, waiting for session creation...",
-          );
           setIsInitializing(false);
         }
       } catch (error) {
-        console.error("Failed to initialize campaign:", error);
-
         // Don't use generic fallback - let the specific error handlers deal with it
         // This prevents the wrong message from being displayed
         setIsInitializing(false);
-
-        // Show user-friendly error message
-        console.error(
-          "Campaign initialization failed. Please refresh the page or contact support.",
-        );
       }
     };
 
