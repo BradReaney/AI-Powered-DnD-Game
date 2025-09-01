@@ -80,6 +80,10 @@ services:
       GEMINI_API_KEY: test-api-key-for-ci
       JWT_SECRET: test-secret-key
       CORS_ORIGIN: http://localhost:3000
+      # Additional test environment variables
+      TEST_MODE: true
+      SKIP_PERFORMANCE_MONITORING: true
+      LOG_LEVEL: error
     ports:
       - "5001:5001"
     depends_on:
@@ -139,7 +143,7 @@ services:
 
   # Playwright service for running E2E tests
   playwright-ci:
-    image: mcr.microsoft.com/playwright/chromium:v1.46.0-jammy
+    image: mcr.microsoft.com/playwright:v1.46.0-jammy
     container_name: playwright-ci
     volumes:
       - .:/app
