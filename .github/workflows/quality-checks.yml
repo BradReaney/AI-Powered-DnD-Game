@@ -58,13 +58,16 @@ jobs:
           name: node-modules
           path: .
 
+      - name: Set PATH for node_modules binaries
+        run: echo "$PWD/node_modules/.bin" >> $GITHUB_PATH
+
       - name: Run backend linting
         working-directory: ./backend
-        run: npm run lint
+        run: npx eslint src/**/*.ts
 
       - name: Check backend formatting
         working-directory: ./backend
-        run: npm run format:check
+        run: npx prettier --check src/**/*.ts
 
       - name: Run backend TypeScript compilation
         working-directory: ./backend
@@ -90,13 +93,16 @@ jobs:
           name: node-modules
           path: .
 
+      - name: Set PATH for node_modules binaries
+        run: echo "$PWD/node_modules/.bin" >> $GITHUB_PATH
+
       - name: Run frontend linting
         working-directory: ./frontend
-        run: npm run lint
+        run: npx eslint . --ext .ts,.tsx
 
       - name: Check frontend formatting
         working-directory: ./frontend
-        run: npm run format:check
+        run: npx prettier --check . --ext .ts,.tsx
 
       - name: Run frontend TypeScript compilation
         working-directory: ./frontend
@@ -121,6 +127,9 @@ jobs:
         with:
           name: node-modules
           path: .
+
+      - name: Set PATH for node_modules binaries
+        run: echo "$PWD/node_modules/.bin" >> $GITHUB_PATH
 
       - name: Verify Playwright configuration
         working-directory: ./frontend
