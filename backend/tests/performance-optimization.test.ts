@@ -1,25 +1,17 @@
 import request from 'supertest';
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 import App from '../src/app';
 import DatabaseService from '../src/services/DatabaseService';
 import BackgroundJobService from '../src/services/BackgroundJobService';
 import performanceMiddleware from '../src/middleware/performance';
 
 describe('Backend Performance Optimization Tests', () => {
-  let mongoServer: MongoMemoryServer;
   let dbService: DatabaseService;
   let backgroundJobService: BackgroundJobService;
   let app: App;
 
   beforeAll(async () => {
-    // Start in-memory MongoDB server
-    mongoServer = await MongoMemoryServer.create();
-    const mongoUri = mongoServer.getUri();
-
-    // Connect to test database
-    await mongoose.connect(mongoUri);
-
+    // MongoDB connection is handled automatically by @shelf/jest-mongodb
     // Initialize services
     dbService = DatabaseService.getInstance();
     backgroundJobService = BackgroundJobService.getInstance();
@@ -29,9 +21,7 @@ describe('Backend Performance Optimization Tests', () => {
   });
 
   afterAll(async () => {
-    // Cleanup
-    await mongoose.disconnect();
-    await mongoServer.stop();
+    // Cleanup - MongoDB disconnection is handled automatically
   });
 
   beforeEach(async () => {
