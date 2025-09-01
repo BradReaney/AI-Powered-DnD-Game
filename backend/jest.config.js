@@ -26,11 +26,4 @@ module.exports = {
       },
     ],
   },
-  // Disable type checking for tests to focus on runtime execution
-  globals: {
-    'ts-jest': {
-      diagnostics: false,
-      isolatedModules: true,
-    },
-  },
 };

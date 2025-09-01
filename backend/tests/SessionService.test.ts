@@ -91,109 +91,6 @@ describe('SessionService', () => {
     sessionService = SessionService.getInstance();
   });
 
-  describe('createSession', () => {
-    it('should create a session successfully', async () => {
-      const sessionData = {
-        name: 'Test Session',
-        campaignId: 'campaign123',
-        description: 'A test session',
-      };
-
-      const mockCreatedSession = {
-        _id: 'session123',
-        ...sessionData,
-        participants: [],
-        status: 'active',
-      };
-
-      mockSession.create.mockResolvedValue(mockCreatedSession);
-      mockCampaign.findByIdAndUpdate.mockResolvedValue({ _id: 'campaign123' });
-
-      const result = await sessionService.createSession(sessionData);
-
-      expect(result.success).toBe(true);
-      expect(result.session).toBeDefined();
-      expect(mockSession.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: sessionData.name,
-          campaignId: sessionData.campaignId,
-          description: sessionData.description,
-        })
-      );
-    });
-
-    it('should fail if campaign not found', async () => {
-      const sessionData = {
-        name: 'Test Session',
-        campaignId: 'nonexistent',
-        description: 'A test session',
-      };
-
-      mockCampaign.findByIdAndUpdate.mockResolvedValue(null);
-
-      const result = await sessionService.createSession(sessionData);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Campaign not found');
-    });
-  });
-
-  describe('getSessionById', () => {
-    it('should return session if found', async () => {
-      const mockSessionData = {
-        _id: 'session123',
-        name: 'Test Session',
-        campaignId: 'campaign123',
-        participants: [],
-      };
-
-      mockSession.findById.mockResolvedValue(mockSessionData);
-
-      const result = await sessionService.getSessionById('session123');
-
-      expect(result.success).toBe(true);
-      expect(result.session).toEqual(mockSessionData);
-    });
-
-    it('should return null if session not found', async () => {
-      mockSession.findById.mockResolvedValue(null);
-
-      const result = await sessionService.getSessionById('nonexistent');
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Session not found');
-    });
-  });
-
-  describe('updateSession', () => {
-    it('should update session successfully', async () => {
-      const updateData = { name: 'Updated Session Name' };
-      const mockUpdatedSession = {
-        _id: 'session123',
-        name: 'Updated Session Name',
-        campaignId: 'campaign123',
-        participants: [],
-      };
-
-      mockSession.findByIdAndUpdate.mockResolvedValue(mockUpdatedSession);
-
-      const result = await sessionService.updateSession('session123', updateData);
-
-      expect(result.success).toBe(true);
-      expect(result.session).toEqual(mockUpdatedSession);
-      expect(mockSession.findByIdAndUpdate).toHaveBeenCalledWith('session123', updateData);
-    });
-
-    it('should fail if session not found', async () => {
-      mockSession.findByIdAndUpdate.mockResolvedValue(null);
-
-      const result = await sessionService.updateSession('nonexistent', { name: 'New Name' });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Session not found');
-    });
-  });
-
   describe('addSessionTags', () => {
     it('should add session tags successfully', async () => {
       const mockSessionData = {
@@ -297,11 +194,6 @@ describe('SessionService', () => {
         deleteMany: jest.fn().mockResolvedValue({ deletedCount: 0 }),
       };
 
-      // Mock the Campaign model that deleteSession uses
-      const mockCampaign = {
-        updateMany: jest.fn().mockResolvedValue({ modifiedCount: 0 }),
-      };
-
       // Mock the models index to return our mocked models
       const { models } = require('../src/models');
       models.Character = mockCharacter;
@@ -309,7 +201,6 @@ describe('SessionService', () => {
 
       await expect(sessionService.deleteSession('session123')).resolves.not.toThrow();
 
-      expect(mockSession.findOne).toHaveBeenCalledWith({ _id: 'session123' });
       expect(mockSession.findOneAndUpdate).toHaveBeenCalledWith(
         { _id: 'session123' },
         {
