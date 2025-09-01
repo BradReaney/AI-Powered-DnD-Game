@@ -102,13 +102,19 @@ jest.mock('../src/services/CacheService', () => ({
   },
 }));
 
-// Mock LLM client
+// Mock LLM client factory - it exports a class with getInstance method
 jest.mock('../src/services/LLMClientFactory', () => ({
   __esModule: true,
   default: {
-    createClient: jest.fn(() => ({
-      generateResponse: jest.fn().mockResolvedValue('Mock response'),
-      generateStreamingResponse: jest.fn().mockResolvedValue(['Mock', 'response']),
+    getInstance: jest.fn(() => ({
+      getClient: jest.fn(() => ({
+        generateResponse: jest.fn().mockResolvedValue('Mock response'),
+        generateStreamingResponse: jest.fn().mockResolvedValue(['Mock', 'response']),
+        testConnection: jest.fn().mockResolvedValue(true),
+      })),
+      switchClient: jest.fn(),
+      getCurrentClientType: jest.fn().mockReturnValue('mock'),
+      testConnection: jest.fn().mockResolvedValue(true),
     })),
   },
 }));
