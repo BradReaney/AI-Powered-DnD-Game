@@ -57,38 +57,48 @@ jest.mock('ioredis', () => {
   return Redis;
 });
 
-// Mock LoggerService
+// Mock LoggerService - it exports a default logger instance, not a class
 jest.mock('../src/services/LoggerService', () => ({
   __esModule: true,
   default: {
-    getInstance: jest.fn(() => ({
-      info: jest.fn(),
-      warn: jest.fn(),
-      error: jest.fn(),
-      debug: jest.fn(),
-      log: jest.fn(),
-    })),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+    log: jest.fn(),
   },
 }));
 
-// Mock CacheService
+// Mock CacheService - it exports an instance, not a class
 jest.mock('../src/services/CacheService', () => ({
   __esModule: true,
   default: {
-    getInstance: jest.fn(() => ({
-      get: jest.fn().mockResolvedValue(null),
-      set: jest.fn().mockResolvedValue('OK'),
-      del: jest.fn().mockResolvedValue(1),
-      exists: jest.fn().mockResolvedValue(0),
-      expire: jest.fn().mockResolvedValue(1),
-      ttl: jest.fn().mockResolvedValue(-1),
-      scan: jest.fn().mockResolvedValue(['0', []]),
-      quit: jest.fn().mockResolvedValue('OK'),
-      disconnect: jest.fn(),
-      on: jest.fn(),
-      off: jest.fn(),
-      connect: jest.fn().mockResolvedValue(undefined),
-    })),
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue('OK'),
+    del: jest.fn().mockResolvedValue(1),
+    exists: jest.fn().mockResolvedValue(0),
+    expire: jest.fn().mockResolvedValue(1),
+    ttl: jest.fn().mockResolvedValue(-1),
+    scan: jest.fn().mockResolvedValue(['0', []]),
+    quit: jest.fn().mockResolvedValue('OK'),
+    disconnect: jest.fn(),
+    on: jest.fn(),
+    off: jest.fn(),
+    connect: jest.fn().mockResolvedValue(undefined),
+  },
+  cacheService: {
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue('OK'),
+    del: jest.fn().mockResolvedValue(1),
+    exists: jest.fn().mockResolvedValue(0),
+    expire: jest.fn().mockResolvedValue(1),
+    ttl: jest.fn().mockResolvedValue(-1),
+    scan: jest.fn().mockResolvedValue(['0', []]),
+    quit: jest.fn().mockResolvedValue('OK'),
+    disconnect: jest.fn(),
+    on: jest.fn(),
+    off: jest.fn(),
+    connect: jest.fn().mockResolvedValue(undefined),
   },
 }));
 
