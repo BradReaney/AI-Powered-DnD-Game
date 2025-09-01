@@ -1,60 +1,83 @@
 import { QuestService } from '../src/services/QuestService';
+import { GeminiClient } from '../src/services/GeminiClient';
 
-// Mock the models index (only mock models that actually exist)
-jest.mock('../src/models', () => ({
-  __esModule: true,
-  Campaign: {
-    findById: jest.fn(),
-    findOne: jest.fn(),
-    find: jest.fn(),
-    create: jest.fn(),
-    findByIdAndUpdate: jest.fn(),
-    updateMany: jest.fn(),
-  },
-  Session: {
-    findById: jest.fn(),
-    findOne: jest.fn(),
-    find: jest.fn(),
-    create: jest.fn(),
-    findByIdAndUpdate: jest.fn(),
-    updateMany: jest.fn(),
-  },
-}));
-
-// Mock the LLMClientFactory
-jest.mock('../src/services/LLMClientFactory', () => ({
+// Mock the models
+jest.mock('../src/models/Quest', () => ({
   __esModule: true,
   default: {
-    getInstance: jest.fn().mockReturnValue({
-      getClient: jest.fn().mockReturnValue({
-        sendPrompt: jest.fn().mockResolvedValue({
-          success: true,
-          content: 'Mocked AI response',
-          modelUsed: 'flash',
-          responseTime: 100,
-        }),
-      }),
-    }),
+    findById: jest.fn(),
+    findOne: jest.fn(),
+    find: jest.fn(),
+    create: jest.fn(),
+    findByIdAndUpdate: jest.fn(),
+    findOneAndUpdate: jest.fn(),
+    updateMany: jest.fn(),
+    deleteOne: jest.fn(),
   },
 }));
 
-// Mock the ModelSelectionService
-jest.mock('../src/services/ModelSelectionService', () => ({
+jest.mock('../src/models/Campaign', () => ({
   __esModule: true,
-  ModelSelectionService: {
-    getInstance: jest.fn().mockReturnValue({
-      selectModel: jest.fn().mockResolvedValue('flash'),
-    }),
+  default: {
+    findById: jest.fn(),
+    findOne: jest.fn(),
+    find: jest.fn(),
+    create: jest.fn(),
+    findByIdAndUpdate: jest.fn(),
+    updateMany: jest.fn(),
   },
+}));
+
+jest.mock('../src/models/Session', () => ({
+  __esModule: true,
+  default: {
+    findById: jest.fn(),
+    findOne: jest.fn(),
+    find: jest.fn(),
+    create: jest.fn(),
+    findByIdAndUpdate: jest.fn(),
+    updateMany: jest.fn(),
+  },
+}));
+
+jest.mock('../src/services/GeminiClient', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(() => ({
+    sendPrompt: jest.fn().mockResolvedValue({
+      success: true,
+      content: 'Mocked AI response',
+      modelUsed: 'flash',
+      responseTime: 100,
+    }),
+    generateQuest: jest.fn().mockResolvedValue({
+      success: true,
+      content: 'Mocked quest response',
+      modelUsed: 'flash',
+      responseTime: 100,
+    }),
+  })),
 }));
 
 describe('QuestService', () => {
   let questService: QuestService;
+  let mockQuest: any;
   let mockCampaign: any;
   let mockSession: any;
+  let mockGeminiClient: jest.Mocked<GeminiClient>;
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    mockQuest = {
+      findById: jest.fn(),
+      findOne: jest.fn(),
+      find: jest.fn(),
+      create: jest.fn(),
+      findByIdAndUpdate: jest.fn(),
+      findOneAndUpdate: jest.fn(),
+      updateMany: jest.fn(),
+      deleteOne: jest.fn(),
+    };
 
     mockCampaign = {
       findById: jest.fn(),
@@ -74,12 +97,16 @@ describe('QuestService', () => {
       updateMany: jest.fn(),
     };
 
-    const { Campaign: MockCampaign, Session: MockSession } = require('../src/models');
+    const { default: MockQuest } = require('../src/models/Quest');
+    const { default: MockCampaign } = require('../src/models/Campaign');
+    const { default: MockSession } = require('../src/models/Session');
 
+    Object.assign(MockQuest, mockQuest);
     Object.assign(MockCampaign, mockCampaign);
     Object.assign(MockSession, mockSession);
 
     questService = new QuestService();
+    mockGeminiClient = questService['geminiClient'] as jest.Mocked<GeminiClient>;
   });
 
   describe('createQuest', () => {
@@ -104,15 +131,23 @@ describe('QuestService', () => {
         createdAt: new Date(),
       };
 
+      mockQuest.create.mockResolvedValue(mockCreatedQuest);
       mockCampaign.findByIdAndUpdate.mockResolvedValue({ _id: 'campaign123' });
 
       const result = await questService.createQuest(questData);
 
       expect(result.success).toBe(true);
       expect(result.quest).toBeDefined();
-      expect(mockCampaign.findByIdAndUpdate).toHaveBeenCalledWith('campaign123', {
-        $push: { quests: mockCreatedQuest._id },
-      });
+      expect(mockQuest.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: questData.name,
+          description: questData.description,
+          campaignId: questData.campaignId,
+          sessionId: questData.sessionId,
+          difficulty: questData.difficulty,
+          rewards: questData.rewards,
+        })
+      );
     });
 
     it('should fail if campaign not found', async () => {
@@ -154,9 +189,7 @@ describe('QuestService', () => {
         },
       };
 
-      // Mock the Quest model's findById
-      const { Quest } = require('../src/models');
-      Quest.findById.mockResolvedValue(mockQuestData);
+      mockQuest.findById.mockResolvedValue(mockQuestData);
 
       const result = await questService.getQuestById('quest123');
 
@@ -165,9 +198,7 @@ describe('QuestService', () => {
     });
 
     it('should return null if quest not found', async () => {
-      // Mock the Quest model's findById
-      const { Quest } = require('../src/models');
-      Quest.findById.mockResolvedValue(null);
+      mockQuest.findById.mockResolvedValue(null);
 
       const result = await questService.getQuestById('nonexistent');
 
@@ -193,20 +224,17 @@ describe('QuestService', () => {
         },
       };
 
-      // Mock the Quest model's findByIdAndUpdate
-      const { Quest } = require('../src/models');
-      Quest.findByIdAndUpdate.mockResolvedValue(mockUpdatedQuest);
+      mockQuest.findByIdAndUpdate.mockResolvedValue(mockUpdatedQuest);
 
       const result = await questService.updateQuest('quest123', updateData);
 
       expect(result.success).toBe(true);
       expect(result.quest).toEqual(mockUpdatedQuest);
+      expect(mockQuest.findByIdAndUpdate).toHaveBeenCalledWith('quest123', updateData);
     });
 
     it('should fail if quest not found', async () => {
-      // Mock the Quest model's findByIdAndUpdate
-      const { Quest } = require('../src/models');
-      Quest.findByIdAndUpdate.mockResolvedValue(null);
+      mockQuest.findByIdAndUpdate.mockResolvedValue(null);
 
       const result = await questService.updateQuest('nonexistent', { name: 'New Name' });
 
@@ -261,44 +289,21 @@ describe('QuestService', () => {
         responseTime: 100,
       };
 
-      // Mock the LLMClientFactory's getInstance and its getClient's sendPrompt
-      const { LLMClientFactory } = require('../src/services/LLMClientFactory');
-      LLMClientFactory.getInstance.mockReturnValue({
-        getClient: jest.fn().mockReturnValue({
-          sendPrompt: jest.fn().mockResolvedValue(mockAIResponse),
-        }),
-      });
-
-      // Mock the ModelSelectionService's getInstance and its selectModel
-      const { ModelSelectionService } = require('../src/services/ModelSelectionService');
-      ModelSelectionService.ModelSelectionService.getInstance.mockReturnValue({
-        selectModel: jest.fn().mockResolvedValue('flash'),
-      });
+      mockGeminiClient.sendPrompt.mockResolvedValue(mockAIResponse);
 
       const result = await questService.generateQuestWithAI(prompt);
 
       expect(result.success).toBe(true);
       expect(result.content).toBe(mockAIResponse.content);
+      expect(mockGeminiClient.sendPrompt).toHaveBeenCalledWith(prompt);
     });
 
     it('should fail if AI generation fails', async () => {
       const prompt = 'Generate a quest about exploring a dungeon';
 
-      // Mock the LLMClientFactory's getInstance and its getClient's sendPrompt
-      const { LLMClientFactory } = require('../src/services/LLMClientFactory');
-      LLMClientFactory.getInstance.mockReturnValue({
-        getClient: jest.fn().mockReturnValue({
-          sendPrompt: jest.fn().mockResolvedValue({
-            success: false,
-            error: 'AI generation failed',
-          }),
-        }),
-      });
-
-      // Mock the ModelSelectionService's getInstance and its selectModel
-      const { ModelSelectionService } = require('../src/services/ModelSelectionService');
-      ModelSelectionService.ModelSelectionService.getInstance.mockReturnValue({
-        selectModel: jest.fn().mockResolvedValue('flash'),
+      mockGeminiClient.sendPrompt.mockResolvedValue({
+        success: false,
+        error: 'AI generation failed',
       });
 
       const result = await questService.generateQuestWithAI(prompt);
@@ -310,20 +315,16 @@ describe('QuestService', () => {
 
   describe('deleteQuest', () => {
     it('should delete quest successfully', async () => {
-      // Mock the Quest model's deleteOne
-      const { Quest } = require('../src/models');
-      Quest.deleteOne.mockResolvedValue({ deletedCount: 1 });
+      mockQuest.deleteOne.mockResolvedValue({ deletedCount: 1 });
 
       const result = await questService.deleteQuest('quest123');
 
       expect(result.success).toBe(true);
-      expect(Quest.deleteOne).toHaveBeenCalledWith({ _id: 'quest123' });
+      expect(mockQuest.deleteOne).toHaveBeenCalledWith({ _id: 'quest123' });
     });
 
     it('should fail if quest not found', async () => {
-      // Mock the Quest model's deleteOne
-      const { Quest } = require('../src/models');
-      Quest.deleteOne.mockResolvedValue({ deletedCount: 0 });
+      mockQuest.deleteOne.mockResolvedValue({ deletedCount: 0 });
 
       const result = await questService.deleteQuest('nonexistent');
 

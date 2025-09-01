@@ -77,18 +77,15 @@ describe('SessionService', () => {
       updateMany: jest.fn(),
     };
 
-    const {
-      Session: MockSession,
-      Campaign: MockCampaign,
-      Character: MockCharacter,
-    } = require('../src/models');
+    const { default: MockSession } = require('../src/models/Session');
+    const { default: MockCampaign } = require('../src/models/Campaign');
+    const { default: MockCharacter } = require('../src/models/Character');
 
-    // Properly assign the mock functions
     Object.assign(MockSession, mockSession);
     Object.assign(MockCampaign, mockCampaign);
     Object.assign(MockCharacter, mockCharacter);
 
-    sessionService = SessionService.getInstance();
+    sessionService = new SessionService();
   });
 
   describe('createSession', () => {

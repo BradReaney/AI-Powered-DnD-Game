@@ -146,11 +146,48 @@ jest.mock('uuid', () => ({
   validate: jest.fn(() => true),
 }));
 
-// Mock mongoose
+// Mock mongoose with comprehensive Schema support
 jest.mock('mongoose', () => {
+  // Create a proper Schema constructor function
+  function MockSchema(schemaDefinition: any) {
+    // Store the schema definition
+    this.definition = schemaDefinition;
+
+    // Initialize methods object
+    this.methods = {};
+
+    // Return the schema instance
+    return this;
+  }
+
+  // Add static methods to Schema
+  MockSchema.Types = {
+    ObjectId: jest.fn(() => 'mock-object-id'),
+    String: jest.fn(),
+    Number: jest.fn(),
+    Date: jest.fn(),
+    Boolean: jest.fn(),
+    Array: jest.fn(),
+    Mixed: jest.fn(),
+    Buffer: jest.fn(),
+  };
+
+  // Add instance methods to Schema prototype
+  MockSchema.prototype.index = jest.fn();
+  MockSchema.prototype.pre = jest.fn().mockReturnThis();
+  MockSchema.prototype.post = jest.fn().mockReturnThis();
+  MockSchema.prototype.virtual = jest.fn().mockReturnValue({
+    get: jest.fn().mockReturnThis(),
+    set: jest.fn().mockReturnThis(),
+  });
+  MockSchema.prototype.method = jest.fn().mockReturnThis();
+  MockSchema.prototype.statics = jest.fn().mockReturnThis();
+  MockSchema.prototype.plugin = jest.fn().mockReturnThis();
+
   const mongoose = {
     connect: jest.fn().mockResolvedValue(undefined),
     disconnect: jest.fn().mockResolvedValue(undefined),
+    Schema: MockSchema,
     connection: {
       db: {
         collection: jest.fn(() => ({
@@ -167,7 +204,6 @@ jest.mock('mongoose', () => {
       collections: {},
       readyState: 1,
     },
-    Schema: jest.fn(),
     model: jest.fn(() => ({
       find: jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue([]) }),
       findOne: jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue(null) }),
@@ -182,6 +218,7 @@ jest.mock('mongoose', () => {
       ObjectId: jest.fn(() => 'mock-object-id'),
     },
   };
+
   return mongoose;
 });
 
@@ -350,6 +387,9 @@ global.clearInterval = jest.fn();
 const mockDate = new Date('2023-01-01T00:00:00.000Z');
 jest.spyOn(global, 'Date').mockImplementation(() => mockDate);
 
+// Mock Date.now
+Date.now = jest.fn().mockReturnValue(mockDate.getTime());
+
 // Mock Math.random
 jest.spyOn(Math, 'random').mockReturnValue(0.5);
 
@@ -376,3 +416,60 @@ process.env.CORS_ORIGIN = 'http://localhost:3000';
 process.env.LOG_LEVEL = 'error';
 process.env.TEST_MODE = 'true';
 process.env.SKIP_PERFORMANCE_MONITORING = 'true';
+
+// Mock routes to prevent express Router errors
+jest.mock('../src/routes/campaigns', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('../src/routes/characters', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('../src/routes/sessions', () => ({
+  __esModule: true,
+  default: jest.fn(),
+  initializeGameEngineService: jest.fn(),
+}));
+
+jest.mock('../src/routes/gameplay', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('../src/routes/character-development', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('../src/routes/combat', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('../src/routes/campaign-themes', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('../src/routes/ai-analytics', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('../src/routes/quests', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('../src/routes/locations', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('../src/routes/campaign-settings', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));

@@ -171,6 +171,49 @@ jobs:
         working-directory: ./backend
         run: npm run format:check
 
+  # End-to-End Tests
+  e2e-tests:
+    name: End-to-End Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: "**/package-lock.json"
+
+      - name: Install Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose-plugin
+          sudo ln -sf /usr/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Start services with Docker Compose
+        run: |
+          docker-compose -f docker-compose.ci.yml up -d
+          # Wait for services to be healthy
+          timeout 60 bash -c 'until docker-compose -f docker-compose.ci.yml ps | grep -q "healthy"; do sleep 2; done'
+
+      - name: Run E2E tests
+        working-directory: ./frontend
+        run: npm run test:e2e:ci
+
+      - name: Stop services
+        if: always()
+        run: docker-compose -f docker-compose.ci.yml down
+
   # Quality Report
   quality-report:
     name: Quality Report
@@ -181,6 +224,7 @@ jobs:
         frontend-quality-checks,
         backend-unit-tests,
         backend-quality-checks,
+        e2e-tests,
       ]
     if: always()
     steps:
@@ -232,8 +276,16 @@ jobs:
           fi
 
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### E2E Tests" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.e2e-tests.result }}" == "success" ]; then
+            echo "✅ E2E Tests: PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ E2E Tests: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Overall Status" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ needs.frontend-unit-tests.result }}" == "success" ] && [ "${{ needs.frontend-quality-checks.result }}" == "success" ] && [ "${{ needs.backend-unit-tests.result }}" == "success" ] && [ "${{ needs.backend-quality-checks.result }}" == "success" ]; then
+          if [ "${{ needs.frontend-unit-tests.result }}" == "success" ] && [ "${{ needs.frontend-quality-checks.result }}" == "success" ] && [ "${{ needs.backend-unit-tests.result }}" == "success" ] && [ "${{ needs.backend-quality-checks.result }}" == "success" ] && [ "${{ needs.e2e-tests.result }}" == "success" ]; then
             echo "🎉 All checks passed! Code quality is excellent." >> $GITHUB_STEP_SUMMARY
           else
             echo "⚠️ Some checks failed. Please review and fix the issues." >> $GITHUB_STEP_SUMMARY

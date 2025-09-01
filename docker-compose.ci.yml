@@ -1,0 +1,157 @@
+services:
+  # MongoDB Database for CI
+  mongodb:
+    image: mongo:7.0
+    container_name: dnd-game-mongodb-ci
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: test
+    ports:
+      - "27017:27017"
+    networks:
+      - dnd-game-network-ci
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache for CI
+  redis:
+    image: redis:7.2-alpine
+    container_name: dnd-game-redis-ci
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - dnd-game-network-ci
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Mock LLM Service for CI
+  mock-llm:
+    build:
+      context: ./mock-llm-service
+      dockerfile: Dockerfile
+    container_name: dnd-game-mock-llm-ci
+    restart: unless-stopped
+    ports:
+      - "5002:5002"
+    environment:
+      PORT: 5002
+      NODE_ENV: test
+      MOCK_LLM_DELAY: 100
+      MOCK_LLM_FAILURE_RATE: 0
+      MOCK_LLM_ENABLE_RANDOMIZATION: false
+    networks:
+      - dnd-game-network-ci
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:5002/health",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API for CI
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dnd-game-backend-ci
+    restart: unless-stopped
+    environment:
+      NODE_ENV: test
+      PORT: 5001
+      MONGODB_URI: mongodb://admin:password@mongodb:27017/test?authSource=admin
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      GEMINI_API_KEY: test-api-key-for-ci
+      JWT_SECRET: test-secret-key
+      SESSION_SECRET: test-session-secret
+      CORS_ORIGIN: http://localhost:3000
+      LOG_LEVEL: error
+      LLM_SERVICE_URL: http://mock-llm:5002
+      USE_MOCK_LLM: true
+      TEST_MODE: true
+      SKIP_PERFORMANCE_MONITORING: true
+    ports:
+      - "5001:5001"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mock-llm:
+        condition: service_healthy
+    networks:
+      - dnd-game-network-ci
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:5001/health/light",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Frontend for CI
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:5001
+        BACKEND_URL: http://localhost:5001
+    container_name: dnd-game-frontend-ci
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      NEXT_PUBLIC_API_URL: http://localhost:5001
+      BACKEND_URL: http://localhost:5001
+      NEXT_PUBLIC_APP_NAME: "AI-Powered D&D Game - CI"
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - dnd-game-network-ci
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3000/api/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  dnd-game-network-ci:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
