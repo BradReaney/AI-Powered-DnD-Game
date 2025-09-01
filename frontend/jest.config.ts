@@ -57,6 +57,35 @@ const config: Config = {
 
   // Restore mocks between tests
   restoreMocks: true,
+
+  // CI-specific settings
+  ...(process.env.CI && {
+    reporters: [
+      "default",
+      [
+        "jest-junit",
+        {
+          outputDirectory: "coverage",
+          outputName: "junit.xml",
+          classNameTemplate: "{classname}",
+          titleTemplate: "{title}",
+          ancestorSeparator: " › ",
+          usePathForSuiteName: true,
+        },
+      ],
+    ],
+    collectCoverage: true,
+    coverageReporters: ["text", "lcov", "html", "json", "cobertura"],
+    testResultsProcessor: "jest-junit",
+    maxWorkers: 2, // Limit workers in CI for stability
+    testTimeout: 30000, // Increased timeout for CI
+  }),
+
+  // Test retry for flaky tests in CI
+  ...(process.env.CI && {
+    retryTimes: 2,
+    retryDelay: 1000,
+  }),
 };
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

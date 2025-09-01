@@ -62,6 +62,28 @@ global.IntersectionObserver = jest.fn().mockImplementation(() => ({
   disconnect: jest.fn(),
 }));
 
+// Mock fetch API for API calls in tests
+global.fetch = jest.fn();
+
+// Mock localStorage and sessionStorage
+const localStorageMock = {
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
+};
+global.localStorage = localStorageMock;
+global.sessionStorage = { ...localStorageMock };
+
+// Mock WebSocket for real-time features
+global.WebSocket = jest.fn().mockImplementation(() => ({
+  send: jest.fn(),
+  close: jest.fn(),
+  addEventListener: jest.fn(),
+  removeEventListener: jest.fn(),
+  readyState: 1,
+}));
+
 // Suppress console warnings in tests
 const originalError = console.error;
 beforeAll(() => {
@@ -78,4 +100,16 @@ beforeAll(() => {
 
 afterAll(() => {
   console.error = originalError;
+});
+
+// Global setup to ensure clean state between test suites
+beforeEach(() => {
+  jest.clearAllMocks();
+  // Reset fetch mock
+  (global.fetch as jest.Mock).mockClear();
+  // Reset localStorage mock
+  localStorageMock.getItem.mockClear();
+  localStorageMock.setItem.mockClear();
+  localStorageMock.removeItem.mockClear();
+  localStorageMock.clear.mockClear();
 });

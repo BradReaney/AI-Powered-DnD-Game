@@ -18,21 +18,26 @@ export default defineConfig({
     ["list"], // Clear terminal output for debugging
     ["json", { outputFile: "test-results/results.json" }], // Machine-readable for analysis
     ["junit", { outputFile: "test-results/results.xml" }], // CI/CD integration
+    ["html", { outputFolder: "playwright-report" }], // HTML report for CI
     ["github"], // GitHub PR integration
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: "http://localhost:3000",
+    baseURL: process.env.CI ? "http://localhost:3000" : "http://localhost:3000",
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: "on-first-retry",
+    trace: process.env.CI ? "on" : "on-first-retry",
 
     /* Take screenshot on failure */
     screenshot: "only-on-failure",
 
     /* Record video on failure */
-    video: "retain-on-failure",
+    video: process.env.CI ? "on" : "retain-on-failure",
+
+    /* Global timeout for actions */
+    actionTimeout: process.env.CI ? 30000 : 15000,
+    navigationTimeout: process.env.CI ? 30000 : 15000,
   },
 
   /* Configure projects for major browsers */
@@ -74,12 +79,14 @@ export default defineConfig({
   ],
 
   /* Run your local dev server before starting the tests */
-  webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
+  webServer: process.env.CI
+    ? undefined
+    : {
+        command: "npm run dev",
+        url: "http://localhost:3000",
+        reuseExistingServer: !process.env.CI,
+        timeout: 120 * 1000,
+      },
 
   /* Global setup and teardown */
   globalSetup: require.resolve("./tests/global-setup.ts"),
@@ -87,4 +94,18 @@ export default defineConfig({
 
   /* Only run E2E tests, not Jest tests */
   testMatch: "**/*.spec.ts",
+
+  /* CI-specific settings */
+  ...(process.env.CI && {
+    timeout: 300000, // 5 minutes for CI
+    expect: {
+      timeout: 30000, // 30 seconds for assertions
+    },
+    use: {
+      // Disable video and trace in CI for performance
+      video: "off",
+      trace: "off",
+      screenshot: "only-on-failure",
+    },
+  }),
 });
