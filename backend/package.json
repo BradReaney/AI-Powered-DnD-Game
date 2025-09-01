@@ -18,13 +18,17 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "test": "jest",
+    "test:ci": "jest --ci --coverage --watchAll=false --maxWorkers=2",
+    "test:coverage": "jest --coverage",
+    "test:watch": "jest --watch",
+    "test:debug": "jest --detectOpenHandles --forceExit",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "quality": "npm run lint && npm run format:check",
     "quality:fix": "npm run lint:fix && npm run format",
-    "prepare": "husky install"
+    "prepare": "if [ \"$CI\" != \"true\" ]; then husky install; fi"
   },
   "dependencies": {
     "@google/generative-ai": "^0.2.1",
@@ -64,8 +68,8 @@
     "husky": "^9.1.7",
     "ioredis-mock": "^8.9.0",
     "jest": "^29.7.0",
+    "jest-junit": "^16.0.0",
     "lint-staged": "^16.1.5",
-    "mongodb-memory-server": "^10.2.0",
     "prettier": "^3.6.2",
     "prettier-eslint": "^16.4.2",
     "supertest": "^7.1.4",

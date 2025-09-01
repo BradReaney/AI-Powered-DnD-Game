@@ -16,7 +16,7 @@ import SessionCleanupScheduler from './services/SessionCleanupScheduler';
 // Import routes
 import campaignRoutes from './routes/campaigns';
 import characterRoutes from './routes/characters';
-import sessionRoutes from './routes/sessions';
+import sessionRoutes, { initializeGameEngineService } from './routes/sessions';
 import gameplayRoutes from './routes/gameplay';
 import characterDevelopmentRoutes from './routes/character-development';
 import combatRoutes from './routes/combat';
@@ -355,7 +355,6 @@ class App {
 
   private initializeSocketIO(): void {
     // Initialize GameEngineService with Socket.IO instance
-    const { initializeGameEngineService } = require('./routes/sessions');
     initializeGameEngineService(this.io);
 
     this.io.on('connection', socket => {

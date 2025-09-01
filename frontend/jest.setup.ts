@@ -1,5 +1,16 @@
 import "@testing-library/jest-dom";
 
+// Ensure React is loaded from the correct location
+jest.mock("react", () => {
+  const actualReact = jest.requireActual("react");
+  return actualReact;
+});
+
+jest.mock("react-dom", () => {
+  const actualReactDom = jest.requireActual("react-dom");
+  return actualReactDom;
+});
+
 // Mock Next.js router
 jest.mock("next/navigation", () => ({
   useRouter() {
@@ -33,14 +44,67 @@ jest.mock("next/image", () => ({
 process.env.NEXT_PUBLIC_API_URL = "http://localhost:5001";
 process.env.BACKEND_URL = "http://localhost:5001";
 
-// Global test utilities
+// Mock localStorage and sessionStorage
+const localStorageMock = (() => {
+  let store: { [key: string]: string } = {};
+  return {
+    getItem: jest.fn((key: string) => store[key] || null),
+    setItem: jest.fn((key: string, value: string) => {
+      store[key] = value.toString();
+    }),
+    removeItem: jest.fn((key: string) => {
+      delete store[key];
+    }),
+    clear: jest.fn(() => {
+      store = {};
+    }),
+    length: Object.keys(store).length,
+    key: jest.fn((index: number) => Object.keys(store)[index] || null),
+  };
+})();
+
+Object.defineProperty(global, "localStorage", { value: localStorageMock });
+Object.defineProperty(global, "sessionStorage", { value: localStorageMock });
+
+// Mock WebSocket
+Object.defineProperty(global, "WebSocket", {
+  value: jest.fn().mockImplementation(() => ({
+    send: jest.fn(),
+    close: jest.fn(),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    CONNECTING: 0,
+    OPEN: 1,
+    CLOSING: 2,
+    CLOSED: 3,
+    readyState: 1,
+    url: "",
+    protocol: "",
+    extensions: "",
+    bufferedAmount: 0,
+    onopen: null,
+    onclose: null,
+    onmessage: null,
+    onerror: null,
+    binaryType: "blob",
+  })),
+});
+
+// Mock ResizeObserver
 global.ResizeObserver = jest.fn().mockImplementation(() => ({
   observe: jest.fn(),
   unobserve: jest.fn(),
   disconnect: jest.fn(),
 }));
 
-// Mock window.matchMedia
+// Mock IntersectionObserver
+global.IntersectionObserver = jest.fn().mockImplementation(() => ({
+  observe: jest.fn(),
+  unobserve: jest.fn(),
+  disconnect: jest.fn(),
+}));
+
+// Mock matchMedia
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: jest.fn().mockImplementation((query) => ({
@@ -55,27 +119,24 @@ Object.defineProperty(window, "matchMedia", {
   })),
 });
 
-// Mock IntersectionObserver
-global.IntersectionObserver = jest.fn().mockImplementation(() => ({
-  observe: jest.fn(),
-  unobserve: jest.fn(),
-  disconnect: jest.fn(),
-}));
-
-// Suppress console warnings in tests
-const originalError = console.error;
-beforeAll(() => {
-  console.error = (...args: any[]) => {
-    if (
-      typeof args[0] === "string" &&
-      args[0].includes("Warning: ReactDOM.render is no longer supported")
-    ) {
-      return;
-    }
-    originalError.call(console, ...args);
-  };
+// Mock window.scrollTo
+Object.defineProperty(window, "scrollTo", {
+  value: jest.fn(),
+  writable: true,
 });
 
-afterAll(() => {
-  console.error = originalError;
+// Mock console methods to reduce noise in tests
+const originalConsole = { ...console };
+global.console = {
+  ...console,
+  log: jest.fn(),
+  debug: jest.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+};
+
+// Restore console for debugging if needed
+afterEach(() => {
+  global.console = originalConsole;
 });

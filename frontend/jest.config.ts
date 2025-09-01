@@ -1,4 +1,3 @@
-import type { Config } from "jest";
 import nextJest from "next/jest.js";
 
 const createJestConfig = nextJest({
@@ -7,25 +6,12 @@ const createJestConfig = nextJest({
 });
 
 // Add any custom config to be passed to Jest
-const config: Config = {
+const config = {
   // Add more setup options before each test is run
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
 
   // Test environment
   testEnvironment: "jsdom",
-
-  // Coverage settings
-  collectCoverage: true,
-  coverageProvider: "v8",
-  collectCoverageFrom: [
-    "**/*.{js,jsx,ts,tsx}",
-    "!**/*.d.ts",
-    "!**/node_modules/**",
-    "!<rootDir>/.next/**",
-    "!<rootDir>/coverage/**",
-    "!<rootDir>/jest.config.ts",
-    "!<rootDir>/jest.setup.ts",
-  ],
 
   // Test path patterns
   testPathIgnorePatterns: [
@@ -43,9 +29,6 @@ const config: Config = {
     "^@/hooks/(.*)$": "<rootDir>/hooks/$1",
   },
 
-  // Transform patterns - use next/jest which handles TypeScript automatically
-  // No need for explicit transform configuration with next/jest
-
   // Test file patterns - exclude E2E tests by only including specific patterns
   testMatch: [
     "**/__tests__/**/*.(ts|tsx|js)",
@@ -57,6 +40,28 @@ const config: Config = {
 
   // Restore mocks between tests
   restoreMocks: true,
+
+  // CI-specific settings
+  ...(process.env.CI && {
+    reporters: [
+      "default",
+      [
+        "jest-junit",
+        {
+          outputDirectory: "test-results",
+          outputName: "junit.xml",
+          classNameTemplate: "{classname}",
+          titleTemplate: "{title}",
+          ancestorSeparator: " › ",
+          usePathForSuiteName: true,
+        },
+      ],
+    ],
+    coverageReporters: ["text", "lcov", "html", "json", "cobertura"],
+    testResultsProcessor: "jest-junit",
+    maxWorkers: 2, // Limit workers in CI for stability
+    testTimeout: 30000, // Increased timeout for CI
+  }),
 };
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

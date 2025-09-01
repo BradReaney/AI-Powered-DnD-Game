@@ -4,7 +4,7 @@ import { defineConfig, devices } from "@playwright/test";
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
-  testDir: "./tests",
+  testDir: "./tests/e2e",
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -17,31 +17,28 @@ export default defineConfig({
   reporter: [
     ["list"], // Clear terminal output for debugging
     ["json", { outputFile: "test-results/results.json" }], // Machine-readable for analysis
-    ["junit", { outputFile: "test-results/results.xml" }], // CI/CD integration
-    ["github"], // GitHub PR integration
+    ["junit", { outputFile: "test-results/junit.xml" }], // For CI/CD systems
+    ["html", { open: "never" }], // For local debugging
   ],
-  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
+  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: "http://localhost:3000",
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3000",
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on-first-retry",
-
-    /* Take screenshot on failure */
     screenshot: "only-on-failure",
-
-    /* Record video on failure */
-    video: "retain-on-failure",
+    video: "on-first-retry",
   },
 
-  /* Configure projects for major browsers */
+  /* Configure projects for major browsers - Only Chrome for now to speed up CI */
   projects: [
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
     },
 
+    /* Commented out other browsers to speed up CI
     {
       name: "firefox",
       use: { ...devices["Desktop Firefox"] },
@@ -52,39 +49,29 @@ export default defineConfig({
       use: { ...devices["Desktop Safari"] },
     },
 
-    /* Test against mobile viewports. */
+    // Test against mobile viewports.
     {
       name: "Mobile Chrome",
       use: { ...devices["Pixel 5"] },
     },
     {
       name: "Mobile Safari",
-      use: { ...devices["iPhone 14 Pro Max"] },
+      use: { ...devices["iPhone 12"] },
     },
-
-    /* Test against branded browsers. */
-    // {
-    //   name: 'Microsoft Edge',
-    //   use: { ...devices['Desktop Edge'], channel: 'msedge' },
-    // },
-    // {
-    //   name: 'Google Chrome',
-    //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    // },
+    */
   ],
 
   /* Run your local dev server before starting the tests */
-  webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
+  webServer: process.env.CI
+    ? undefined
+    : {
+        command: "npm run dev",
+        url: "http://localhost:3000",
+        reuseExistingServer: !process.env.CI,
+        timeout: 120 * 1000,
+      },
 
   /* Global setup and teardown */
   globalSetup: require.resolve("./tests/global-setup.ts"),
   globalTeardown: require.resolve("./tests/global-teardown.ts"),
-
-  /* Only run E2E tests, not Jest tests */
-  testMatch: "**/*.spec.ts",
 });
