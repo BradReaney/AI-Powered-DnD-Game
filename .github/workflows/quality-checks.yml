@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: "18"
+  NODE_VERSION: "20"
   BACKEND_URL: "http://localhost:5001"
   NEXT_PUBLIC_API_URL: "http://localhost:5001"
 
@@ -172,7 +172,7 @@ jobs:
 
       - name: Start Docker Compose services
         run: |
-          docker-compose -f docker-compose.ci.yml up -d
+          docker compose -f docker-compose.ci.yml up -d
           echo "Waiting for services to be ready..."
           sleep 30
 
@@ -229,7 +229,7 @@ jobs:
 
       - name: Stop Docker Compose services
         if: always()
-        run: docker-compose -f docker-compose.ci.yml down
+        run: docker compose -f docker-compose.ci.yml down
 
   quality-report:
     name: Quality Report

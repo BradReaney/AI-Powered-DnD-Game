@@ -33,14 +33,64 @@ jest.mock("next/image", () => ({
 process.env.NEXT_PUBLIC_API_URL = "http://localhost:5001";
 process.env.BACKEND_URL = "http://localhost:5001";
 
-// Global test utilities
+// Mock localStorage and sessionStorage
+const mockStorage = {
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
+  length: 0,
+  key: jest.fn(),
+};
+
+Object.defineProperty(window, "localStorage", {
+  value: mockStorage,
+  writable: true,
+});
+
+Object.defineProperty(window, "sessionStorage", {
+  value: mockStorage,
+  writable: true,
+});
+
+// Mock WebSocket
+const mockWebSocket = jest.fn().mockImplementation(() => ({
+  send: jest.fn(),
+  close: jest.fn(),
+  addEventListener: jest.fn(),
+  removeEventListener: jest.fn(),
+  readyState: 1,
+}));
+
+// Add required WebSocket properties
+Object.defineProperty(mockWebSocket, "CONNECTING", { value: 0 });
+Object.defineProperty(mockWebSocket, "OPEN", { value: 1 });
+Object.defineProperty(mockWebSocket, "CLOSING", { value: 2 });
+Object.defineProperty(mockWebSocket, "CLOSED", { value: 3 });
+Object.defineProperty(mockWebSocket, "prototype", {
+  value: WebSocket.prototype,
+});
+
+global.WebSocket = mockWebSocket as any;
+
+// Mock fetch
+global.fetch = jest.fn();
+
+// Mock IntersectionObserver
+global.IntersectionObserver = jest.fn().mockImplementation(() => ({
+  observe: jest.fn(),
+  unobserve: jest.fn(),
+  disconnect: jest.fn(),
+}));
+
+// Mock ResizeObserver
 global.ResizeObserver = jest.fn().mockImplementation(() => ({
   observe: jest.fn(),
   unobserve: jest.fn(),
   disconnect: jest.fn(),
 }));
 
-// Mock window.matchMedia
+// Mock matchMedia
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: jest.fn().mockImplementation((query) => ({
@@ -55,61 +105,24 @@ Object.defineProperty(window, "matchMedia", {
   })),
 });
 
-// Mock IntersectionObserver
-global.IntersectionObserver = jest.fn().mockImplementation(() => ({
-  observe: jest.fn(),
-  unobserve: jest.fn(),
-  disconnect: jest.fn(),
-}));
+// Mock window.scrollTo
+Object.defineProperty(window, "scrollTo", {
+  value: jest.fn(),
+  writable: true,
+});
 
-// Mock fetch API for API calls in tests
-global.fetch = jest.fn();
-
-// Mock localStorage and sessionStorage
-const localStorageMock = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
+// Mock console methods to reduce noise in tests
+const originalConsole = { ...console };
+global.console = {
+  ...console,
+  log: jest.fn(),
+  debug: jest.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
 };
-global.localStorage = localStorageMock;
-global.sessionStorage = { ...localStorageMock };
 
-// Mock WebSocket for real-time features
-global.WebSocket = jest.fn().mockImplementation(() => ({
-  send: jest.fn(),
-  close: jest.fn(),
-  addEventListener: jest.fn(),
-  removeEventListener: jest.fn(),
-  readyState: 1,
-}));
-
-// Suppress console warnings in tests
-const originalError = console.error;
-beforeAll(() => {
-  console.error = (...args: any[]) => {
-    if (
-      typeof args[0] === "string" &&
-      args[0].includes("Warning: ReactDOM.render is no longer supported")
-    ) {
-      return;
-    }
-    originalError.call(console, ...args);
-  };
-});
-
-afterAll(() => {
-  console.error = originalError;
-});
-
-// Global setup to ensure clean state between test suites
-beforeEach(() => {
-  jest.clearAllMocks();
-  // Reset fetch mock
-  (global.fetch as jest.Mock).mockClear();
-  // Reset localStorage mock
-  localStorageMock.getItem.mockClear();
-  localStorageMock.setItem.mockClear();
-  localStorageMock.removeItem.mockClear();
-  localStorageMock.clear.mockClear();
+// Restore console for debugging if needed
+afterEach(() => {
+  global.console = originalConsole;
 });
