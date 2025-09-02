@@ -192,10 +192,10 @@ plans/
 ## Next Steps
 
 ### Immediate Actions
-1. **Resolve Debugging Issues**: Fix critical UI and functionality issues
-2. **Set Up Development Environment**: Prepare for story arc implementation
-3. **Begin Phase 1**: Start with story arc database schema
-4. **Establish Testing Framework**: Set up comprehensive testing
+1. **Review Outstanding Work Plan**: See `outstanding-work-plan.md` for detailed next steps
+2. **Fix Critical Bugs**: Resolve story validation endpoint bug
+3. **Enable Disabled Tests**: Re-enable and fix disabled test files
+4. **Implement Frontend UI**: Create user interface for story arc features
 
 ### Success Factors
 - **Clear Requirements**: Well-defined scope and requirements
@@ -203,6 +203,16 @@ plans/
 - **Early Testing**: Start testing early in each phase
 - **Performance Focus**: Monitor and optimize throughout
 - **Quality Assurance**: Maintain high quality standards
+
+## Outstanding Work
+
+### Critical Issues
+- **Story Validation Bug**: Endpoint returns undefined property error
+- **Frontend Integration**: No UI for story arc features
+- **Disabled Tests**: 4 test files need re-enabling
+
+### Next Phase: Outstanding Work Implementation
+See `outstanding-work-plan.md` for comprehensive plan to complete the story arc system.
 
 ## Conclusion
 

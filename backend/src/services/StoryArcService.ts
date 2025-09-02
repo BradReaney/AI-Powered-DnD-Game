@@ -158,6 +158,22 @@ export class StoryArcService {
   }
 
   /**
+   * Get story arc by ID
+   */
+  async getStoryArcById(storyArcId: Types.ObjectId): Promise<IStoryArc | null> {
+    try {
+      const storyArc = await StoryArc.findById(storyArcId).populate(
+        'storyBeats.characters',
+        'name race class'
+      );
+      return storyArc;
+    } catch (error) {
+      logger.error(`Error getting story arc by ID: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
    * Add a new story beat to the story arc
    */
   async addStoryBeat(campaignId: Types.ObjectId, beatData: StoryBeatData): Promise<string> {

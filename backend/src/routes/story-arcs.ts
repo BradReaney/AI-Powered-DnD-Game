@@ -393,8 +393,8 @@ router.post('/:storyArcId/validate', async (req, res) => {
       });
     }
 
-    logger.debug(`Validating story arc for campaign: ${storyArcId}`);
-    const storyArc = await storyArcService.getStoryArcByCampaignId(new Types.ObjectId(storyArcId));
+    logger.debug(`Validating story arc: ${storyArcId}`);
+    const storyArc = await storyArcService.getStoryArcById(new Types.ObjectId(storyArcId));
     if (!storyArc) {
       return res.status(404).json({
         success: false,
@@ -405,6 +405,14 @@ router.post('/:storyArcId/validate', async (req, res) => {
     logger.debug(
       `Story arc found, starting validation. StoryValidator instance: ${storyValidator ? 'exists' : 'undefined'}`
     );
+
+    if (!storyValidator) {
+      return res.status(500).json({
+        success: false,
+        message: 'Story validator not initialized',
+      });
+    }
+
     const validationResult = await storyValidator.validateStoryArc(storyArc);
 
     res.json({
