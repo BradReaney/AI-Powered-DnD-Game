@@ -306,10 +306,9 @@ jest.mock('../src/models', () => ({
   },
 }));
 
-// Mock StoryArc model specifically
-jest.mock('../src/models/StoryArc', () => ({
-  __esModule: true,
-  default: {
+// Mock StoryArc model specifically - this mocks the named exports from ../models/StoryArc
+jest.mock('../src/models/StoryArc', () => {
+  const mockStoryArcModel = {
     findOne: jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue(null) }),
     find: jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue([]) }),
     create: jest.fn().mockResolvedValue({ _id: 'mock-story-arc-id' }),
@@ -318,15 +317,16 @@ jest.mock('../src/models/StoryArc', () => ({
     deleteOne: jest.fn().mockResolvedValue({ deletedCount: 1 }),
     countDocuments: jest.fn().mockResolvedValue(0),
     aggregate: jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue([]) }),
-  },
-  StoryArc: {
-    findOne: jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue(null) }),
-    find: jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue([]) }),
-    create: jest.fn().mockResolvedValue({ _id: 'mock-story-arc-id' }),
-    save: jest.fn().mockResolvedValue({ _id: 'mock-story-arc-id' }),
-    updateOne: jest.fn().mockResolvedValue({ modifiedCount: 1 }),
-    deleteOne: jest.fn().mockResolvedValue({ deletedCount: 1 }),
-    countDocuments: jest.fn().mockResolvedValue(0),
-    aggregate: jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue([]) }),
-  },
-}));
+  };
+
+  return {
+    __esModule: true,
+    StoryArc: mockStoryArcModel,
+    // Also export the interfaces
+    IStoryArc: {},
+    IStoryBeat: {},
+    ICharacterMilestone: {},
+    IWorldStateChange: {},
+    IQuestProgress: {},
+  };
+});
