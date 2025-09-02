@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     }
 
     const response = await fetch(
-      `${BACKEND_URL}/api/sessions/active/continuity?campaignId=${campaignId}`,
+      `${BACKEND_URL}/api/sessions/active?campaignId=${campaignId}`,
       {
         method: "GET",
         headers: {
@@ -35,7 +35,15 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+
+    // Transform the response to match the expected frontend structure
+    // Backend returns { sessions: [...] } but frontend expects { activeSessions: [...] }
+    return NextResponse.json({
+      activeSessions: data.sessions || [],
+      message: data.message,
+      campaignId: data.campaignId,
+      count: data.count,
+    });
   } catch (error) {
     console.error("Error fetching active sessions:", error);
     return NextResponse.json(

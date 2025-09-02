@@ -1,11 +1,11 @@
 import { config } from '../config';
-import GeminiClient from './GeminiClient';
-import MockGeminiClient from './MockGeminiClient';
+import { GeminiClient, ILLMClient } from './GeminiClient';
+import { MockGeminiClient } from './MockGeminiClient';
 import logger from './LoggerService';
 
 export class LLMClientFactory {
   private static instance: LLMClientFactory;
-  private currentClient: GeminiClient | MockGeminiClient | null = null;
+  private currentClient: ILLMClient | null = null;
 
   private constructor() {}
 
@@ -19,7 +19,7 @@ export class LLMClientFactory {
   /**
    * Get the appropriate LLM client based on configuration
    */
-  public getClient(): GeminiClient | MockGeminiClient {
+  public getClient(): ILLMClient {
     if (this.currentClient) {
       return this.currentClient;
     }

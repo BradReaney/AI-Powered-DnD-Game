@@ -31,7 +31,23 @@ export interface GeminiRequest {
   }>;
 }
 
-export class GeminiClient {
+export interface ILLMClient {
+  sendPrompt(request: GeminiRequest): Promise<GeminiResponse>;
+  testConnection(): Promise<boolean>;
+  generateStoryResponse(
+    playerAction: string,
+    campaignContext: string,
+    characterContext: string,
+    worldState: string
+  ): Promise<GeminiResponse>;
+  extractCharacterInformation(
+    storyContent: string,
+    originalPrompt: string
+  ): Promise<GeminiResponse>;
+  extractLocationInformation(storyContent: string, originalPrompt: string): Promise<GeminiResponse>;
+}
+
+export class GeminiClient implements ILLMClient {
   private genAI: GoogleGenerativeAI;
   private flashLiteModel: GenerativeModel;
   private flashModel: GenerativeModel;
