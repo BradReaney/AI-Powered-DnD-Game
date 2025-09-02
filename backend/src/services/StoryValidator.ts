@@ -147,15 +147,18 @@ export class StoryValidator {
 
       // Calculate overall score
       const totalScore = results.reduce((sum, result) => sum + result.score, 0);
-      const overallScore = Math.round(totalScore / results.length);
+      const overallScore = results.length > 0 ? Math.round(totalScore / results.length) : 0;
 
       // Generate summary
       const summary = {
         totalRules: results.length,
         passedRules: results.filter(r => r.passed).length,
         failedRules: results.filter(r => !r.passed).length,
-        warnings: results.reduce((sum, r) => sum + r.warnings.length, 0),
-        suggestions: results.reduce((sum, r) => sum + r.suggestions.length, 0),
+        warnings: results.reduce((sum, r) => sum + (r.warnings ? r.warnings.length : 0), 0),
+        suggestions: results.reduce(
+          (sum, r) => sum + (r.suggestions ? r.suggestions.length : 0),
+          0
+        ),
       };
 
       // Generate recommendations
@@ -188,7 +191,7 @@ export class StoryValidator {
     const suggestions: string[] = [];
 
     // Sort story beats by chapter and act
-    const storyBeats = [...storyArc.storyBeats].sort((a, b) => {
+    const storyBeats = [...(storyArc.storyBeats || [])].sort((a, b) => {
       if (a.chapter !== b.chapter) return a.chapter - b.chapter;
       return a.act - b.act;
     });
@@ -217,7 +220,7 @@ export class StoryValidator {
     }
 
     // Check act distribution
-    const actDistribution = storyArc.storyBeats.reduce(
+    const actDistribution = (storyArc.storyBeats || []).reduce(
       (acc, beat) => {
         acc[beat.act] = (acc[beat.act] || 0) + 1;
         return acc;
@@ -258,7 +261,7 @@ export class StoryValidator {
     const warnings: string[] = [];
     const suggestions: string[] = [];
 
-    const completedBeats = storyArc.storyBeats.filter(beat => beat.completed);
+    const completedBeats = (storyArc.storyBeats || []).filter(beat => beat.completed);
 
     for (const beat of completedBeats) {
       // Check if completed beat has consequences
@@ -278,7 +281,7 @@ export class StoryValidator {
     }
 
     // Check completion rate
-    const completionRate = completedBeats.length / storyArc.storyBeats.length;
+    const completionRate = completedBeats.length / (storyArc.storyBeats || []).length;
     if (completionRate < 0.2) {
       suggestions.push('Consider completing more story beats to advance the narrative');
     } else if (completionRate > 0.8) {
@@ -308,11 +311,11 @@ export class StoryValidator {
     const warnings: string[] = [];
     const suggestions: string[] = [];
 
-    const completedBeats = storyArc.storyBeats.filter(beat => beat.completed);
+    const completedBeats = (storyArc.storyBeats || []).filter(beat => beat.completed);
 
     // Check if completed beats have character milestones
     for (const beat of completedBeats) {
-      const hasMilestone = storyArc.characterMilestones.some(
+      const hasMilestone = (storyArc.characterMilestones || []).some(
         milestone => milestone.storyBeatId === beat.id
       );
 
@@ -322,7 +325,7 @@ export class StoryValidator {
     }
 
     // Check milestone distribution by type
-    const milestoneTypes = storyArc.characterMilestones.reduce(
+    const milestoneTypes = (storyArc.characterMilestones || []).reduce(
       (acc, milestone) => {
         acc[milestone.type] = (acc[milestone.type] || 0) + 1;
         return acc;
@@ -364,7 +367,7 @@ export class StoryValidator {
     const suggestions: string[] = [];
 
     // Sort world changes by occurrence time
-    const worldChanges = [...storyArc.worldStateChanges].sort(
+    const worldChanges = [...(storyArc.worldStateChanges || [])].sort(
       (a, b) => a.occurredAt.getTime() - b.occurredAt.getTime()
     );
 
@@ -421,8 +424,10 @@ export class StoryValidator {
     const warnings: string[] = [];
     const suggestions: string[] = [];
 
-    const activeQuests = storyArc.questProgress.filter(quest => quest.status === 'active');
-    const completedQuests = storyArc.questProgress.filter(quest => quest.status === 'completed');
+    const activeQuests = (storyArc.questProgress || []).filter(quest => quest.status === 'active');
+    const completedQuests = (storyArc.questProgress || []).filter(
+      quest => quest.status === 'completed'
+    );
 
     // Check if active quests are linked to story beats
     for (const quest of activeQuests) {
@@ -432,7 +437,7 @@ export class StoryValidator {
     }
 
     // Check quest type distribution
-    const questTypes = storyArc.questProgress.reduce(
+    const questTypes = (storyArc.questProgress || []).reduce(
       (acc, quest) => {
         acc[quest.type] = (acc[quest.type] || 0) + 1;
         return acc;
@@ -453,7 +458,7 @@ export class StoryValidator {
     }
 
     // Check quest completion rate
-    const questCompletionRate = completedQuests.length / storyArc.questProgress.length;
+    const questCompletionRate = completedQuests.length / (storyArc.questProgress || []).length;
     if (questCompletionRate < 0.3) {
       suggestions.push('Consider completing more quests to advance the story');
     }
@@ -481,11 +486,11 @@ export class StoryValidator {
 
     const totalChapters = storyArc.totalChapters;
     const currentChapter = storyArc.currentChapter;
-    const completedBeats = storyArc.storyBeats.filter(beat => beat.completed);
+    const completedBeats = (storyArc.storyBeats || []).filter(beat => beat.completed);
 
     // Check chapter progression
     const expectedProgress = (currentChapter / totalChapters) * 100;
-    const actualProgress = (completedBeats.length / storyArc.storyBeats.length) * 100;
+    const actualProgress = (completedBeats.length / (storyArc.storyBeats || []).length) * 100;
 
     if (Math.abs(expectedProgress - actualProgress) > 20) {
       warnings.push(
@@ -501,7 +506,7 @@ export class StoryValidator {
     }
 
     // Check chapter distribution
-    const chapterDistribution = storyArc.storyBeats.reduce(
+    const chapterDistribution = (storyArc.storyBeats || []).reduce(
       (acc, beat) => {
         acc[beat.chapter] = (acc[beat.chapter] || 0) + 1;
         return acc;
@@ -509,7 +514,7 @@ export class StoryValidator {
       {} as Record<number, number>
     );
 
-    const averageBeatsPerChapter = storyArc.storyBeats.length / totalChapters;
+    const averageBeatsPerChapter = (storyArc.storyBeats || []).length / totalChapters;
     for (let chapter = 1; chapter <= totalChapters; chapter++) {
       const beatsInChapter = chapterDistribution[chapter] || 0;
       if (beatsInChapter < averageBeatsPerChapter * 0.5) {
@@ -540,7 +545,7 @@ export class StoryValidator {
     const warnings: string[] = [];
     const suggestions: string[] = [];
 
-    const relationshipMilestones = storyArc.characterMilestones.filter(
+    const relationshipMilestones = (storyArc.characterMilestones || []).filter(
       milestone => milestone.type === 'relationship'
     );
 
@@ -550,7 +555,7 @@ export class StoryValidator {
 
     // Check for character interaction patterns
     const characterInteractions = new Map<string, number>();
-    for (const beat of storyArc.storyBeats) {
+    for (const beat of storyArc.storyBeats || []) {
       for (const charId of beat.characters) {
         const charKey = charId.toString();
         characterInteractions.set(charKey, (characterInteractions.get(charKey) || 0) + 1);
@@ -562,7 +567,7 @@ export class StoryValidator {
     }
 
     // Check for character development balance
-    const characterDevelopment = storyArc.characterMilestones.reduce(
+    const characterDevelopment = (storyArc.characterMilestones || []).reduce(
       (acc, milestone) => {
         const charKey = milestone.characterId.toString();
         acc[charKey] = (acc[charKey] || 0) + 1;
@@ -634,13 +639,13 @@ Respond with a JSON object containing:
         try {
           const analysis = JSON.parse(response.content);
 
-          if (analysis.issues) {
+          if (analysis.issues && Array.isArray(analysis.issues)) {
             issues.push(...analysis.issues);
           }
-          if (analysis.warnings) {
+          if (analysis.warnings && Array.isArray(analysis.warnings)) {
             warnings.push(...analysis.warnings);
           }
-          if (analysis.suggestions) {
+          if (analysis.suggestions && Array.isArray(analysis.suggestions)) {
             suggestions.push(...analysis.suggestions);
           }
         } catch (parseError) {
@@ -671,8 +676,8 @@ Respond with a JSON object containing:
    * Prepare story summary for AI analysis
    */
   private prepareStorySummary(storyArc: IStoryArc): string {
-    const completedBeats = storyArc.storyBeats.filter(beat => beat.completed);
-    const activeBeats = storyArc.storyBeats.filter(beat => !beat.completed);
+    const completedBeats = (storyArc.storyBeats || []).filter(beat => beat.completed);
+    const activeBeats = (storyArc.storyBeats || []).filter(beat => !beat.completed);
 
     let summary = `Campaign Theme: ${storyArc.theme}\n`;
     summary += `Current Chapter: ${storyArc.currentChapter}/${storyArc.totalChapters}\n`;
@@ -689,9 +694,9 @@ Respond with a JSON object containing:
       summary += `- ${beat.title} (Chapter ${beat.chapter}, Act ${beat.act}): ${beat.description}\n`;
     }
 
-    summary += `\nCharacter Milestones: ${storyArc.characterMilestones.length}\n`;
-    summary += `World State Changes: ${storyArc.worldStateChanges.length}\n`;
-    summary += `Active Quests: ${storyArc.questProgress.filter(q => q.status === 'active').length}\n`;
+    summary += `\nCharacter Milestones: ${(storyArc.characterMilestones || []).length}\n`;
+    summary += `World State Changes: ${(storyArc.worldStateChanges || []).length}\n`;
+    summary += `Active Quests: ${(storyArc.questProgress || []).filter(q => q.status === 'active').length}\n`;
 
     return summary;
   }
@@ -717,7 +722,8 @@ Respond with a JSON object containing:
     recommendations.push(...warningRecommendations);
 
     // Add general recommendations based on overall score
-    const overallScore = results.reduce((sum, r) => sum + r.score, 0) / results.length;
+    const overallScore =
+      results.length > 0 ? results.reduce((sum, r) => sum + r.score, 0) / results.length : 0;
     if (overallScore < 70) {
       recommendations.push(
         'Overall story quality needs improvement. Focus on addressing critical issues first.'
