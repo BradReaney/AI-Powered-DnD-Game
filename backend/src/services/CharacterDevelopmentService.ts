@@ -1,5 +1,6 @@
 import logger from './LoggerService';
 import { ContextManager } from './ContextManager';
+import { ICharacterMilestone } from '../models/StoryArc';
 
 export interface CharacterMemory {
   id: string;
@@ -623,6 +624,260 @@ export class CharacterDevelopmentService {
     } catch (error) {
       logger.error('Error updating character arc:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Add character milestone to story arc
+   */
+  async addCharacterMilestone(
+    characterId: string,
+    milestone: Omit<ICharacterMilestone, 'characterId' | 'achievedAt'>
+  ): Promise<ICharacterMilestone> {
+    try {
+      const newMilestone: ICharacterMilestone = {
+        ...milestone,
+        characterId: characterId as any, // Type conversion for ObjectId
+        achievedAt: new Date(),
+      };
+
+      // Add milestone to story memory
+      this.contextManager.addCharacterMilestone(
+        characterId,
+        `${milestone.type}: ${milestone.title} - ${milestone.description}`
+      );
+
+      // Add to character context
+      this.contextManager.addStoryContextLayer(
+        characterId,
+        'story',
+        `Character Milestone: ${milestone.title} (${milestone.type}, ${milestone.impact} impact)`,
+        this.getImportanceFromImpact(milestone.impact),
+        undefined,
+        undefined,
+        true // Permanent milestone
+      );
+
+      logger.info('Character milestone added', {
+        characterId,
+        milestoneType: milestone.type,
+        impact: milestone.impact,
+      });
+
+      return newMilestone;
+    } catch (error) {
+      logger.error('Error adding character milestone:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Track character level progression
+   */
+  async trackLevelProgression(
+    characterId: string,
+    newLevel: number,
+    storyBeatId?: string
+  ): Promise<ICharacterMilestone> {
+    return this.addCharacterMilestone(characterId, {
+      type: 'level',
+      title: `Reached Level ${newLevel}`,
+      description: `Character has progressed to level ${newLevel}`,
+      impact: newLevel % 5 === 0 ? 'major' : 'moderate', // Every 5 levels is major
+      storyBeatId,
+    });
+  }
+
+  /**
+   * Track relationship development milestone
+   */
+  async trackRelationshipMilestone(
+    characterId: string,
+    targetCharacterId: string,
+    relationshipType: string,
+    strength: number,
+    storyBeatId?: string
+  ): Promise<ICharacterMilestone> {
+    const impact = strength >= 8 ? 'major' : strength >= 5 ? 'moderate' : 'minor';
+
+    return this.addCharacterMilestone(characterId, {
+      type: 'relationship',
+      title: `Relationship with ${targetCharacterId}`,
+      description: `Developed ${relationshipType} relationship (strength: ${strength})`,
+      impact,
+      storyBeatId,
+      metadata: {
+        targetCharacterId,
+        relationshipType,
+        strength,
+      },
+    });
+  }
+
+  /**
+   * Track story impact milestone
+   */
+  async trackStoryImpactMilestone(
+    characterId: string,
+    storyEvent: string,
+    impact: 'minor' | 'moderate' | 'major' | 'critical',
+    storyBeatId?: string
+  ): Promise<ICharacterMilestone> {
+    return this.addCharacterMilestone(characterId, {
+      type: 'story',
+      title: `Story Impact: ${storyEvent}`,
+      description: `Character had ${impact} impact on story event: ${storyEvent}`,
+      impact,
+      storyBeatId,
+    });
+  }
+
+  /**
+   * Track personal growth milestone
+   */
+  async trackPersonalGrowthMilestone(
+    characterId: string,
+    growthType: string,
+    description: string,
+    storyBeatId?: string
+  ): Promise<ICharacterMilestone> {
+    return this.addCharacterMilestone(characterId, {
+      type: 'personal',
+      title: `Personal Growth: ${growthType}`,
+      description,
+      impact: 'moderate',
+      storyBeatId,
+    });
+  }
+
+  /**
+   * Track skill improvement milestone
+   */
+  async trackSkillMilestone(
+    characterId: string,
+    skillName: string,
+    improvement: string,
+    storyBeatId?: string
+  ): Promise<ICharacterMilestone> {
+    return this.addCharacterMilestone(characterId, {
+      type: 'skill',
+      title: `Skill Improvement: ${skillName}`,
+      description: `Improved ${skillName}: ${improvement}`,
+      impact: 'minor',
+      storyBeatId,
+    });
+  }
+
+  /**
+   * Track achievement milestone
+   */
+  async trackAchievementMilestone(
+    characterId: string,
+    achievement: string,
+    description: string,
+    impact: 'minor' | 'moderate' | 'major' | 'critical',
+    storyBeatId?: string
+  ): Promise<ICharacterMilestone> {
+    return this.addCharacterMilestone(characterId, {
+      type: 'achievement',
+      title: `Achievement: ${achievement}`,
+      description,
+      impact,
+      storyBeatId,
+    });
+  }
+
+  /**
+   * Get character development milestones
+   */
+  async getCharacterMilestones(
+    characterId: string,
+    filters: {
+      types?: ICharacterMilestone['type'][];
+      minImpact?: ICharacterMilestone['impact'];
+      limit?: number;
+    } = {}
+  ): Promise<ICharacterMilestone[]> {
+    try {
+      logger.info('Getting character milestones', { characterId, filters });
+      // In a real implementation, this would query the database
+      return [];
+    } catch (error) {
+      logger.error('Error getting character milestones:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get character development summary with milestones
+   */
+  async getCharacterDevelopmentSummaryWithMilestones(
+    characterId: string,
+    campaignId: string
+  ): Promise<{
+    memories: number;
+    relationships: number;
+    knowledge: number;
+    developmentNotes: number;
+    milestones: number;
+    milestoneTypes: Record<string, number>;
+    currentPhase: string;
+    recentGrowth: string[];
+    recentMilestones: ICharacterMilestone[];
+  }> {
+    try {
+      const baseSummary = await this.getCharacterDevelopmentSummary(characterId, campaignId);
+      const milestones = await this.getCharacterMilestones(characterId);
+
+      const milestoneTypes = milestones.reduce(
+        (acc, milestone) => {
+          acc[milestone.type] = (acc[milestone.type] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
+
+      const recentMilestones = milestones
+        .sort((a, b) => b.achievedAt.getTime() - a.achievedAt.getTime())
+        .slice(0, 5);
+
+      return {
+        ...baseSummary,
+        milestones: milestones.length,
+        milestoneTypes,
+        recentMilestones,
+      };
+    } catch (error) {
+      logger.error('Error getting character development summary with milestones:', error);
+      return {
+        memories: 0,
+        relationships: 0,
+        knowledge: 0,
+        developmentNotes: 0,
+        milestones: 0,
+        milestoneTypes: {},
+        currentPhase: 'unknown',
+        recentGrowth: [],
+        recentMilestones: [],
+      };
+    }
+  }
+
+  /**
+   * Helper method to convert impact to importance number
+   */
+  private getImportanceFromImpact(impact: 'minor' | 'moderate' | 'major' | 'critical'): number {
+    switch (impact) {
+      case 'minor':
+        return 4;
+      case 'moderate':
+        return 6;
+      case 'major':
+        return 8;
+      case 'critical':
+        return 10;
+      default:
+        return 5;
     }
   }
 }

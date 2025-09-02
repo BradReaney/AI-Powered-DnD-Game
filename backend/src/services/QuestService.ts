@@ -76,6 +76,18 @@ export interface GeneratedQuest {
     failure: string[];
     partial: string[];
   };
+  storyIntegration?: {
+    storyBeatId?: string;
+    storyType?: 'setup' | 'development' | 'climax' | 'resolution';
+    storyImpact?: 'minor' | 'moderate' | 'major' | 'critical';
+    characterDevelopmentOpportunities?: string[];
+    worldStateChanges?: string[];
+    relationshipImpacts?: Array<{
+      characterId: string;
+      relationshipChange: number;
+      relationshipType: string;
+    }>;
+  };
 }
 
 export interface WorldExplorationData {
