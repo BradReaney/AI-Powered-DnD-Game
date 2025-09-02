@@ -140,6 +140,7 @@ export function CampaignDetail({
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.data) {
+
             setStoryArc(data.data);
           }
         }
@@ -348,7 +349,13 @@ export function CampaignDetail({
       throw new Error("No story arc to validate");
     }
 
-    const response = await fetch(`/api/story-arcs/${storyArc._id}/validate`, {
+    // Use the campaign ID to get the story arc ID since we know the campaign ID
+    const storyArcId = storyArc._id || storyArc.id;
+    if (!storyArcId) {
+      throw new Error("Story arc ID not found");
+    }
+
+    const response = await fetch(`/api/story-arcs/${storyArcId}/validate`, {
       method: 'POST',
     });
 
