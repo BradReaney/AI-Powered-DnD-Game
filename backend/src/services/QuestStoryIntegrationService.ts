@@ -1,6 +1,6 @@
 import logger from './LoggerService';
 import { ContextManager } from './ContextManager';
-import { IQuestProgress, IStoryBeat } from '../models/StoryArc';
+import { IStoryBeat } from '../models/StoryArc';
 import { QuestService, QuestTemplate, GeneratedQuest } from './QuestService';
 import { CharacterDevelopmentService } from './CharacterDevelopmentService';
 
