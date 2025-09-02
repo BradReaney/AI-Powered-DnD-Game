@@ -10,12 +10,14 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { Campaign, Session, Character, Location } from "@/lib/types";
+import type { Campaign, Session, Character, Location, StoryArc, StoryValidationReport } from "@/lib/types";
 // SessionManager component removed - functionality integrated elsewhere
 import { CharacterForm } from "./character-form";
 import { CharacterSheet } from "./character-sheet";
 import { LocationForm } from "./location-form";
 import { LocationDetail } from "./location-detail";
+import { StoryArcForm } from "./story-arc-form";
+import { StoryArcDetail } from "./story-arc-detail";
 import {
   ArrowLeft,
   Edit,
@@ -25,6 +27,7 @@ import {
   MapPin,
   Plus,
   Trash2,
+  BookOpen,
 } from "lucide-react";
 
 // Force dynamic rendering to prevent build-time prerendering issues
@@ -69,6 +72,11 @@ export function CampaignDetail({
   const [locationViewMode, setLocationViewMode] = useState<
     "list" | "create" | "edit" | "view"
   >("list");
+  const [storyArcViewMode, setStoryArcViewMode] = useState<
+    "list" | "create" | "edit" | "view"
+  >("list");
+  const [selectedStoryArc, setSelectedStoryArc] = useState<StoryArc | null>(null);
+  const [storyArc, setStoryArc] = useState<StoryArc | null>(null);
 
   // Campaign settings state
   const [settings, setSettings] = useState(
@@ -103,8 +111,9 @@ export function CampaignDetail({
   // Loading states for character and location operations
   const [isSavingCharacter, setIsSavingCharacter] = useState(false);
   const [isSavingLocation, setIsSavingLocation] = useState(false);
+  const [isSavingStoryArc, setIsSavingStoryArc] = useState(false);
 
-  // Load settings from API when component mounts
+  // Load settings and story arc from API when component mounts
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -125,7 +134,22 @@ export function CampaignDetail({
       }
     };
 
+    const loadStoryArc = async () => {
+      try {
+        const response = await fetch(`/api/story-arcs?campaignId=${campaign.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.storyArc) {
+            setStoryArc(data.storyArc);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading story arc:", error);
+      }
+    };
+
     loadSettings();
+    loadStoryArc();
   }, [campaign.id]);
 
   const campaignCharacters = characters.filter(
@@ -245,6 +269,99 @@ export function CampaignDetail({
         alert("Failed to delete location. Please try again.");
       }
     }
+  };
+
+  // Story Arc handlers
+  const handleCreateStoryArc = () => {
+    setSelectedStoryArc(null);
+    setStoryArcViewMode("create");
+  };
+
+  const handleEditStoryArc = (storyArc: StoryArc) => {
+    setSelectedStoryArc(storyArc);
+    setStoryArcViewMode("edit");
+  };
+
+  const handleViewStoryArc = (storyArc: StoryArc) => {
+    setSelectedStoryArc(storyArc);
+    setStoryArcViewMode("view");
+  };
+
+  const handleSaveStoryArcData = async (storyArcData: Partial<StoryArc>) => {
+    try {
+      setIsSavingStoryArc(true);
+
+      const response = await fetch(
+        selectedStoryArc ? `/api/story-arcs/${selectedStoryArc.id}` : '/api/story-arcs',
+        {
+          method: selectedStoryArc ? 'PUT' : 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(storyArcData),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to ${selectedStoryArc ? 'update' : 'create'} story arc`);
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        setStoryArc(data.storyArc);
+        setStoryArcViewMode("list");
+        setSelectedStoryArc(null);
+      }
+    } catch (error) {
+      console.error("Error saving story arc:", error);
+      alert(`Failed to ${selectedStoryArc ? 'update' : 'create'} story arc. Please try again.`);
+    } finally {
+      setIsSavingStoryArc(false);
+    }
+  };
+
+  const handleDeleteStoryArc = async (storyArc: StoryArc) => {
+    if (
+      confirm(
+        `Are you sure you want to delete this story arc? This action cannot be undone.`,
+      )
+    ) {
+      try {
+        const response = await fetch(`/api/story-arcs/${storyArc.id}`, {
+          method: "DELETE",
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to delete story arc: ${response.statusText}`);
+        }
+        setStoryArc(null);
+        setStoryArcViewMode("list");
+        setSelectedStoryArc(null);
+      } catch (error) {
+        console.error("Error deleting story arc:", error);
+        alert("Failed to delete story arc. Please try again.");
+      }
+    }
+  };
+
+  const handleValidateStoryArc = async (): Promise<StoryValidationReport> => {
+    if (!storyArc) {
+      throw new Error("No story arc to validate");
+    }
+
+    const response = await fetch(`/api/story-arcs/${storyArc.id}/validate`, {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to validate story arc');
+    }
+
+    const data = await response.json();
+    if (!data.success) {
+      throw new Error(data.message || 'Validation failed');
+    }
+
+    return data.validationReport;
   };
 
   const handleSaveSettings = async () => {
@@ -400,7 +517,7 @@ export function CampaignDetail({
 
       {/* Campaign Management Tabs */}
       <Tabs defaultValue="sessions" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="sessions" className="flex items-center gap-2">
             <Play className="h-4 w-4" />
             Sessions
@@ -412,6 +529,10 @@ export function CampaignDetail({
           <TabsTrigger value="locations" className="flex items-center gap-2">
             <MapPin className="h-4 w-4" />
             Locations
+          </TabsTrigger>
+          <TabsTrigger value="story-arc" className="flex items-center gap-2">
+            <BookOpen className="h-4 w-4" />
+            Story Arc
           </TabsTrigger>
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
@@ -696,6 +817,114 @@ export function CampaignDetail({
                         </CardContent>
                       </Card>
                     ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="story-arc">
+          {storyArcViewMode === "create" || storyArcViewMode === "edit" ? (
+            <StoryArcForm
+              storyArc={selectedStoryArc || undefined}
+              onSave={handleSaveStoryArcData}
+              onCancel={() => setStoryArcViewMode("list")}
+              campaignId={campaign.id}
+              isSaving={isSavingStoryArc}
+            />
+          ) : storyArcViewMode === "view" && selectedStoryArc ? (
+            <StoryArcDetail
+              storyArc={selectedStoryArc}
+              onBack={() => setStoryArcViewMode("list")}
+              onEdit={() => handleEditStoryArc(selectedStoryArc)}
+              onDelete={() => handleDeleteStoryArc(selectedStoryArc)}
+              onValidate={handleValidateStoryArc}
+            />
+          ) : (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Campaign Story Arc</CardTitle>
+                    <CardDescription>
+                      Manage the narrative structure and story progression
+                    </CardDescription>
+                  </div>
+                  {!storyArc && (
+                    <Button onClick={handleCreateStoryArc}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Story Arc
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {!storyArc ? (
+                  <div className="text-center py-8">
+                    <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground mb-4">
+                      No story arc created for this campaign yet.
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Create a story arc to track narrative progression, character development, and world changes.
+                    </p>
+                    <Button onClick={handleCreateStoryArc}>
+                      Create Story Arc
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <Card className="border-l-4 border-l-blue-500">
+                      <CardContent className="pt-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h4 className="font-semibold">Story Arc</h4>
+                              <Badge variant="outline" className="capitalize">
+                                {storyArc.tone}
+                              </Badge>
+                              <Badge variant="secondary" className="capitalize">
+                                {storyArc.pacing} pacing
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-2">
+                              {storyArc.theme}
+                            </p>
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                              <span>Chapter {storyArc.currentChapter} / {storyArc.totalChapters}</span>
+                              <span>Phase: {storyArc.storyPhase}</span>
+                              <span>{storyArc.storyBeats.length} story beats</span>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEditStoryArc(storyArc)}
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleViewStoryArc(storyArc)}
+                      >
+                        View Details
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleDeleteStoryArc(storyArc)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </Button>
+                    </div>
                   </div>
                 )}
               </CardContent>
