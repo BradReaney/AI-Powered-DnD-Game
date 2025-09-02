@@ -52,7 +52,6 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
         description: 'Our heroes embark on their journey',
         type: 'setup',
 
-        prerequisites: [],
         outcomes: [],
         characterDevelopment: [],
         worldStateChanges: [],
@@ -147,7 +146,6 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
         description: 'Introduction to the story',
         type: 'setup',
 
-        prerequisites: [],
         outcomes: [],
         characterDevelopment: [],
         worldStateChanges: [],
@@ -170,7 +168,6 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
         description: 'Character growth and plot development',
         type: 'development',
 
-        prerequisites: [],
         outcomes: [],
         characterDevelopment: [],
         worldStateChanges: [],
@@ -193,7 +190,6 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
         description: 'Final confrontation',
         type: 'climax',
 
-        prerequisites: [],
         outcomes: [],
         characterDevelopment: [],
         worldStateChanges: [],
@@ -216,7 +212,6 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
         description: 'Story conclusion',
         type: 'resolution',
 
-        prerequisites: [],
         outcomes: [],
         characterDevelopment: [],
         worldStateChanges: [],
@@ -338,10 +333,10 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
         ),
         await characterDevelopmentService.trackRelationshipMilestone(
           testCharacterId,
-          testCampaignId,
           'mentor-1',
           'mentorship',
-          9
+          9,
+          testStoryBeatId
         ),
         await characterDevelopmentService.trackStoryImpactMilestone(
           testCharacterId,
@@ -402,7 +397,6 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
         description: 'The character faces their greatest challenge',
         type: 'development',
 
-        prerequisites: [],
         outcomes: [],
         characterDevelopment: [],
         worldStateChanges: [],
@@ -468,7 +462,6 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
         description: 'Test description',
         type: 'setup',
 
-        prerequisites: [],
         outcomes: [],
         characterDevelopment: [],
         worldStateChanges: [],
