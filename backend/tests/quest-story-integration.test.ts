@@ -52,7 +52,6 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
         description: 'Our heroes embark on their journey',
         type: 'setup',
 
-        outcomes: [],
         characterDevelopment: [],
         worldStateChanges: [],
         questProgress: [],
@@ -146,7 +145,6 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
         description: 'Introduction to the story',
         type: 'setup',
 
-        outcomes: [],
         characterDevelopment: [],
         worldStateChanges: [],
         questProgress: [],
@@ -168,7 +166,6 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
         description: 'Character growth and plot development',
         type: 'development',
 
-        outcomes: [],
         characterDevelopment: [],
         worldStateChanges: [],
         questProgress: [],
@@ -190,7 +187,6 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
         description: 'Final confrontation',
         type: 'climax',
 
-        outcomes: [],
         characterDevelopment: [],
         worldStateChanges: [],
         questProgress: [],
@@ -212,7 +208,6 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
         description: 'Story conclusion',
         type: 'resolution',
 
-        outcomes: [],
         characterDevelopment: [],
         worldStateChanges: [],
         questProgress: [],
@@ -340,36 +335,33 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
         ),
         await characterDevelopmentService.trackStoryImpactMilestone(
           testCharacterId,
-          testCampaignId,
-          testStoryBeatId,
+          'Uncovered the conspiracy',
           'major',
-          'Uncovered the conspiracy'
+          testStoryBeatId
         ),
         await characterDevelopmentService.trackPersonalGrowthMilestone(
           testCharacterId,
-          testCampaignId,
           'Overcame fear of commitment',
-          'moderate'
+          'moderate',
+          testStoryBeatId
         ),
         await characterDevelopmentService.trackSkillMilestone(
           testCharacterId,
-          testCampaignId,
           'Stealth',
           'expert',
-          'major'
+          testStoryBeatId
         ),
         await characterDevelopmentService.trackAchievementMilestone(
           testCharacterId,
-          testCampaignId,
           'Master Thief',
           'critical',
-          { heistsCompleted: 10 }
+          testStoryBeatId
         ),
       ];
 
       // Verify all milestones were created
       expect(milestones).toHaveLength(6);
-      expect(milestones.every(m => m.characterId === testCharacterId)).toBe(true);
+      expect(milestones.every(m => m.characterId.toString() === testCharacterId)).toBe(true);
 
       // Get comprehensive character summary
       const summary =
@@ -397,7 +389,6 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
         description: 'The character faces their greatest challenge',
         type: 'development',
 
-        outcomes: [],
         characterDevelopment: [],
         worldStateChanges: [],
         questProgress: [],
@@ -447,12 +438,7 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
 
       // CharacterDevelopmentService should handle missing campaign
       await expect(
-        characterDevelopmentService.trackLevelProgression(
-          testCharacterId,
-          nonExistentCampaign,
-          5,
-          'Fighter'
-        )
+        characterDevelopmentService.trackLevelProgression(testCharacterId, 5, testStoryBeatId)
       ).resolves.not.toThrow();
 
       // QuestStoryIntegrationService should handle missing campaign
@@ -462,7 +448,6 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
         description: 'Test description',
         type: 'setup',
 
-        outcomes: [],
         characterDevelopment: [],
         worldStateChanges: [],
         questProgress: [],
@@ -486,12 +471,7 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
 
       // Services should handle failures gracefully
       await expect(
-        characterDevelopmentService.trackLevelProgression(
-          testCharacterId,
-          testCampaignId,
-          5,
-          'Fighter'
-        )
+        characterDevelopmentService.trackLevelProgression(testCharacterId, 5, testStoryBeatId)
       ).resolves.not.toThrow();
 
       // Mock compression failure
@@ -544,9 +524,8 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
         milestonePromises.push(
           characterDevelopmentService.trackLevelProgression(
             `${testCharacterId}-${i}`,
-            testCampaignId,
             Math.floor(Math.random() * 20) + 1,
-            'Fighter'
+            testStoryBeatId
           )
         );
       }
