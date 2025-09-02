@@ -9,10 +9,31 @@ import logger from '../services/LoggerService';
 const router = express.Router();
 
 // Initialize services
-const storyArcService = new StoryArcService();
-const geminiClient = LLMClientFactory.getInstance().getClient();
-const storyValidator = new StoryValidator(geminiClient);
-const storyProgression = new StoryProgression(geminiClient);
+let storyArcService: StoryArcService;
+let geminiClient: any;
+let storyValidator: StoryValidator;
+let storyProgression: StoryProgression;
+
+try {
+  logger.info('Initializing story arc services...');
+  storyArcService = new StoryArcService();
+  logger.info('StoryArcService initialized successfully');
+
+  logger.info('Getting LLM client...');
+  geminiClient = LLMClientFactory.getInstance().getClient();
+  logger.info('LLM client obtained successfully');
+
+  logger.info('Initializing StoryValidator...');
+  storyValidator = new StoryValidator(geminiClient);
+  logger.info('StoryValidator initialized successfully');
+
+  logger.info('Initializing StoryProgression...');
+  storyProgression = new StoryProgression(geminiClient);
+  logger.info('StoryProgression initialized successfully');
+} catch (error) {
+  logger.error('Error initializing story arc services:', error);
+  throw error;
+}
 
 /**
  * @route POST /api/story-arcs

@@ -46,8 +46,11 @@ export class StoryValidator {
   private geminiClient: ILLMClient;
 
   constructor(geminiClient: ILLMClient) {
+    logger.debug('StoryValidator constructor called');
     this.geminiClient = geminiClient;
+    logger.debug('Gemini client assigned, initializing rules...');
     this.initializeRules();
+    logger.debug(`StoryValidator initialized with ${this.rules.length} rules`);
   }
 
   /**
