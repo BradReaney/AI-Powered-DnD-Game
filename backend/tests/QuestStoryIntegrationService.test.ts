@@ -8,13 +8,34 @@ import { IStoryBeat } from '../src/models/StoryArc';
 // Mock the ContextManager
 const mockContextManager = {
   addContextLayer: jest.fn(),
+  addStoryContextLayer: jest.fn(),
   getContext: jest.fn().mockResolvedValue('Mock context'),
   updateStoryBeat: jest.fn(),
 };
 
 // Mock the QuestService
 const mockQuestService = {
-  generateQuest: jest.fn(),
+  generateQuest: jest.fn().mockResolvedValue({
+    id: 'mock-quest-id',
+    name: 'Mock Story Quest',
+    description: 'A mock quest for testing',
+    objectives: ['Complete the mock objective'],
+    rewards: {
+      experience: 1000,
+      gold: 100,
+      items: [],
+      reputation: { faction: 'test', amount: 50 },
+    },
+    difficulty: 'medium',
+    estimatedDuration: '1-2 hours',
+    storyIntegration: {
+      storyBeatId: 'test-story-beat',
+      storyType: 'setup',
+      storyImpact: 'moderate',
+      characterDevelopmentOpportunities: ['Combat skills'],
+      worldStateChanges: ['Quest completed'],
+    },
+  }),
   updateQuest: jest.fn(),
 };
 
@@ -44,9 +65,9 @@ describe('QuestStoryIntegrationService - Phase 2 Quest-Story Integration', () =>
 
   describe('Quest Template Management', () => {
     it('should initialize quest templates on construction', () => {
-      const templates = (questStoryIntegrationService as any).questTemplates;
+      const templates = questStoryIntegrationService.createStoryQuestTemplates();
       expect(templates).toBeDefined();
-      expect(templates.size).toBeGreaterThan(0);
+      expect(templates.length).toBeGreaterThan(0);
     });
 
     it('should get quest templates by story type', () => {
