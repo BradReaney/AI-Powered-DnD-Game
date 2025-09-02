@@ -139,8 +139,8 @@ export function CampaignDetail({
         const response = await fetch(`/api/story-arcs?campaignId=${campaign.id}`);
         if (response.ok) {
           const data = await response.json();
-          if (data.success && data.storyArc) {
-            setStoryArc(data.storyArc);
+          if (data.success && data.data) {
+            setStoryArc(data.data);
           }
         }
       } catch (error) {
@@ -348,7 +348,7 @@ export function CampaignDetail({
       throw new Error("No story arc to validate");
     }
 
-    const response = await fetch(`/api/story-arcs/${storyArc.id}/validate`, {
+    const response = await fetch(`/api/story-arcs/${storyArc._id}/validate`, {
       method: 'POST',
     });
 
@@ -361,7 +361,7 @@ export function CampaignDetail({
       throw new Error(data.message || 'Validation failed');
     }
 
-    return data.validationReport;
+    return data.data;
   };
 
   const handleSaveSettings = async () => {
