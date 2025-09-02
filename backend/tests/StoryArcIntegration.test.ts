@@ -27,60 +27,60 @@ describe('Story Arc Integration Tests', () => {
           detailLevel: 'moderate',
           pacing: 'normal',
           combatStyle: 'balanced',
-          roleplayDepth: 'moderate'
+          roleplayDepth: 'moderate',
         },
         rules: {
           houseRules: [],
           customMechanics: [],
           variantRules: [],
           restrictions: [],
-          bonuses: []
+          bonuses: [],
         },
         playerSettings: {
           playerPermissions: {
             canCreateCharacters: true,
             canModifyWorld: false,
             canManageSessions: false,
-            canInvitePlayers: false
+            canInvitePlayers: false,
           },
           maxPlayers: 6,
-          allowNewPlayers: true
+          allowNewPlayers: true,
         },
         customization: {
           allowCharacterRespec: false,
           allowRetconning: false,
           allowTimeTravel: false,
           allowParallelTimelines: false,
-          savePoints: false
+          savePoints: false,
         },
         difficulty: 'easy',
         maxLevel: 10,
         startingLevel: 1,
         experienceRate: 'normal',
         magicLevel: 'medium',
-        technologyLevel: 'medieval'
+        technologyLevel: 'medieval',
       },
       worldState: {
         currentLocation: 'Test Town',
         knownLocations: [],
         factions: [],
         activeThreats: [],
-        worldEvents: []
+        worldEvents: [],
       },
       progress: {
         currentChapter: 1,
         totalChapters: 10,
         completedQuests: [],
         activeQuests: [],
-        campaignGoals: []
+        campaignGoals: [],
       },
       storyContext: {
         campaignSummary: 'A test campaign for integration testing',
         currentScene: 'The adventure begins...',
         storyHistory: [],
         npcDatabase: [],
-        worldLore: []
-      }
+        worldLore: [],
+      },
     });
 
     await campaign.save();
@@ -103,12 +103,12 @@ describe('Story Arc Integration Tests', () => {
         constitution: 13,
         intelligence: 12,
         wisdom: 10,
-        charisma: 8
+        charisma: 8,
       },
       hitPoints: {
         maximum: 10,
         current: 10,
-        temporary: 0
+        temporary: 0,
       },
       personality: {
         traits: ['Brave', 'Determined'],
@@ -116,34 +116,32 @@ describe('Story Arc Integration Tests', () => {
         bonds: ['Loyal to companions'],
         flaws: ['Sometimes too trusting'],
         background: 'Adventurer',
-        alignment: 'Neutral Good'
+        alignment: 'Neutral Good',
       },
       aiPersonality: {
         memory: {
           importantEvents: [],
           characterDevelopment: [],
-          worldKnowledge: []
+          worldKnowledge: [],
         },
         goals: [],
-        fears: []
+        fears: [],
       },
       equipment: {
         weapons: [],
         armor: null,
-        items: []
+        items: [],
       },
       currentLocation: {
-        arrivedAt: new Date()
+        arrivedAt: new Date(),
       },
       campaignId: testCampaignId,
       sessionId: null,
       isActive: true,
-      createdBy: 'test-user'
+      createdBy: 'test-user',
     };
 
-    const characterResponse = await request(expressApp)
-      .post('/api/characters')
-      .send(character);
+    const characterResponse = await request(expressApp).post('/api/characters').send(character);
 
     testCharacterId = characterResponse.body._id;
 
@@ -158,14 +156,14 @@ describe('Story Arc Integration Tests', () => {
         objectives: [
           {
             description: 'Complete the test objective',
-            completed: false
-          }
+            completed: false,
+          },
         ],
         rewards: {
           experience: 500,
           items: ['Test Item'],
-          reputation: 25
-        }
+          reputation: 25,
+        },
       });
 
     testQuestId = questResponse.body.questId;
@@ -179,16 +177,14 @@ describe('Story Arc Integration Tests', () => {
 
   describe('Story Arc Creation', () => {
     it('should create a story arc for a campaign', async () => {
-      const response = await request(expressApp)
-        .post('/api/story-arcs')
-        .send({
-          campaignId: testCampaignId,
-          theme: 'The Test Quest',
-          tone: 'serious',
-          pacing: 'normal',
-          totalChapters: 5,
-          storyPhase: 'setup'
-        });
+      const response = await request(expressApp).post('/api/story-arcs').send({
+        campaignId: testCampaignId,
+        theme: 'The Test Quest',
+        tone: 'serious',
+        pacing: 'normal',
+        totalChapters: 5,
+        storyPhase: 'setup',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -200,8 +196,7 @@ describe('Story Arc Integration Tests', () => {
     });
 
     it('should retrieve a story arc by campaign ID', async () => {
-      const response = await request(expressApp)
-        .get(`/api/story-arcs/campaign/${testCampaignId}`);
+      const response = await request(expressApp).get(`/api/story-arcs/campaign/${testCampaignId}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -212,9 +207,10 @@ describe('Story Arc Integration Tests', () => {
   describe('Character Milestone Integration', () => {
     it('should add a character milestone to a story arc', async () => {
       // First get the story arc to get the story beat ID
-      const storyArcResponse = await request(expressApp)
-        .get(`/api/story-arcs/campaign/${testCampaignId}`);
-      
+      const storyArcResponse = await request(expressApp).get(
+        `/api/story-arcs/campaign/${testCampaignId}`
+      );
+
       const storyBeatId = storyArcResponse.body.data.storyBeats[0].id;
 
       const response = await request(expressApp)
@@ -226,7 +222,7 @@ describe('Story Arc Integration Tests', () => {
           description: 'Character gained enough experience to reach level 2',
           impact: 'moderate',
           storyBeatId: storyBeatId,
-          achievedAt: new Date()
+          achievedAt: new Date(),
         });
 
       expect(response.status).toBe(200);
@@ -239,9 +235,10 @@ describe('Story Arc Integration Tests', () => {
   describe('Quest-Story Integration', () => {
     it('should add quest progress to a story arc', async () => {
       // First get the story arc to get the story beat ID
-      const storyArcResponse = await request(expressApp)
-        .get(`/api/story-arcs/campaign/${testCampaignId}`);
-      
+      const storyArcResponse = await request(expressApp).get(
+        `/api/story-arcs/campaign/${testCampaignId}`
+      );
+
       const storyBeatId = storyArcResponse.body.data.storyBeats[0].id;
 
       const response = await request(expressApp)
@@ -255,12 +252,12 @@ describe('Story Arc Integration Tests', () => {
           objectives: [
             {
               description: 'Complete the test objective',
-              completed: false
-            }
+              completed: false,
+            },
           ],
           storyImpact: 'major',
           characterDevelopment: [testCharacterId],
-          worldChanges: ['Quest started']
+          worldChanges: ['Quest started'],
         });
 
       expect(response.status).toBe(200);
@@ -272,8 +269,7 @@ describe('Story Arc Integration Tests', () => {
 
   describe('Story Arc Validation', () => {
     it('should validate a story arc and return detailed results', async () => {
-      const response = await request(expressApp)
-        .post(`/api/story-arcs/${testStoryArcId}/validate`);
+      const response = await request(expressApp).post(`/api/story-arcs/${testStoryArcId}/validate`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -294,8 +290,8 @@ describe('Story Arc Integration Tests', () => {
             includeStoryArc: true,
             includeCharacterMilestones: true,
             includeQuestProgress: true,
-            includeWorldStateChanges: true
-          }
+            includeWorldStateChanges: true,
+          },
         });
 
       expect(response.status).toBe(200);
@@ -308,11 +304,9 @@ describe('Story Arc Integration Tests', () => {
 
   describe('Performance Optimization Integration', () => {
     it('should optimize story arc performance', async () => {
-      const response = await request(expressApp)
-        .post('/api/performance/optimize-story-arc')
-        .send({
-          campaignId: testCampaignId
-        });
+      const response = await request(expressApp).post('/api/performance/optimize-story-arc').send({
+        campaignId: testCampaignId,
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -324,8 +318,9 @@ describe('Story Arc Integration Tests', () => {
 
   describe('Story Arc Progression', () => {
     it('should get story progression data', async () => {
-      const response = await request(expressApp)
-        .get(`/api/story-arcs/${testStoryArcId}/progression`);
+      const response = await request(expressApp).get(
+        `/api/story-arcs/${testStoryArcId}/progression`
+      );
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -333,8 +328,9 @@ describe('Story Arc Integration Tests', () => {
     });
 
     it('should get current story beat', async () => {
-      const response = await request(expressApp)
-        .get(`/api/story-arcs/${testStoryArcId}/current-story-beat`);
+      const response = await request(expressApp).get(
+        `/api/story-arcs/${testStoryArcId}/current-story-beat`
+      );
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -348,7 +344,7 @@ describe('Story Arc Integration Tests', () => {
         .post(`/api/story-arcs/${testStoryArcId}/suggestions`)
         .send({
           type: 'story-beat',
-          context: 'The party is ready for their next adventure'
+          context: 'The party is ready for their next adventure',
         });
 
       expect(response.status).toBe(200);
@@ -359,8 +355,7 @@ describe('Story Arc Integration Tests', () => {
 
   describe('Error Handling', () => {
     it('should handle invalid story arc ID', async () => {
-      const response = await request(expressApp)
-        .get('/api/story-arcs/campaign/invalid-id');
+      const response = await request(expressApp).get('/api/story-arcs/campaign/invalid-id');
 
       expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
@@ -368,8 +363,7 @@ describe('Story Arc Integration Tests', () => {
 
     it('should handle non-existent story arc', async () => {
       const fakeId = new Types.ObjectId().toString();
-      const response = await request(expressApp)
-        .get(`/api/story-arcs/campaign/${fakeId}`);
+      const response = await request(expressApp).get(`/api/story-arcs/campaign/${fakeId}`);
 
       expect(response.status).toBe(404);
       expect(response.body.success).toBe(false);
