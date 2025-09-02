@@ -469,7 +469,7 @@ router.get('/:storyArcId/progression', async (req, res) => {
 router.post('/:storyArcId/suggestions', async (req, res) => {
   try {
     const { storyArcId } = req.params;
-    const { count: _count = 3 } = req.body;
+    const { count = 3 } = req.body;
 
     if (!Types.ObjectId.isValid(storyArcId)) {
       return res.status(400).json({
