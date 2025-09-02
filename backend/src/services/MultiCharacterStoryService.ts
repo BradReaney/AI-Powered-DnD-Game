@@ -2,9 +2,7 @@ import logger from './LoggerService';
 import LLMClientFactory from './LLMClientFactory';
 import { ModelSelectionService } from './ModelSelectionService';
 import { PerformanceTracker } from './PerformanceTracker';
-import { Types } from 'mongoose';
 import Character from '../models/Character';
-import { IStoryArc } from '../models/StoryArc';
 
 export interface CharacterRelationship {
   characterId: string;
@@ -678,7 +676,7 @@ Return as JSON:
    */
   private calculateInfluenceChange(
     interaction: CharacterInteraction,
-    characterId: string
+    _characterId: string
   ): {
     decisionMaking: number;
     storyDirection: number;

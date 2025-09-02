@@ -2,7 +2,6 @@ import logger from './LoggerService';
 import LLMClientFactory from './LLMClientFactory';
 import { ModelSelectionService } from './ModelSelectionService';
 import { PerformanceTracker } from './PerformanceTracker';
-import { Types } from 'mongoose';
 
 export interface PlayerChoice {
   id: string;
@@ -620,7 +619,7 @@ Return as JSON array:
   /**
    * Find plot holes in the narrative
    */
-  private findPlotHoles(branches: StoryBranch[], choices: PlayerChoice[]): any[] {
+  private findPlotHoles(branches: StoryBranch[], _choices: PlayerChoice[]): any[] {
     const issues: any[] = [];
 
     // Check for unresolved story threads
@@ -852,6 +851,78 @@ Return as JSON array:
         expectedOutcome: 'High risk, high reward outcome',
       },
     ];
+  }
+
+  async analyseBranchingPotential(
+    campaignId: string,
+    currentContext: any,
+    _choices: any[] = []
+  ): Promise<{
+    branchingPotential: number;
+    suggestedBranches: any[];
+    convergencePoints: any[];
+  }> {
+    try {
+      const prompt = `Analyze branching potential for this campaign:
+
+Context: ${currentContext}
+
+Current Story State:
+- Active Branches: ${this.getActiveStoryBranches(campaignId).length}
+- Recent Choices: ${this.getPlayerChoices(campaignId)
+        .slice(-3)
+        .map(c => c.choiceText)
+        .join(', ')}
+
+Evaluate the narrative's potential for branching and convergence.
+1. Identify significant player choices that could lead to new story paths.
+2. Assess the likelihood of these choices resulting in significant world state changes.
+3. Determine if there are existing branches that could be merged or resolved.
+4. Identify potential convergence points.
+
+Return as JSON:
+{
+  "branchingPotential": number,
+  "suggestedBranches": [
+    {
+      "name": "string",
+      "description": "string",
+      "triggerChoiceId": "string",
+      "status": "active|inactive|completed|abandoned"
+    }
+  ],
+  "convergencePoints": ["string"]
+}`;
+
+      const response = await this.geminiClient.sendPrompt({
+        prompt,
+        taskType: 'branching_analysis',
+        temperature: 0.7,
+        maxTokens: 800,
+        forceModel: 'flash',
+      });
+
+      if (response.success) {
+        try {
+          const analysisData = JSON.parse(response.content);
+          return {
+            branchingPotential: analysisData.branchingPotential,
+            suggestedBranches: analysisData.suggestedBranches,
+            convergencePoints: analysisData.convergencePoints,
+          };
+        } catch (parseError) {
+          logger.error('Error parsing branching analysis response:', parseError);
+        }
+      }
+    } catch (error) {
+      logger.error('Error analyzing branching potential:', error);
+    }
+
+    return {
+      branchingPotential: 0,
+      suggestedBranches: [],
+      convergencePoints: [],
+    };
   }
 }
 

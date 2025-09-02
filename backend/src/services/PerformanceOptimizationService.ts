@@ -571,7 +571,7 @@ export class PerformanceOptimizationService {
   /**
    * Implement connection pooling
    */
-  private async implementConnectionPooling(campaignId: string): Promise<{
+  private async implementConnectionPooling(_campaignId: string): Promise<{
     enabled: boolean;
     scalabilityGain: number;
   }> {
@@ -582,7 +582,7 @@ export class PerformanceOptimizationService {
   /**
    * Implement horizontal scaling preparation
    */
-  private async implementHorizontalScaling(campaignId: string): Promise<{
+  private async implementHorizontalScaling(_campaignId: string): Promise<{
     enabled: boolean;
     scalabilityGain: number;
   }> {

@@ -3,7 +3,6 @@ import LLMClientFactory from './LLMClientFactory';
 import { ModelSelectionService } from './ModelSelectionService';
 import { PerformanceTracker } from './PerformanceTracker';
 import ContextManager, { ContextLayer, StoryContext, StoryMemory } from './ContextManager';
-import { IStoryArc, IStoryBeat } from '../models/StoryArc';
 
 export interface ContextSelectionCriteria {
   taskType: string;
@@ -197,7 +196,7 @@ export class DynamicContextSelector {
   private async analyzeContextNeeds(
     criteria: ContextSelectionCriteria,
     storyContext: StoryContext | null,
-    storyMemory: StoryMemory | null
+    _storyMemory: StoryMemory | null
   ): Promise<{
     requiredElements: string[];
     priorityElements: string[];
@@ -326,8 +325,8 @@ export class DynamicContextSelector {
     allLayers: ContextLayer[],
     contextNeeds: any,
     criteria: ContextSelectionCriteria,
-    storyContext: StoryContext | null,
-    storyMemory: StoryMemory | null
+    _storyContext: StoryContext | null,
+    _storyMemory: StoryMemory | null
   ): Promise<ContextLayer[]> {
     const selectedLayers: ContextLayer[] = [];
     let remainingTokens = criteria.maxTokens;
@@ -551,7 +550,7 @@ export class DynamicContextSelector {
    */
   private buildStoryMemorySection(
     storyMemory: StoryMemory,
-    criteria: ContextSelectionCriteria
+    _criteria: ContextSelectionCriteria
   ): string {
     let section = '';
 
@@ -588,7 +587,7 @@ export class DynamicContextSelector {
   /**
    * Format a context layer for inclusion
    */
-  private formatContextLayer(layer: ContextLayer, criteria: ContextSelectionCriteria): string {
+  private formatContextLayer(layer: ContextLayer, _criteria: ContextSelectionCriteria): string {
     let formatted = `${layer.type.toUpperCase()} CONTEXT:\n`;
     formatted += layer.content;
 
