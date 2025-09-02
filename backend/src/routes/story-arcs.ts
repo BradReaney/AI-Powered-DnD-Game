@@ -289,16 +289,18 @@ router.put('/:storyArcId/quest-progress', async (req, res) => {
       });
     }
 
-    const success = await storyArcService.updateQuestProgress(
+    const updatedStoryArc = await storyArcService.addQuestProgress(
       new Types.ObjectId(storyArcId),
-      new Types.ObjectId(questId),
-      updates
+      {
+        questId: new Types.ObjectId(questId),
+        ...updates
+      }
     );
 
     res.json({
       success: true,
-      message: success ? 'Quest progress updated successfully' : 'Quest not found',
-      data: { success },
+      message: 'Quest progress added/updated successfully',
+      data: updatedStoryArc,
     });
   } catch (error) {
     logger.error(`Error updating quest progress: ${error}`);
