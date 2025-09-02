@@ -98,6 +98,15 @@ export interface StoryProgressionData {
 
 export class StoryArcService {
   /**
+   * Validate ObjectId format
+   */
+  validateObjectId(id: string): void {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new Error('Invalid ObjectId');
+    }
+  }
+
+  /**
    * Create a new story arc for a campaign
    */
   async createStoryArc(data: StoryArcCreationData): Promise<IStoryArc> {
@@ -306,7 +315,9 @@ export class StoryArcService {
       }
 
       await storyArc.save();
-      logger.info(`Quest progress added/updated for quest ${questProgressData.questId} in story arc ${storyArcId}`);
+      logger.info(
+        `Quest progress added/updated for quest ${questProgressData.questId} in story arc ${storyArcId}`
+      );
       return storyArc;
     } catch (error) {
       logger.error(`Error adding quest progress: ${error}`);
@@ -581,8 +592,6 @@ export class StoryArcService {
 
     return initialBeats;
   }
-
-
 
   /**
    * Delete story arc (for cleanup)

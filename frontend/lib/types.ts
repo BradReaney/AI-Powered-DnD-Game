@@ -359,7 +359,14 @@ export interface StoryBeat {
   id: string;
   title: string;
   description: string;
-  type: "setup" | "development" | "climax" | "resolution" | "twist" | "character" | "world";
+  type:
+    | "setup"
+    | "development"
+    | "climax"
+    | "resolution"
+    | "twist"
+    | "character"
+    | "world";
   importance: "minor" | "moderate" | "major" | "critical";
   chapter: number;
   act: number;

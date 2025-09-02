@@ -86,10 +86,10 @@ export function StoryArcForm({
   };
 
   const handleInputChange = (field: string, value: string | number) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: "" }));
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
 
@@ -108,8 +108,7 @@ export function StoryArcForm({
             <CardDescription>
               {storyArc
                 ? "Update your story arc configuration"
-                : "Set up the narrative structure for your campaign"
-              }
+                : "Set up the narrative structure for your campaign"}
             </CardDescription>
           </div>
         </div>
@@ -177,11 +176,18 @@ export function StoryArcForm({
                 min="1"
                 max="20"
                 value={formData.totalChapters}
-                onChange={(e) => handleInputChange("totalChapters", parseInt(e.target.value) || 1)}
+                onChange={(e) =>
+                  handleInputChange(
+                    "totalChapters",
+                    parseInt(e.target.value) || 1,
+                  )
+                }
                 className={errors.totalChapters ? "border-destructive" : ""}
               />
               {errors.totalChapters && (
-                <p className="text-sm text-destructive mt-1">{errors.totalChapters}</p>
+                <p className="text-sm text-destructive mt-1">
+                  {errors.totalChapters}
+                </p>
               )}
               <p className="text-sm text-muted-foreground mt-1">
                 Recommended: 3-7 chapters for most campaigns
@@ -192,7 +198,11 @@ export function StoryArcForm({
           <div className="flex gap-2 pt-4">
             <Button type="submit" disabled={isSaving}>
               <Save className="h-4 w-4 mr-2" />
-              {isSaving ? "Saving..." : storyArc ? "Update Story Arc" : "Create Story Arc"}
+              {isSaving
+                ? "Saving..."
+                : storyArc
+                  ? "Update Story Arc"
+                  : "Create Story Arc"}
             </Button>
             <Button type="button" variant="outline" onClick={onCancel}>
               Cancel

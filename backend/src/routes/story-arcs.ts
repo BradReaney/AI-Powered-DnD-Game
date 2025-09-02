@@ -289,13 +289,10 @@ router.put('/:storyArcId/quest-progress', async (req, res) => {
       });
     }
 
-    const updatedStoryArc = await storyArcService.addQuestProgress(
-      new Types.ObjectId(storyArcId),
-      {
-        questId: new Types.ObjectId(questId),
-        ...updates
-      }
-    );
+    const updatedStoryArc = await storyArcService.addQuestProgress(new Types.ObjectId(storyArcId), {
+      questId: new Types.ObjectId(questId),
+      ...updates,
+    });
 
     res.json({
       success: true,

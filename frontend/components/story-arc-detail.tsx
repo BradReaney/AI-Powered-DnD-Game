@@ -41,7 +41,8 @@ export function StoryArcDetail({
   onDelete,
   onValidate,
 }: StoryArcDetailProps) {
-  const [validationReport, setValidationReport] = useState<StoryValidationReport | null>(null);
+  const [validationReport, setValidationReport] =
+    useState<StoryValidationReport | null>(null);
   const [isValidating, setIsValidating] = useState(false);
 
   const handleValidate = async () => {
@@ -58,11 +59,14 @@ export function StoryArcDetail({
     }
   };
 
-  const progressPercentage = storyArc.totalChapters > 0
-    ? (storyArc.currentChapter / storyArc.totalChapters) * 100
-    : 0;
+  const progressPercentage =
+    storyArc.totalChapters > 0
+      ? (storyArc.currentChapter / storyArc.totalChapters) * 100
+      : 0;
 
-  const completedBeats = storyArc.storyBeats.filter(beat => beat.completed).length;
+  const completedBeats = storyArc.storyBeats.filter(
+    (beat) => beat.completed,
+  ).length;
   const totalBeats = storyArc.storyBeats.length;
 
   return (
@@ -91,7 +95,11 @@ export function StoryArcDetail({
             Edit
           </Button>
           {onValidate && (
-            <Button variant="outline" onClick={handleValidate} disabled={isValidating}>
+            <Button
+              variant="outline"
+              onClick={handleValidate}
+              disabled={isValidating}
+            >
               <CheckSquare className="h-4 w-4 mr-2" />
               {isValidating ? "Validating..." : "Validate"}
             </Button>
@@ -113,14 +121,18 @@ export function StoryArcDetail({
             <div>
               <div className="flex justify-between text-sm mb-2">
                 <span>Chapter Progress</span>
-                <span>{storyArc.currentChapter} / {storyArc.totalChapters}</span>
+                <span>
+                  {storyArc.currentChapter} / {storyArc.totalChapters}
+                </span>
               </div>
               <Progress value={progressPercentage} className="h-2" />
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center">
-                <div className="text-2xl font-bold">{storyArc.storyBeats.length}</div>
+                <div className="text-2xl font-bold">
+                  {storyArc.storyBeats.length}
+                </div>
                 <div className="text-sm text-muted-foreground">Story Beats</div>
               </div>
               <div className="text-center">
@@ -128,11 +140,15 @@ export function StoryArcDetail({
                 <div className="text-sm text-muted-foreground">Completed</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold">{storyArc.characterMilestones.length}</div>
+                <div className="text-2xl font-bold">
+                  {storyArc.characterMilestones.length}
+                </div>
                 <div className="text-sm text-muted-foreground">Milestones</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold">{storyArc.questProgress.length}</div>
+                <div className="text-2xl font-bold">
+                  {storyArc.questProgress.length}
+                </div>
                 <div className="text-sm text-muted-foreground">Quests</div>
               </div>
             </div>
@@ -155,15 +171,15 @@ export function StoryArcDetail({
                 <div className="text-2xl font-bold">
                   {validationReport.overallScore !== null
                     ? `${Math.round(validationReport.overallScore)}%`
-                    : "N/A"
-                  }
+                    : "N/A"}
                 </div>
                 <div>
                   <div className="font-semibold">
                     {validationReport.valid ? "Valid" : "Needs Attention"}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {validationReport.summary.passedRules} / {validationReport.summary.totalRules} rules passed
+                    {validationReport.summary.passedRules} /{" "}
+                    {validationReport.summary.totalRules} rules passed
                   </div>
                 </div>
               </div>
@@ -228,7 +244,10 @@ export function StoryArcDetail({
               ) : (
                 <div className="space-y-4">
                   {storyArc.storyBeats.map((beat) => (
-                    <Card key={beat.id} className="border-l-4 border-l-blue-500">
+                    <Card
+                      key={beat.id}
+                      className="border-l-4 border-l-blue-500"
+                    >
                       <CardContent className="pt-4">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -238,8 +257,13 @@ export function StoryArcDetail({
                                 {beat.type}
                               </Badge>
                               <Badge
-                                variant={beat.importance === "critical" ? "destructive" :
-                                        beat.importance === "major" ? "default" : "secondary"}
+                                variant={
+                                  beat.importance === "critical"
+                                    ? "destructive"
+                                    : beat.importance === "major"
+                                      ? "default"
+                                      : "secondary"
+                                }
                                 className="capitalize"
                               >
                                 {beat.importance}
@@ -293,12 +317,17 @@ export function StoryArcDetail({
               ) : (
                 <div className="space-y-4">
                   {storyArc.characterMilestones.map((milestone) => (
-                    <Card key={milestone.id} className="border-l-4 border-l-green-500">
+                    <Card
+                      key={milestone.id}
+                      className="border-l-4 border-l-green-500"
+                    >
                       <CardContent className="pt-4">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <h4 className="font-semibold">{milestone.title}</h4>
+                              <h4 className="font-semibold">
+                                {milestone.title}
+                              </h4>
                               <Badge variant="outline" className="capitalize">
                                 {milestone.type}
                               </Badge>
@@ -350,7 +379,10 @@ export function StoryArcDetail({
               ) : (
                 <div className="space-y-4">
                   {storyArc.worldStateChanges.map((change) => (
-                    <Card key={change.id} className="border-l-4 border-l-purple-500">
+                    <Card
+                      key={change.id}
+                      className="border-l-4 border-l-purple-500"
+                    >
                       <CardContent className="pt-4">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -360,8 +392,13 @@ export function StoryArcDetail({
                                 {change.type}
                               </Badge>
                               <Badge
-                                variant={change.impact === "catastrophic" ? "destructive" :
-                                        change.impact === "major" ? "default" : "secondary"}
+                                variant={
+                                  change.impact === "catastrophic"
+                                    ? "destructive"
+                                    : change.impact === "major"
+                                      ? "default"
+                                      : "secondary"
+                                }
                                 className="capitalize"
                               >
                                 {change.impact}
@@ -407,18 +444,28 @@ export function StoryArcDetail({
               ) : (
                 <div className="space-y-4">
                   {storyArc.questProgress.map((quest) => (
-                    <Card key={quest.id} className="border-l-4 border-l-orange-500">
+                    <Card
+                      key={quest.id}
+                      className="border-l-4 border-l-orange-500"
+                    >
                       <CardContent className="pt-4">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <h4 className="font-semibold">{quest.questName}</h4>
+                              <h4 className="font-semibold">
+                                {quest.questName}
+                              </h4>
                               <Badge variant="outline" className="capitalize">
                                 {quest.type}
                               </Badge>
                               <Badge
-                                variant={quest.status === "completed" ? "default" :
-                                        quest.status === "active" ? "secondary" : "destructive"}
+                                variant={
+                                  quest.status === "completed"
+                                    ? "default"
+                                    : quest.status === "active"
+                                      ? "secondary"
+                                      : "destructive"
+                                }
                                 className="capitalize"
                               >
                                 {quest.status}

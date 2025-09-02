@@ -10,7 +10,14 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { Campaign, Session, Character, Location, StoryArc, StoryValidationReport } from "@/lib/types";
+import type {
+  Campaign,
+  Session,
+  Character,
+  Location,
+  StoryArc,
+  StoryValidationReport,
+} from "@/lib/types";
 // SessionManager component removed - functionality integrated elsewhere
 import { CharacterForm } from "./character-form";
 import { CharacterSheet } from "./character-sheet";
@@ -75,7 +82,9 @@ export function CampaignDetail({
   const [storyArcViewMode, setStoryArcViewMode] = useState<
     "list" | "create" | "edit" | "view"
   >("list");
-  const [selectedStoryArc, setSelectedStoryArc] = useState<StoryArc | null>(null);
+  const [selectedStoryArc, setSelectedStoryArc] = useState<StoryArc | null>(
+    null,
+  );
   const [storyArc, setStoryArc] = useState<StoryArc | null>(null);
 
   // Campaign settings state
@@ -136,11 +145,12 @@ export function CampaignDetail({
 
     const loadStoryArc = async () => {
       try {
-        const response = await fetch(`/api/story-arcs?campaignId=${campaign.id}`);
+        const response = await fetch(
+          `/api/story-arcs?campaignId=${campaign.id}`,
+        );
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.data) {
-
             setStoryArc(data.data);
           }
         }
@@ -293,18 +303,22 @@ export function CampaignDetail({
       setIsSavingStoryArc(true);
 
       const response = await fetch(
-        selectedStoryArc ? `/api/story-arcs/${selectedStoryArc.id}` : '/api/story-arcs',
+        selectedStoryArc
+          ? `/api/story-arcs/${selectedStoryArc.id}`
+          : "/api/story-arcs",
         {
-          method: selectedStoryArc ? 'PUT' : 'POST',
+          method: selectedStoryArc ? "PUT" : "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify(storyArcData),
-        }
+        },
       );
 
       if (!response.ok) {
-        throw new Error(`Failed to ${selectedStoryArc ? 'update' : 'create'} story arc`);
+        throw new Error(
+          `Failed to ${selectedStoryArc ? "update" : "create"} story arc`,
+        );
       }
 
       const data = await response.json();
@@ -315,7 +329,9 @@ export function CampaignDetail({
       }
     } catch (error) {
       console.error("Error saving story arc:", error);
-      alert(`Failed to ${selectedStoryArc ? 'update' : 'create'} story arc. Please try again.`);
+      alert(
+        `Failed to ${selectedStoryArc ? "update" : "create"} story arc. Please try again.`,
+      );
     } finally {
       setIsSavingStoryArc(false);
     }
@@ -356,16 +372,16 @@ export function CampaignDetail({
     }
 
     const response = await fetch(`/api/story-arcs/${storyArcId}/validate`, {
-      method: 'POST',
+      method: "POST",
     });
 
     if (!response.ok) {
-      throw new Error('Failed to validate story arc');
+      throw new Error("Failed to validate story arc");
     }
 
     const data = await response.json();
     if (!data.success) {
-      throw new Error(data.message || 'Validation failed');
+      throw new Error(data.message || "Validation failed");
     }
 
     return data.data;
@@ -874,7 +890,8 @@ export function CampaignDetail({
                       No story arc created for this campaign yet.
                     </p>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Create a story arc to track narrative progression, character development, and world changes.
+                      Create a story arc to track narrative progression,
+                      character development, and world changes.
                     </p>
                     <Button onClick={handleCreateStoryArc}>
                       Create Story Arc
@@ -899,9 +916,14 @@ export function CampaignDetail({
                               {storyArc.theme}
                             </p>
                             <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                              <span>Chapter {storyArc.currentChapter} / {storyArc.totalChapters}</span>
+                              <span>
+                                Chapter {storyArc.currentChapter} /{" "}
+                                {storyArc.totalChapters}
+                              </span>
                               <span>Phase: {storyArc.storyPhase}</span>
-                              <span>{storyArc.storyBeats.length} story beats</span>
+                              <span>
+                                {storyArc.storyBeats.length} story beats
+                              </span>
                             </div>
                           </div>
                         </div>

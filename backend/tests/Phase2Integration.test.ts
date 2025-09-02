@@ -52,7 +52,6 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
         description: 'Our heroes embark on their journey',
         type: 'setup',
 
-        order: 1,
         prerequisites: [],
         outcomes: [],
         characterDevelopment: [],
@@ -102,14 +101,16 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
       const storyQuest = await questStoryIntegrationService.generateStoryIntegratedQuest(
         testCampaignId,
         storyBeat,
-        'setup'
+        5, // partyLevel
+        4 // partySize
       );
 
       // 7. Process quest completion
       await questStoryIntegrationService.processQuestCompletionForStory(
         testCampaignId,
         storyQuest.id,
-        'success'
+        'Test Quest',
+        ['character1', 'character2'] // characterIds
       );
 
       // 8. Verify story memory contains all elements
@@ -146,7 +147,6 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
         description: 'Introduction to the story',
         type: 'setup',
 
-        order: 1,
         prerequisites: [],
         outcomes: [],
         characterDevelopment: [],
@@ -159,7 +159,8 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
       const setupQuest = await questStoryIntegrationService.generateStoryIntegratedQuest(
         testCampaignId,
         setupBeat,
-        'setup'
+        5, // partyLevel
+        4 // partySize
       );
 
       // Development phase
@@ -169,7 +170,6 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
         description: 'Character growth and plot development',
         type: 'development',
 
-        order: 2,
         prerequisites: [],
         outcomes: [],
         characterDevelopment: [],
@@ -182,7 +182,8 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
       const developmentQuest = await questStoryIntegrationService.generateStoryIntegratedQuest(
         testCampaignId,
         developmentBeat,
-        'development'
+        5, // partyLevel
+        4 // partySize
       );
 
       // Climax phase
@@ -192,7 +193,6 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
         description: 'Final confrontation',
         type: 'climax',
 
-        order: 3,
         prerequisites: [],
         outcomes: [],
         characterDevelopment: [],
@@ -205,7 +205,8 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
       const climaxQuest = await questStoryIntegrationService.generateStoryIntegratedQuest(
         testCampaignId,
         climaxBeat,
-        'climax'
+        5, // partyLevel
+        4 // partySize
       );
 
       // Resolution phase
@@ -215,7 +216,6 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
         description: 'Story conclusion',
         type: 'resolution',
 
-        order: 4,
         prerequisites: [],
         outcomes: [],
         characterDevelopment: [],
@@ -228,7 +228,8 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
       const resolutionQuest = await questStoryIntegrationService.generateStoryIntegratedQuest(
         testCampaignId,
         resolutionBeat,
-        'resolution'
+        5, // partyLevel
+        4 // partySize
       );
 
       // Verify all quests have appropriate story integration
@@ -256,10 +257,9 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
       // Add character milestones
       await characterDevelopmentService.trackStoryImpactMilestone(
         testCharacterId,
-        testCampaignId,
-        testStoryBeatId,
+        'Fulfilled the ancient prophecy',
         'critical',
-        'Fulfilled the ancient prophecy'
+        testStoryBeatId
       );
 
       // Add world state changes
@@ -296,11 +296,7 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
         testCampaignId,
         'story',
         'Critical story information that must be preserved',
-        10,
-        ['story', 'critical'],
-        testStoryBeatId,
-        undefined,
-        true // permanent
+        10
       );
 
       // Add many non-essential context layers
@@ -337,9 +333,8 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
       const milestones = [
         await characterDevelopmentService.trackLevelProgression(
           testCharacterId,
-          testCampaignId,
           3,
-          'Rogue'
+          testStoryBeatId
         ),
         await characterDevelopmentService.trackRelationshipMilestone(
           testCharacterId,
@@ -407,7 +402,6 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
         description: 'The character faces their greatest challenge',
         type: 'development',
 
-        order: 1,
         prerequisites: [],
         outcomes: [],
         characterDevelopment: [],
@@ -421,7 +415,8 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
       const developmentQuest = await questStoryIntegrationService.generateStoryIntegratedQuest(
         testCampaignId,
         storyBeat,
-        'development'
+        5, // partyLevel
+        4 // partySize
       );
 
       // Track character milestone related to the quest
@@ -473,7 +468,6 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
         description: 'Test description',
         type: 'setup',
 
-        order: 1,
         prerequisites: [],
         outcomes: [],
         characterDevelopment: [],
@@ -487,7 +481,8 @@ describe('Phase 2 Integration Tests - Story Memory & Character Tracking', () => 
         questStoryIntegrationService.generateStoryIntegratedQuest(
           nonExistentCampaign,
           storyBeat,
-          'setup'
+          5, // partyLevel
+          4 // partySize
         )
       ).resolves.not.toThrow();
     });
