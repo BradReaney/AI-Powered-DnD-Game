@@ -26,6 +26,10 @@ import questRoutes from './routes/quests';
 import locationRoutes from './routes/locations';
 import campaignSettingsRoutes from './routes/campaign-settings';
 import storyArcRoutes from './routes/story-arcs';
+import dynamicContextRoutes from './routes/dynamic-context';
+import multiCharacterStoryRoutes from './routes/multi-character-story';
+import branchingNarrativeRoutes from './routes/branching-narrative';
+import performanceOptimizationRoutes from './routes/performance-optimization';
 
 class App {
   public app: express.Application;
@@ -114,6 +118,11 @@ class App {
           combat: '/api/combat',
           quests: '/api/quests',
           locations: '/api/locations',
+          storyArcs: '/api/story-arcs',
+          dynamicContext: '/api/dynamic-context',
+          multiCharacterStory: '/api/multi-character-story',
+          branchingNarrative: '/api/branching-narrative',
+          performance: '/api/performance',
         },
       });
     });
@@ -318,6 +327,10 @@ class App {
     this.app.use('/api/locations', locationRoutes);
     this.app.use('/api/campaign-settings', campaignSettingsRoutes);
     this.app.use('/api/story-arcs', storyArcRoutes);
+    this.app.use('/api/dynamic-context', dynamicContextRoutes);
+    this.app.use('/api/multi-character-story', multiCharacterStoryRoutes);
+    this.app.use('/api/branching-narrative', branchingNarrativeRoutes);
+    this.app.use('/api/performance', performanceOptimizationRoutes);
 
     // 404 handler
     this.app.use('*', (req, res) => {
