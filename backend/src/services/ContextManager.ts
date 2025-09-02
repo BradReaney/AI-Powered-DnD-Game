@@ -5,7 +5,7 @@ import { PerformanceTracker } from './PerformanceTracker';
 
 export interface ContextLayer {
   id: string;
-  type: 'immediate' | 'session' | 'long-term' | 'character';
+  type: 'immediate' | 'session' | 'long-term' | 'character' | 'story' | 'quest' | 'world-state';
   content: string;
   timestamp: Date;
   importance: number; // 1-10 scale
@@ -13,6 +13,9 @@ export interface ContextLayer {
   tags?: string[];
   relatedEvents?: string[];
   characterIds?: string[];
+  storyBeatId?: string;
+  questId?: string;
+  permanent?: boolean; // Never compress if true
 }
 
 export interface ContextSummary {
@@ -47,6 +50,58 @@ export interface ConversationMemory {
   lastUpdated: Date;
 }
 
+export interface StoryContext {
+  currentStoryBeat: {
+    id: string;
+    title: string;
+    description: string;
+    type: string;
+    importance: string;
+    chapter: number;
+    act: number;
+  };
+  characterDevelopment: Array<{
+    characterId: string;
+    type: string;
+    title: string;
+    description: string;
+    impact: string;
+    achievedAt: Date;
+  }>;
+  worldState: {
+    changes: Array<{
+      type: string;
+      title: string;
+      description: string;
+      impact: string;
+      occurredAt: Date;
+    }>;
+    currentState: string;
+  };
+  questProgress: Array<{
+    questId: string;
+    name: string;
+    type: string;
+    status: string;
+    storyImpact: string;
+  }>;
+  storyMemory: {
+    permanentElements: string[];
+    characterMilestones: string[];
+    worldStateChanges: string[];
+    relationshipMapping: Record<string, string[]>;
+  };
+}
+
+export interface StoryMemory {
+  permanentElements: string[]; // Never compressed
+  characterMilestones: string[]; // Never compressed
+  worldStateChanges: string[]; // Never compressed
+  relationshipMapping: Record<string, string[]>; // Never compressed
+  compressedHistory: string[]; // Can be compressed
+  lastCompression: Date;
+}
+
 export class ContextManager {
   private maxContextTokens: number;
   private compressionThreshold: number;
@@ -54,6 +109,8 @@ export class ContextManager {
   private campaignSummaries: Map<string, ContextSummary> = new Map();
   private conversationMemories: Map<string, ConversationMemory> = new Map();
   private contextCache: Map<string, { context: string; timestamp: Date; ttl: number }> = new Map();
+  private storyMemories: Map<string, StoryMemory> = new Map();
+  private storyContexts: Map<string, StoryContext> = new Map();
 
   private geminiClient: any;
   private modelSelectionService: ModelSelectionService;
@@ -167,18 +224,24 @@ export class ContextManager {
         threshold: this.compressionThreshold,
       });
 
-      // Compress older, less important layers
-      const compressedLayers = layers
-        .sort((a, b) => b.importance - a.importance)
-        .slice(0, Math.floor(layers.length * 0.7)); // Keep top 70%
+      // Use story-aware compression if story memory exists
+      const storyMemory = this.storyMemories.get(campaignId);
+      if (storyMemory) {
+        await this.performStoryAwareCompression(campaignId);
+      } else {
+        // Fallback to simple compression
+        const compressedLayers = layers
+          .sort((a, b) => b.importance - a.importance)
+          .slice(0, Math.floor(layers.length * 0.7)); // Keep top 70%
 
-      this.contextLayers.set(campaignId, compressedLayers);
+        this.contextLayers.set(campaignId, compressedLayers);
 
-      logger.info('Context compressed', {
-        campaignId,
-        originalLayers: layers.length,
-        compressedLayers: compressedLayers.length,
-      });
+        logger.info('Context compressed', {
+          campaignId,
+          originalLayers: layers.length,
+          compressedLayers: compressedLayers.length,
+        });
+      }
     }
   }
 
@@ -810,6 +873,283 @@ Return results as JSON:
     };
 
     return { contextStats, cacheStats, memoryStats };
+  }
+
+  /**
+   * Add story context layer with story-specific information
+   */
+  addStoryContextLayer(
+    campaignId: string,
+    type: 'story' | 'quest' | 'world-state',
+    content: string,
+    importance: number = 5,
+    storyBeatId?: string,
+    questId?: string,
+    permanent: boolean = false
+  ): void {
+    if (!this.contextLayers.has(campaignId)) {
+      this.contextLayers.set(campaignId, []);
+    }
+
+    const layers = this.contextLayers.get(campaignId)!;
+    const estimatedTokens = Math.ceil(content.length / 4);
+
+    const layer: ContextLayer = {
+      id: `${type}_${Date.now()}`,
+      type,
+      content,
+      timestamp: new Date(),
+      importance,
+      tokenCount: estimatedTokens,
+      storyBeatId,
+      questId,
+      permanent,
+    };
+
+    layers.push(layer);
+    logger.info('Story context layer added', {
+      campaignId,
+      type,
+      importance,
+      storyBeatId,
+      questId,
+      permanent,
+    });
+
+    // Check if compression is needed
+    this.checkAndCompress(campaignId);
+  }
+
+  /**
+   * Initialize story memory for a campaign
+   */
+  initializeStoryMemory(campaignId: string): void {
+    if (!this.storyMemories.has(campaignId)) {
+      this.storyMemories.set(campaignId, {
+        permanentElements: [],
+        characterMilestones: [],
+        worldStateChanges: [],
+        relationshipMapping: {},
+        compressedHistory: [],
+        lastCompression: new Date(),
+      });
+    }
+  }
+
+  /**
+   * Add permanent story element (never compressed)
+   */
+  addPermanentStoryElement(campaignId: string, element: string): void {
+    this.initializeStoryMemory(campaignId);
+    const storyMemory = this.storyMemories.get(campaignId)!;
+    if (!storyMemory.permanentElements.includes(element)) {
+      storyMemory.permanentElements.push(element);
+      logger.info('Permanent story element added', { campaignId, element });
+    }
+  }
+
+  /**
+   * Add character milestone to story memory
+   */
+  addCharacterMilestone(campaignId: string, milestone: string): void {
+    this.initializeStoryMemory(campaignId);
+    const storyMemory = this.storyMemories.get(campaignId)!;
+    if (!storyMemory.characterMilestones.includes(milestone)) {
+      storyMemory.characterMilestones.push(milestone);
+      logger.info('Character milestone added', { campaignId, milestone });
+    }
+  }
+
+  /**
+   * Add world state change to story memory
+   */
+  addWorldStateChange(campaignId: string, change: string): void {
+    this.initializeStoryMemory(campaignId);
+    const storyMemory = this.storyMemories.get(campaignId)!;
+    if (!storyMemory.worldStateChanges.includes(change)) {
+      storyMemory.worldStateChanges.push(change);
+      logger.info('World state change added', { campaignId, change });
+    }
+  }
+
+  /**
+   * Update relationship mapping
+   */
+  updateRelationshipMapping(
+    campaignId: string,
+    characterId: string,
+    relationships: string[]
+  ): void {
+    this.initializeStoryMemory(campaignId);
+    const storyMemory = this.storyMemories.get(campaignId)!;
+    storyMemory.relationshipMapping[characterId] = relationships;
+    logger.info('Relationship mapping updated', { campaignId, characterId, relationships });
+  }
+
+  /**
+   * Get story context for a campaign
+   */
+  getStoryContext(campaignId: string): StoryContext | null {
+    return this.storyContexts.get(campaignId) || null;
+  }
+
+  /**
+   * Update story context
+   */
+  updateStoryContext(campaignId: string, storyContext: StoryContext): void {
+    this.storyContexts.set(campaignId, storyContext);
+    logger.info('Story context updated', { campaignId });
+  }
+
+  /**
+   * Get story memory for a campaign
+   */
+  getStoryMemory(campaignId: string): StoryMemory | null {
+    return this.storyMemories.get(campaignId) || null;
+  }
+
+  /**
+   * Enhanced context retrieval with story prioritization
+   */
+  async getContextWithStoryPriority(campaignId: string): Promise<string> {
+    const layers = this.contextLayers.get(campaignId) || [];
+    const summary = this.campaignSummaries.get(campaignId);
+    const storyMemory = this.storyMemories.get(campaignId);
+    const storyContext = this.storyContexts.get(campaignId);
+
+    if (layers.length === 0 && !summary && !storyMemory) {
+      return 'No context available for this campaign.';
+    }
+
+    let context = '';
+    let totalTokens = 0;
+
+    // Priority 1: Current story beat and immediate context
+    if (storyContext?.currentStoryBeat) {
+      const storyBeat = storyContext.currentStoryBeat;
+      const storyContent = `CURRENT STORY BEAT:\nTitle: ${storyBeat.title}\nDescription: ${storyBeat.description}\nType: ${storyBeat.type}\nImportance: ${storyBeat.importance}\nChapter: ${storyBeat.chapter}, Act: ${storyBeat.act}\n\n`;
+      context += storyContent;
+      totalTokens += Math.ceil(storyContent.length / 4);
+    }
+
+    // Priority 2: Character development and relationships
+    if (storyContext?.characterDevelopment && storyContext.characterDevelopment.length > 0) {
+      const charDev = storyContext.characterDevelopment
+        .map(cd => `Character ${cd.characterId}: ${cd.title} - ${cd.description} (${cd.impact})`)
+        .join('\n');
+      const charContent = `CHARACTER DEVELOPMENT:\n${charDev}\n\n`;
+      context += charContent;
+      totalTokens += Math.ceil(charContent.length / 4);
+    }
+
+    // Priority 3: World state and major events
+    if (storyContext?.worldState) {
+      const worldContent = `WORLD STATE:\nCurrent: ${storyContext.worldState.currentState}\nRecent Changes:\n${storyContext.worldState.changes.map(wc => `- ${wc.title}: ${wc.description} (${wc.impact})`).join('\n')}\n\n`;
+      context += worldContent;
+      totalTokens += Math.ceil(worldContent.length / 4);
+    }
+
+    // Priority 4: Quest progress and objectives
+    if (storyContext?.questProgress && storyContext.questProgress.length > 0) {
+      const questContent = `QUEST PROGRESS:\n${storyContext.questProgress.map(qp => `- ${qp.name} (${qp.status}): ${qp.storyImpact} impact`).join('\n')}\n\n`;
+      context += questContent;
+      totalTokens += Math.ceil(questContent.length / 4);
+    }
+
+    // Priority 5: General campaign lore and permanent story elements
+    if (storyMemory?.permanentElements && storyMemory.permanentElements.length > 0) {
+      const permanentContent = `PERMANENT STORY ELEMENTS:\n${storyMemory.permanentElements.join('\n')}\n\n`;
+      context += permanentContent;
+      totalTokens += Math.ceil(permanentContent.length / 4);
+    }
+
+    // Add campaign summary if available and we have token space
+    if (summary && totalTokens < this.maxContextTokens * 0.7) {
+      context += `CAMPAIGN OVERVIEW:\n${summary.campaignOverview}\n\n`;
+      context += `RECENT EVENTS:\n${summary.recentEvents}\n\n`;
+      totalTokens += summary.totalTokens;
+    }
+
+    // Add recent context layers (non-permanent ones)
+    const recentLayers = layers
+      .filter(layer => !layer.permanent)
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+      .sort((a, b) => b.importance - a.importance);
+
+    for (const layer of recentLayers) {
+      if (totalTokens + layer.tokenCount > this.maxContextTokens) {
+        break;
+      }
+      context += `${layer.type.toUpperCase()} CONTEXT:\n${layer.content}\n\n`;
+      totalTokens += layer.tokenCount;
+    }
+
+    logger.info('Story-prioritized context retrieved', {
+      campaignId,
+      totalTokens,
+      layersUsed: Math.min(recentLayers.length, 10),
+      storyElementsIncluded: !!storyContext,
+    });
+
+    return context;
+  }
+
+  /**
+   * Enhanced compression that preserves story elements
+   */
+  private async performStoryAwareCompression(campaignId: string): Promise<void> {
+    const layers = this.contextLayers.get(campaignId);
+    if (!layers || layers.length === 0) return;
+
+    // Never compress permanent layers or story-critical layers
+    const permanentLayers = layers.filter(layer => layer.permanent || layer.importance >= 9);
+    const compressibleLayers = layers.filter(layer => !layer.permanent && layer.importance < 9);
+
+    if (compressibleLayers.length === 0) {
+      logger.info('No compressible layers found', { campaignId });
+      return;
+    }
+
+    // Sort by importance and timestamp for compression
+    const sortedLayers = compressibleLayers
+      .sort((a, b) => a.importance - b.importance)
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+    // Compress oldest, least important layers first
+    const layersToCompress = sortedLayers.slice(0, Math.floor(compressibleLayers.length * 0.3));
+    const layersToKeep = sortedLayers.slice(Math.floor(compressibleLayers.length * 0.3));
+
+    // Compress selected layers
+    const compressedContent = layersToCompress
+      .map(layer => `${layer.type}: ${layer.content}`)
+      .join('\n');
+
+    if (compressedContent.length > 0) {
+      try {
+        const compressed = await this.geminiClient.compressContext(compressedContent);
+
+        // Add compressed content as a new layer
+        this.addContextLayer(campaignId, 'long-term', `COMPRESSED HISTORY:\n${compressed}`, 3);
+
+        // Remove compressed layers
+        const newLayers = [...permanentLayers, ...layersToKeep];
+        this.contextLayers.set(campaignId, newLayers);
+
+        // Update story memory
+        this.initializeStoryMemory(campaignId);
+        const storyMemory = this.storyMemories.get(campaignId)!;
+        storyMemory.compressedHistory.push(compressed);
+        storyMemory.lastCompression = new Date();
+
+        logger.info('Story-aware compression completed', {
+          campaignId,
+          compressedLayers: layersToCompress.length,
+          remainingLayers: newLayers.length,
+        });
+      } catch (error) {
+        logger.error('Story-aware compression failed', { campaignId, error });
+      }
+    }
   }
 }
 
