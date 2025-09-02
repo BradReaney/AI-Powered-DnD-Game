@@ -125,14 +125,23 @@ export class StoryValidator {
     try {
       const results: ValidationResult[] = [];
 
+      // Debug: Check if rules are properly initialized
+      logger.debug(`Number of validation rules: ${this.rules ? this.rules.length : 'undefined'}`);
+      if (!this.rules || this.rules.length === 0) {
+        logger.warn('No validation rules found, using fallback validation');
+        return this.createFallbackValidationReport(storyArc);
+      }
+
       // Run all validation rules
       for (const rule of this.rules) {
         try {
+          logger.debug(`Running validation rule: ${rule.name} (${rule.id})`);
           const result = rule.validate(storyArc);
           results.push(result);
           logger.debug(`Rule ${rule.name} completed: ${result.passed ? 'PASSED' : 'FAILED'}`);
         } catch (error) {
-          logger.error(`Error running validation rule ${rule.name}: ${error}`);
+          logger.error(`Error running validation rule ${rule.name} (${rule.id}): ${error}`);
+          logger.error(`Error stack: ${error instanceof Error ? error.stack : 'No stack trace'}`);
           results.push({
             ruleId: rule.id,
             ruleName: rule.name,
@@ -265,12 +274,12 @@ export class StoryValidator {
 
     for (const beat of completedBeats) {
       // Check if completed beat has consequences
-      if (beat.consequences.length === 0) {
+      if ((beat.consequences || []).length === 0) {
         warnings.push(`Completed story beat "${beat.title}" has no consequences defined`);
       }
 
       // Check if completed beat has character involvement
-      if (beat.characters.length === 0) {
+      if ((beat.characters || []).length === 0) {
         warnings.push(`Completed story beat "${beat.title}" has no characters involved`);
       }
 
@@ -556,7 +565,7 @@ export class StoryValidator {
     // Check for character interaction patterns
     const characterInteractions = new Map<string, number>();
     for (const beat of storyArc.storyBeats || []) {
-      for (const charId of beat.characters) {
+      for (const charId of beat.characters || []) {
         const charKey = charId.toString();
         characterInteractions.set(charKey, (characterInteractions.get(charKey) || 0) + 1);
       }
@@ -669,6 +678,25 @@ Respond with a JSON object containing:
       warnings,
       suggestions,
       score,
+    };
+  }
+
+  /**
+   * Create a fallback validation report when rules are not available
+   */
+  private createFallbackValidationReport(storyArc: IStoryArc): StoryValidationReport {
+    return {
+      valid: true,
+      overallScore: 50,
+      summary: {
+        totalRules: 0,
+        passedRules: 0,
+        failedRules: 0,
+        warnings: 0,
+        suggestions: 0,
+      },
+      results: [],
+      recommendations: ['Validation rules not available - using fallback validation'],
     };
   }
 
