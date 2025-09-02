@@ -196,14 +196,15 @@ export class StoryProgression {
    * Generate story beat suggestions using AI
    */
   async generateStoryBeatSuggestions(
-    request: StoryBeatGenerationRequest
+    request: StoryBeatGenerationRequest,
+    count: number = 3
   ): Promise<StoryBeatSuggestion[]> {
     try {
       logger.info(
         `Generating story beat suggestions for chapter ${request.chapter}, act ${request.act}`
       );
 
-      const prompt = this.buildStoryBeatPrompt(request);
+      const prompt = this.buildStoryBeatPrompt(request, count);
 
       const response = await this.geminiClient.sendPrompt({
         prompt,
@@ -291,8 +292,8 @@ export class StoryProgression {
   /**
    * Build story beat generation prompt
    */
-  private buildStoryBeatPrompt(request: StoryBeatGenerationRequest): string {
-    const prompt = `Generate 3-5 story beat suggestions for a D&D campaign:
+  private buildStoryBeatPrompt(request: StoryBeatGenerationRequest, count: number = 3): string {
+    const prompt = `Generate ${count} story beat suggestions for a D&D campaign:
 
 Campaign Context: ${request.context}
 Chapter: ${request.chapter}

@@ -498,7 +498,7 @@ router.post('/:storyArcId/suggestions', async (req, res) => {
       worldState: `Chapter ${storyArc.currentChapter}, Act ${storyArc.currentAct}`,
     };
 
-    const suggestions = await storyProgression.generateStoryBeatSuggestions(request);
+    const suggestions = await storyProgression.generateStoryBeatSuggestions(request, count);
 
     res.json({
       success: true,
