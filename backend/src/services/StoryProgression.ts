@@ -1,11 +1,5 @@
 import logger from './LoggerService';
-import {
-  IStoryArc,
-  IStoryBeat,
-  ICharacterMilestone,
-  IWorldStateChange,
-  IQuestProgress,
-} from '../models/StoryArc';
+import { IStoryArc, IStoryBeat } from '../models/StoryArc';
 import { ILLMClient } from './GeminiClient';
 import { Types } from 'mongoose';
 
@@ -298,7 +292,7 @@ export class StoryProgression {
    * Build story beat generation prompt
    */
   private buildStoryBeatPrompt(request: StoryBeatGenerationRequest): string {
-    let prompt = `Generate 3-5 story beat suggestions for a D&D campaign:
+    const prompt = `Generate 3-5 story beat suggestions for a D&D campaign:
 
 Campaign Context: ${request.context}
 Chapter: ${request.chapter}
@@ -405,7 +399,7 @@ Respond with a JSON array of story beat objects:
     const completedBeats = storyArc.storyBeats.filter(beat => beat.completed);
     const activeBeats = storyArc.storyBeats.filter(beat => !beat.completed);
 
-    let prompt = `Analyze this D&D campaign story and suggest improvements:
+    const prompt = `Analyze this D&D campaign story and suggest improvements:
 
 Campaign Theme: ${storyArc.theme}
 Current Progress: Chapter ${storyArc.currentChapter}/${storyArc.totalChapters}, Act ${storyArc.currentAct}
@@ -466,7 +460,7 @@ Respond with JSON:
   /**
    * Generate fallback improvement suggestions
    */
-  private generateFallbackImprovements(storyArc: IStoryArc): {
+  private generateFallbackImprovements(_storyArc: IStoryArc): {
     pacing: string[];
     characterDevelopment: string[];
     worldBuilding: string[];

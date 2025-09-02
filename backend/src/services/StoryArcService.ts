@@ -1,13 +1,6 @@
 import logger from './LoggerService';
-import {
-  StoryArc,
-  IStoryArc,
-  IStoryBeat,
-  ICharacterMilestone,
-  IWorldStateChange,
-  IQuestProgress,
-} from '../models/StoryArc';
-import { Campaign, ICampaign } from '../models';
+import { StoryArc, IStoryArc, IStoryBeat, IQuestProgress } from '../models/StoryArc';
+import { Campaign } from '../models';
 import { Types } from 'mongoose';
 
 export interface StoryArcCreationData {

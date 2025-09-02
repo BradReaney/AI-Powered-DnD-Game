@@ -1,13 +1,6 @@
 import logger from './LoggerService';
-import {
-  IStoryArc,
-  IStoryBeat,
-  ICharacterMilestone,
-  IWorldStateChange,
-  IQuestProgress,
-} from '../models/StoryArc';
+import { IStoryArc } from '../models/StoryArc';
 import { ILLMClient } from './GeminiClient';
-import { Types } from 'mongoose';
 
 export interface ValidationRule {
   id: string;
@@ -687,7 +680,7 @@ Respond with a JSON object containing:
   /**
    * Create a fallback validation report when rules are not available
    */
-  private createFallbackValidationReport(storyArc: IStoryArc): StoryValidationReport {
+  private createFallbackValidationReport(_storyArc: IStoryArc): StoryValidationReport {
     return {
       valid: true,
       overallScore: 50,
