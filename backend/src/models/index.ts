@@ -6,6 +6,7 @@ export { default as StoryEvent } from './StoryEvent';
 export { default as Message } from './Message';
 export { default as Location } from './Location';
 export { default as CombatEncounter } from './CombatEncounter';
+export { default as StoryArc } from './StoryArc';
 
 // Export types for convenience
 export type { ICharacter } from './Character';
@@ -15,3 +16,10 @@ export type { IStoryEvent } from './StoryEvent';
 export type { IMessage } from './Message';
 export type { ILocation } from './Location';
 export type { ICombatEncounter } from './CombatEncounter';
+export type {
+  IStoryArc,
+  IStoryBeat,
+  ICharacterMilestone,
+  IWorldStateChange,
+  IQuestProgress,
+} from './StoryArc';

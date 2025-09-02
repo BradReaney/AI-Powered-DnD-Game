@@ -25,6 +25,7 @@ import aiAnalyticsRoutes from './routes/ai-analytics';
 import questRoutes from './routes/quests';
 import locationRoutes from './routes/locations';
 import campaignSettingsRoutes from './routes/campaign-settings';
+import storyArcRoutes from './routes/story-arcs';
 
 class App {
   public app: express.Application;
@@ -316,6 +317,7 @@ class App {
     this.app.use('/api/quests', questRoutes);
     this.app.use('/api/locations', locationRoutes);
     this.app.use('/api/campaign-settings', campaignSettingsRoutes);
+    this.app.use('/api/story-arcs', storyArcRoutes);
 
     // 404 handler
     this.app.use('*', (req, res) => {

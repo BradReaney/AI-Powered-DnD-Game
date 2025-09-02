@@ -323,7 +323,7 @@ router.post('/story-response', async (req, res) => {
     try {
       const locationExtractionResponse = await geminiClient.extractLocationInformation(
         storyContent,
-        playerAction
+        `Player action: ${playerAction}`
       );
 
       if (locationExtractionResponse.success) {

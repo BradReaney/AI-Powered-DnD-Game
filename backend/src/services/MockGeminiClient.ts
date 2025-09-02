@@ -1,9 +1,9 @@
-import { GeminiResponse, GeminiRequest } from './GeminiClient';
+import { GeminiResponse, GeminiRequest, ILLMClient } from './GeminiClient';
 import logger from './LoggerService';
 import { config } from '../config';
 import PerformanceTracker from './PerformanceTracker';
 
-export class MockGeminiClient {
+export class MockGeminiClient implements ILLMClient {
   private performanceTracker: PerformanceTracker;
 
   constructor() {
