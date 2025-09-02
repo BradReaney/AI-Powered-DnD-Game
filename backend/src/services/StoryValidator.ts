@@ -7,7 +7,7 @@ export interface ValidationRule {
   name: string;
   description: string;
   severity: 'error' | 'warning' | 'info';
-  validate: (storyArc: IStoryArc) => ValidationResult;
+  validate: (_storyArc: IStoryArc) => ValidationResult;
 }
 
 export interface ValidationResult {

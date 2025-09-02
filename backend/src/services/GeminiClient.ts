@@ -32,19 +32,22 @@ export interface GeminiRequest {
 }
 
 export interface ILLMClient {
-  sendPrompt(request: GeminiRequest): Promise<GeminiResponse>;
+  sendPrompt(_request: GeminiRequest): Promise<GeminiResponse>;
   testConnection(): Promise<boolean>;
   generateStoryResponse(
-    playerAction: string,
-    campaignContext: string,
-    characterContext: string,
-    worldState: string
+    _playerAction: string,
+    _campaignContext: string,
+    _characterContext: string,
+    _worldState: string
   ): Promise<GeminiResponse>;
   extractCharacterInformation(
-    storyContent: string,
-    originalPrompt: string
+    _storyContent: string,
+    _originalPrompt: string
   ): Promise<GeminiResponse>;
-  extractLocationInformation(storyContent: string, originalPrompt: string): Promise<GeminiResponse>;
+  extractLocationInformation(
+    _storyContent: string,
+    _originalPrompt: string
+  ): Promise<GeminiResponse>;
 }
 
 export class GeminiClient implements ILLMClient {

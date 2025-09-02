@@ -80,11 +80,11 @@ export interface IStoryArc extends Document {
   completedStoryBeats: number;
 
   // Methods
-  addStoryBeat(beatData: Omit<IStoryBeat, 'id' | 'createdAt' | 'updatedAt'>): string;
-  completeStoryBeat(beatId: string, outcome?: string, notes?: string): boolean;
-  addCharacterMilestone(milestone: ICharacterMilestone): void;
-  addWorldStateChange(change: Omit<IWorldStateChange, 'id'>): string;
-  updateQuestProgress(questId: Types.ObjectId, updates: Partial<IQuestProgress>): boolean;
+  addStoryBeat(_beatData: Omit<IStoryBeat, 'id' | 'createdAt' | 'updatedAt'>): string;
+  completeStoryBeat(_beatId: string, _outcome?: string, _notes?: string): boolean;
+  addCharacterMilestone(_milestone: ICharacterMilestone): void;
+  addWorldStateChange(_change: Omit<IWorldStateChange, 'id'>): string;
+  updateQuestProgress(_questId: Types.ObjectId, _updates: Partial<IQuestProgress>): boolean;
   advanceChapter(): boolean;
 }
 
