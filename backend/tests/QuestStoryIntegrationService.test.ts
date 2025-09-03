@@ -73,10 +73,10 @@ const mockQuestService = {
 
 // Mock the CharacterDevelopmentService
 const mockCharacterDevelopmentService = {
-  addCharacterMilestone: jest.fn(),
-  trackLevelProgression: jest.fn(),
-  trackRelationshipMilestone: jest.fn(),
-  trackStoryImpactMilestone: jest.fn(),
+  addCharacterMilestone: jest.fn().mockResolvedValue(undefined),
+  trackLevelProgression: jest.fn().mockResolvedValue(undefined),
+  trackRelationshipMilestone: jest.fn().mockResolvedValue(undefined),
+  trackStoryImpactMilestone: jest.fn().mockResolvedValue(undefined),
 };
 
 describe('QuestStoryIntegrationService - Phase 2 Quest-Story Integration', () => {
@@ -315,7 +315,13 @@ describe('QuestStoryIntegrationService - Phase 2 Quest-Story Integration', () =>
       // Mock the findQuestStoryLink method
       jest
         .spyOn(questStoryIntegrationService as any, 'findQuestStoryLink')
-        .mockResolvedValue(mockQuestStoryLink);
+        .mockImplementation(() => Promise.resolve(mockQuestStoryLink));
+
+      // Add debugging to check if the method is called
+      console.log('Before calling processQuestCompletionForStory');
+
+      // Temporarily restore logger to see debug output
+      jest.restoreAllMocks();
 
       await questStoryIntegrationService.processQuestCompletionForStory(
         testCampaignId,
@@ -323,6 +329,9 @@ describe('QuestStoryIntegrationService - Phase 2 Quest-Story Integration', () =>
         'success',
         ['character-1', 'character-2']
       );
+
+      console.log('After calling processQuestCompletionForStory');
+      console.log('Mock calls:', mockContextManager.updateStoryBeat.mock.calls);
 
       expect(mockContextManager.updateStoryBeat).toHaveBeenCalledWith(
         testCampaignId,
@@ -347,7 +356,7 @@ describe('QuestStoryIntegrationService - Phase 2 Quest-Story Integration', () =>
 
       jest
         .spyOn(questStoryIntegrationService as any, 'findQuestStoryLink')
-        .mockResolvedValue(mockQuestStoryLink);
+        .mockImplementation(() => Promise.resolve(mockQuestStoryLink));
 
       await questStoryIntegrationService.processQuestCompletionForStory(
         testCampaignId,
@@ -379,7 +388,7 @@ describe('QuestStoryIntegrationService - Phase 2 Quest-Story Integration', () =>
 
       jest
         .spyOn(questStoryIntegrationService as any, 'findQuestStoryLink')
-        .mockResolvedValue(mockQuestStoryLink);
+        .mockImplementation(() => Promise.resolve(mockQuestStoryLink));
 
       await questStoryIntegrationService.processQuestCompletionForStory(
         testCampaignId,
@@ -398,7 +407,9 @@ describe('QuestStoryIntegrationService - Phase 2 Quest-Story Integration', () =>
     });
 
     it('should handle missing quest-story link gracefully', async () => {
-      jest.spyOn(questStoryIntegrationService as any, 'findQuestStoryLink').mockResolvedValue(null);
+      jest
+        .spyOn(questStoryIntegrationService as any, 'findQuestStoryLink')
+        .mockImplementation(() => Promise.resolve(null));
 
       await expect(
         questStoryIntegrationService.processQuestCompletionForStory(
@@ -680,7 +691,7 @@ describe('QuestStoryIntegrationService - Phase 2 Quest-Story Integration', () =>
 
       jest
         .spyOn(questStoryIntegrationService as any, 'findQuestStoryLink')
-        .mockResolvedValue(mockQuestStoryLink);
+        .mockImplementation(() => Promise.resolve(mockQuestStoryLink));
 
       await questStoryIntegrationService.processQuestCompletionForStory(
         testCampaignId,

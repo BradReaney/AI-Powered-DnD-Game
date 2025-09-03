@@ -1002,6 +1002,31 @@ Return results as JSON:
   }
 
   /**
+   * Update story beat status
+   */
+  async updateStoryBeat(
+    campaignId: string,
+    storyBeatId: string,
+    updates: { status?: string }
+  ): Promise<void> {
+    const storyContext = this.storyContexts.get(campaignId);
+    if (
+      storyContext &&
+      storyContext.currentStoryBeat &&
+      storyContext.currentStoryBeat.id === storyBeatId
+    ) {
+      storyContext.currentStoryBeat = {
+        ...storyContext.currentStoryBeat,
+        ...updates,
+      };
+      this.storyContexts.set(campaignId, storyContext);
+      logger.info('Story beat updated', { campaignId, storyBeatId, updates });
+    } else {
+      logger.warn('Story beat not found for update', { campaignId, storyBeatId });
+    }
+  }
+
+  /**
    * Get story memory for a campaign
    */
   getStoryMemory(campaignId: string): StoryMemory | null {
