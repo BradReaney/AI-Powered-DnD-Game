@@ -31,6 +31,15 @@ export async function GET(request: NextRequest) {
     );
 
     if (!response.ok) {
+      // Handle 404 as a normal case (no active sessions)
+      if (response.status === 404) {
+        return NextResponse.json({
+          activeSessions: [],
+          message: "No active sessions found",
+          campaignId: campaignId,
+          count: 0,
+        });
+      }
       throw new Error(`Backend responded with status: ${response.status}`);
     }
 

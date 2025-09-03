@@ -236,7 +236,9 @@ export function GameChat({
     message: Omit<ChatMessage, "id" | "sessionId" | "timestamp">,
   ) => {
     // Get the session ID from the first message (which contains the real session ID)
-    const sessionId = messages.length > 0 ? messages[0].sessionId : "current";
+    // or use the existing session ID if provided
+    const sessionId =
+      messages.length > 0 ? messages[0].sessionId : existingSessionId;
 
     const newMessage: ChatMessage = {
       ...message,
@@ -310,7 +312,8 @@ export function GameChat({
 
     // Update session activity
     try {
-      const sessionId = messages.length > 0 ? messages[0].sessionId : null;
+      const sessionId =
+        messages.length > 0 ? messages[0].sessionId : existingSessionId;
       if (sessionId) {
         await apiService.updateSessionActivity(sessionId);
       }
@@ -328,7 +331,8 @@ export function GameChat({
       }
 
       // Get the session ID from the first message (which contains the session ID)
-      const sessionId = messages.length > 0 ? messages[0].sessionId : null;
+      const sessionId =
+        messages.length > 0 ? messages[0].sessionId : existingSessionId;
 
       const response = await fetch(`${apiUrl}/api/gameplay/story-response`, {
         method: "POST",

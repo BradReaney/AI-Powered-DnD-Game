@@ -1,343 +1,221 @@
 # AI-Powered D&D Game - User Guide
 
-Welcome to the AI-Powered D&D Game! This guide will help you get started with your tabletop roleplaying adventure powered by artificial intelligence.
+Welcome to the AI-Powered D&D Game! This guide will help you get started and make the most of your tabletop RPG experience.
 
-## Table of Contents
-1. [Getting Started](#getting-started)
-2. [Your First Campaign](#your-first-campaign)
-3. [Creating Characters](#creating-characters)
-4. [Starting Your Adventure](#starting-your-adventure)
-5. [Playing the Game](#playing-the-game)
-6. [Game Tools](#game-tools)
-7. [Managing Your Campaign](#managing-your-campaign)
-8. [Tips for Better Gameplay](#tips-for-better-gameplay)
+## 🎮 Getting Started
 
-## Getting Started
+### First Time Setup
+1. **Access the Application**: Open your web browser and navigate to the application URL
+2. **Create Your First Campaign**: Click "New Campaign" to start your adventure
+3. **Create a Character**: Design your first D&D character
+4. **Start Playing**: Begin your AI-powered adventure!
 
-### Welcome Screen
-When you first visit the application, you'll see:
-- **Main Title**: "AI Dungeons & Dragons" with the tagline "Your AI-powered tabletop adventure"
-- **New Campaign Button**: A prominent orange button to create your first campaign
-- **Two Main Tabs**: 
-  - **Campaigns**: Where you manage your adventures
-  - **Play**: Where you start playing
+## 🏰 Campaign Management
 
-### Creating Your First Campaign
-1. **Click "New Campaign"** from the welcome screen
-2. **Fill in the campaign details:**
-   - **Campaign Name**: Give your adventure a memorable name
-   - **Description**: Describe the setting and story you want to explore
-   - **Campaign Theme**: Choose from available themes (fantasy, sci-fi, etc.)
-   - **Active Campaign**: Make sure this is checked to start playing
-3. **Click "Create Campaign"** to save
+### Creating a Campaign
+1. Click the **"New Campaign"** button on the main page
+2. Fill in the campaign details:
+   - **Name**: Give your campaign a memorable name
+   - **Description**: Describe the world and setting
+   - **Theme**: Choose from fantasy, sci-fi, horror, or custom
+   - **Difficulty**: Select easy, medium, or hard
+3. Click **"Create Campaign"** to save
 
-## Your First Campaign
+### Managing Campaigns
+- **View Campaigns**: All your campaigns appear on the main page
+- **Edit Campaign**: Click the "Edit" button to modify campaign details
+- **Manage Campaign**: Click "Manage" to access advanced features
+- **Delete Campaign**: Use the delete button (⚠️ This removes all campaign data)
 
-### Campaign Overview
-After creating a campaign, you'll see it listed with:
-- Campaign name and status (Active/Inactive)
-- Description and theme
-- **Edit** and **Manage** buttons
+## 👤 Character Creation
 
-### Campaign Management
-Click **"Manage"** on any campaign to access:
+### Basic Character Setup
+1. Navigate to the **"Characters"** tab
+2. Click **"Create Character"**
+3. Select a campaign for your character
+4. Fill in the character details:
 
-#### Sessions Tab
-- View all your game sessions
-- Create new sessions for different play groups
-- Track your adventure progress
-
-#### Characters Tab
-- See all characters in your campaign
-- Add new player characters and NPCs
-- Manage character details and stats
-
-#### Locations Tab
-- Build your campaign world
-- Add important places and landmarks
-- Track where your adventures take place
-
-#### Settings Tab
-Customize your campaign experience:
-
-**Basic Settings:**
-- **Difficulty**: Easy, Medium, Hard, or Deadly
-- **Max Level**: Highest level characters can reach
-- **Experience Rate**: How fast characters level up
-- **Magic Level**: How common magic is in your world
-
-**AI Behavior:**
-- **Creativity**: How imaginative the AI is with story elements
-- **Detail Level**: How descriptive the AI responses are
-- **Pacing**: How fast the story progresses
-- **Combat Style**: Tactical, Balanced, or Narrative
-
-**Player Management:**
-- **Max Players**: How many people can join
-- **Player Permissions**: What players can do in your campaign
-
-## Creating Characters
-
-### Adding a Character
-1. **Go to Campaign Management > Characters**
-2. **Click "Add Character"**
-3. **Fill out the character sheet across multiple tabs:**
-
-#### Basic Info Tab
-- **Character Name**: Your hero's name
+#### Basic Information
+- **Name**: Your character's name
 - **Level**: Starting level (usually 1)
 - **Race**: Choose from D&D races (Human, Elf, Dwarf, etc.)
-- **Class**: Select your character type (Fighter, Wizard, Cleric, etc.)
-- **Background**: Pick your character's history (Soldier, Sage, etc.)
-- **Alignment**: Choose your moral compass
-- **Current Location**: Where your character starts
-- **Health Points**: Current and maximum HP
-- **Armor Class**: How hard you are to hit
+- **Class**: Select your character class (Fighter, Wizard, Rogue, etc.)
+- **Background**: Character background story
+- **Alignment**: Moral alignment (Lawful Good, Chaotic Neutral, etc.)
 
-#### Stats & Skills Tab
-- **Ability Scores**: Set your six core stats (Strength, Dexterity, etc.)
-- **Roll Stats**: Click to randomly generate stats
-- **Skills**: Check which skills you're proficient in
+#### Stats & Skills
+- **Attributes**: Strength, Dexterity, Constitution, Intelligence, Wisdom, Charisma
+- **Skills**: Select proficient skills based on your class
+- **Hit Points**: Current and maximum HP
+- **Armor Class**: Defense rating
 
-#### Personality Tab
-- **Traits**: What makes your character unique
-- **Ideals**: What your character believes in
-- **Bonds**: What connects your character to the world
-- **Flaws**: Your character's weaknesses
+#### Personality & Equipment
+- **Traits**: Character personality traits
+- **Ideals**: What your character values
+- **Bonds**: Important relationships
+- **Flaws**: Character weaknesses
+- **Equipment**: Weapons, armor, and items
+- **Spells**: Known spells (for spellcasters)
 
-#### Equipment Tab
-- **Equipment**: List your weapons, armor, and items
-- **Spells**: List your known spells (if any)
+### Character Management
+- **Edit Character**: Click "Edit" to modify character details
+- **View Character**: Click "View" to see full character sheet
+- **Delete Character**: Remove character (⚠️ Cannot be undone)
 
-#### Backstory Tab
-- **Character History**: Write your character's story
+## 🎲 Playing the Game
 
-4. **Click "Create Character"** to save**
+### Starting a Session
+1. Go to the **"Play"** tab
+2. Choose your campaign and character
+3. Click **"Start Adventure"** to begin a new session
+4. Or click **"Continue Adventure"** to resume an existing session
 
-### Managing Characters
-- **Edit**: Change character details anytime
-- **View**: See your complete character sheet
-- **Delete**: Remove characters you no longer need
+### Game Interface
+The game interface includes:
+- **Character Info**: Your character's stats and status
+- **Chat Area**: Where you interact with the AI Dungeon Master
+- **Message Input**: Type your actions and responses
+- **Send Button**: Submit your message to the AI
 
-## Starting Your Adventure
+### How to Play
+1. **Describe Your Actions**: Type what you want to do in the chat
+   - Example: "I search the room for hidden doors"
+   - Example: "I attack the goblin with my sword"
+   - Example: "I try to persuade the merchant to lower the price"
 
-### Beginning a Game Session
-1. **Go to the "Play" tab**
-2. **Click "Start New Adventure"**
-3. **Select Your Campaign:**
-   - Choose from your active campaigns
-   - Read descriptions to pick the right adventure
-4. **Select Your Character:**
-   - Pick from characters in the selected campaign
-   - Review your stats and abilities
-5. **Click "Start Adventure"**
+2. **AI Response**: The AI Dungeon Master will respond with:
+   - Story developments
+   - Environmental descriptions
+   - NPC interactions
+   - Combat outcomes
+   - Skill check results
 
-## Playing the Game
+3. **Continue the Story**: Respond to the AI's narrative and keep the adventure going!
 
-### Game Session Interface
-Once your adventure begins, you'll see:
+### Game Commands
+Use these special commands for game mechanics:
 
-#### Top Section
-- **Campaign Name**: Which adventure you're playing
-- **Character Info**: Your character's name, level, class, and race
-- **Health Display**: Current HP / Maximum HP
-- **Armor Class**: Your current AC
+- **`/help`** - Show available commands
+- **`/status`** - Display your character's current status
+- **`/roll [dice]`** - Roll dice (e.g., `/roll d20`, `/roll 2d6+3`)
+- **`/inventory`** - Show your character's equipment and items
 
-#### Adventure Chat
-- **AI Dungeon Master**: The AI describes scenes and responds to your actions
-- **Your Actions**: What your character does and says
-- **Story Updates**: How the world responds to your choices
-- **Input Field**: Type what your character wants to do
+### Character and Location Discovery
+The AI automatically:
+- **Creates NPCs**: Introduces new characters during your adventure
+- **Discovers Locations**: Finds new places as you explore
+- **Updates Your World**: Adds discovered content to your campaign
 
-#### Game Tools Panel
-Essential tools organized in tabs:
+## 📚 Advanced Features
 
-**Dice Tab:**
-- **Quick Rolls**: Standard dice (d4, d6, d8, d10, d12, d20, 2d6, 3d6, 4d6)
-- **Custom Roll**: Enter any dice combination (e.g., "1d20+5")
-- **Last Roll**: See your most recent roll result
-
-**Combat Tab:**
-- **Combat Actions**: Attack, Defend, Cast Spells, Use Items
-- **Your Stats**: Initiative, Speed, and combat bonuses
-- **Combat Management**: Track fights and turns
-
-**Character Tab:**
-- **Character Details**: Race, class, background, alignment
-- **Ability Scores**: All your stats with modifiers
-- **Character Information**: Complete character overview
-
-**AI Tab:**
-- **Context Management**: AI remembers your story
-- **Session History**: Track your adventure progress
-- **World State**: Current campaign status
-
-## Game Tools
-
-### Rolling Dice
-**Quick Dice:**
-- Click any dice button for instant rolls
-- Results appear in chat with timestamps
-- Keep track of your roll history
-
-**Custom Rolls:**
-- Type dice notation like "1d20+5" or "3d6"
-- Use the number spinner to adjust quantities
-- Click "Roll" to see results
-
-### Combat Actions
-**During Combat:**
-- **Attack**: Make attacks against enemies
-- **Defend**: Take defensive actions
-- **Spell**: Cast magic spells
-- **Item**: Use equipment and items
-
-**Combat Information:**
-- See your initiative bonus and speed
-- Track your proficiency bonuses
-- Monitor combat progress
-
-### Character Updates
-**Real-time Changes:**
-- Health points update during play
-- Experience and level progression
-- Equipment and inventory changes
-- Skill proficiency tracking
-
-## Managing Your Campaign
+### Story Arc Management
+1. Go to **Campaign Management**
+2. Click the **"Story Arc"** tab
+3. Create narrative arcs with:
+   - **Theme**: The central theme of your story
+   - **Tone**: Serious, lighthearted, mysterious, etc.
+   - **Pacing**: How fast the story progresses
+   - **Chapters**: Number of story segments
 
 ### Campaign Settings
-**Access Settings:**
-1. Go to Campaign Management > Settings
-2. Adjust difficulty and pacing
-3. Customize AI behavior
-4. Set player permissions
-5. Click "Save Settings"
+Access advanced campaign options:
+- **World State**: Current state of your campaign world
+- **Character Relationships**: Track NPC relationships
+- **Location Details**: Manage discovered locations
+- **Story Progress**: Track narrative development
 
 ### Session Management
-**Creating Sessions:**
-1. Go to Campaign Management > Sessions
-2. Click "New Session" or "Create First Session"
-3. Set session details and goals
-4. Start playing with your group
+- **Active Sessions**: View all ongoing game sessions
+- **Session History**: Review past adventures
+- **Continue Sessions**: Resume where you left off
+- **Session Details**: See session statistics and progress
 
-**Returning to Games:**
-- All your progress is automatically saved
-- Return to any active session
-- Continue where you left off
-- Maintain story continuity
+## 💡 Tips for Better Gameplay
 
-### World Building
-**Adding Locations:**
-1. Go to Campaign Management > Locations
-2. Click "Add Location" or "Create First Location"
-3. Describe important places
-4. Build your campaign world
+### Writing Good Actions
+- **Be Specific**: "I search the desk drawers" is better than "I search"
+- **Include Context**: Mention your character's abilities or equipment
+- **Ask Questions**: "What do I see?" or "How does the NPC react?"
+- **Use Character Voice**: Roleplay your character's personality
 
-## Tips for Better Gameplay
+### Working with the AI
+- **Build on Responses**: Reference previous events and characters
+- **Ask for Clarification**: "Can you describe the room in more detail?"
+- **Suggest Outcomes**: "I think the door might be trapped"
+- **Collaborate**: Work with the AI to create interesting stories
 
-### Creating Engaging Campaigns
-1. **Start Simple**: Begin with basic concepts and build complexity
-2. **Clear Descriptions**: Write detailed campaign descriptions for better AI responses
-3. **Appropriate Themes**: Choose themes that match your play style
-4. **Player Limits**: Set reasonable limits for your group size
+### Character Development
+- **Update Your Character**: Modify stats and equipment as you progress
+- **Track Relationships**: Note important NPCs and their relationships
+- **Document Adventures**: Keep notes on important events
+- **Plan Character Growth**: Think about how your character might develop
 
-### Building Memorable Characters
-1. **Balanced Stats**: Create versatile characters for different situations
-2. **Rich Backstories**: Write detailed histories for more immersive play
-3. **Consistent Personality**: Stay true to your character throughout the adventure
-4. **Equipment Planning**: Choose gear that fits your character concept
-
-### Getting the Most from AI
-1. **Be Specific**: Describe actions clearly for better AI responses
-2. **Ask Questions**: Inquire about the environment, NPCs, and world details
-3. **Stay in Character**: Roleplay consistently for immersive experiences
-4. **Use Context**: Reference previous actions and decisions
-
-### Session Management
-1. **Clear Actions**: Describe what your character wants to do
-2. **Use Dice**: Incorporate rolls for skill checks and combat
-3. **Engage with AI**: Ask questions and interact with the Dungeon Master
-4. **Create Sessions**: Start new sessions for different play groups
-
-## Mobile Experience
-
-### Mobile-Optimized Design
-The application works great on mobile devices:
-- **Touch-friendly interface** with appropriately sized buttons
-- **Responsive layouts** that adapt to all screen sizes
-- **Mobile navigation** with intuitive touch controls
-- **Optimized for mobile play** anywhere, anytime
-
-### Mobile Features
-- **Swipe gestures** for easy navigation
-- **Touch-optimized dice rolling**
-- **Mobile-friendly chat interface**
-- **Responsive game tools panel**
-
-## Troubleshooting
+## 🔧 Troubleshooting
 
 ### Common Issues
 
-**AI Not Responding:**
-1. Check your internet connection
-2. Wait a moment for the AI to process
-3. Try refreshing the page if needed
-4. Ensure you're in an active game session
+**Can't Start a Session**
+- Ensure you have a campaign and character created
+- Check that your character is assigned to the campaign
+- Try refreshing the page
 
-**Character Creation Problems:**
-1. Fill in all required fields
-2. Check that character names are unique
-3. Verify ability scores are within valid ranges
-4. Make sure you've selected a campaign
+**AI Not Responding**
+- Check your internet connection
+- Try sending a simpler message
+- Refresh the page and try again
 
-**Game Session Issues:**
-1. Ensure your campaign is marked as "Active"
-2. Check that you have characters in the campaign
-3. Verify your browser is up to date
-4. Try clearing browser cache if needed
+**Character Data Missing**
+- Make sure you saved your character properly
+- Check that you're in the correct campaign
+- Try editing and re-saving your character
+
+**Session Not Loading**
+- Check if the session is still active
+- Try continuing from the Play tab
+- Contact support if the issue persists
 
 ### Getting Help
-**If You Need Assistance:**
-1. Check this user guide for solutions
-2. Look for error messages in the interface
-3. Try refreshing the page
-4. Contact support if problems persist
+- **In-Game Help**: Use `/help` command for game mechanics
+- **Documentation**: Check the README for technical details
+- **Support**: Contact the development team for technical issues
 
-## Advanced Features
+## 🎯 Best Practices
 
-### Campaign Themes
-- **Fantasy**: Traditional D&D settings with magic and monsters
-- **Sci-Fi**: Futuristic settings with technology and space
-- **Modern**: Contemporary settings with supernatural elements
-- **Historical**: Period-specific settings with historical accuracy
+### For Players
+- **Save Frequently**: Your progress is auto-saved, but be patient
+- **Be Creative**: The AI responds well to imaginative actions
+- **Stay In Character**: Roleplay your character consistently
+- **Collaborate**: Work with the AI to create compelling stories
 
-### AI Customization
-- **Creativity Control**: Adjust how creative the AI is with story elements
-- **Detail Levels**: Control the amount of descriptive detail provided
-- **Pacing Management**: Adjust story progression speed
-- **Combat Preferences**: Choose your preferred combat style
+### For Dungeon Masters
+- **Plan Ahead**: Use story arcs to structure long campaigns
+- **Manage NPCs**: Keep track of important characters
+- **Balance Encounters**: Adjust difficulty based on your party
+- **Document Everything**: Keep notes on world events and changes
 
-### Multi-Session Campaigns
-- **Session Continuity**: Maintain story progress across multiple play sessions
-- **World Persistence**: Your campaign world evolves and remembers changes
-- **Character Development**: Characters grow and change over time
-- **Story Arcs**: Build complex narratives across multiple sessions
+## 🌟 Advanced Tips
 
-## Conclusion
+### Creating Rich Stories
+- **Use Foreshadowing**: Plant seeds for future plot developments
+- **Develop NPCs**: Give characters depth and motivation
+- **Create Conflict**: Introduce challenges and obstacles
+- **Build Relationships**: Develop connections between characters
 
-You're now ready to embark on epic adventures in the AI-Powered D&D Game! With this guide, you have everything you need to:
-
-- Create and manage campaigns
-- Build memorable characters
-- Start playing immediately
-- Use all the game tools effectively
-- Enjoy the game on any device
-
-The AI Dungeon Master will guide you through immersive stories, while the intuitive interface makes it easy to focus on the adventure. Whether you're playing solo or with friends, the application provides an authentic D&D experience enhanced by artificial intelligence.
-
-Start your journey today by creating your first campaign and character, and let the AI guide you through worlds of your own creation!
+### Managing Campaigns
+- **Multiple Characters**: Create different characters for different campaigns
+- **Session Planning**: Use story arcs to plan long-term narratives
+- **World Building**: Develop consistent lore and history
+- **Player Agency**: Let player choices drive the story
 
 ---
 
-*For the best experience, use a modern web browser and ensure you have a stable internet connection for AI interactions.*
+## 🎉 Ready to Play!
+
+You're now ready to embark on epic adventures with your AI Dungeon Master! Remember:
+
+- **Have Fun**: This is a game - enjoy the experience!
+- **Be Creative**: The AI loves imaginative storytelling
+- **Stay Engaged**: The more you put in, the more you get out
+- **Explore**: Try different actions and see what happens
+
+**Happy adventuring!** 🐉⚔️🏰
