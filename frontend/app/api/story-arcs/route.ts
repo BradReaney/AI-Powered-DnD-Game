@@ -20,7 +20,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(data, { status: response.status });
     }
 
-    return NextResponse.json(data);
+    // Transform backend data to frontend format (same pattern as campaigns)
+    const transformedData = data
+      ? {
+          ...data,
+          id: data._id?.toString() || data.id || `story-arc-${Math.random()}`,
+        }
+      : data;
+
+    return NextResponse.json(transformedData);
   } catch (error) {
     console.error("Error creating story arc:", error);
     return NextResponse.json(
@@ -51,7 +59,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(data, { status: response.status });
     }
 
-    return NextResponse.json(data);
+    // Transform backend data to frontend format (same pattern as campaigns)
+    const transformedData = data
+      ? {
+          ...data,
+          id: data._id?.toString() || data.id || `story-arc-${Math.random()}`,
+        }
+      : data;
+
+    return NextResponse.json(transformedData);
   } catch (error) {
     console.error("Error fetching story arc:", error);
     return NextResponse.json(

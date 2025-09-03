@@ -114,6 +114,10 @@ export class LocationService {
       const location = new Location(data);
       const savedLocation = await location.save();
 
+      // Invalidate cache for this campaign's locations
+      const cachePattern = `locations:campaign:${data.campaignId}:*`;
+      await cacheService.deletePattern(cachePattern);
+
       logger.info('Location created successfully', {
         locationId: savedLocation._id,
         name: savedLocation.name,

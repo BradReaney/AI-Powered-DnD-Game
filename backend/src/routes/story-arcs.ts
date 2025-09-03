@@ -114,6 +114,52 @@ router.get('/campaign/:campaignId', async (req, res) => {
 });
 
 /**
+ * @route PUT /api/story-arcs/:storyArcId
+ * @desc Update a story arc
+ * @access Public
+ */
+router.put('/:storyArcId', async (req, res) => {
+  try {
+    const { storyArcId } = req.params;
+    const { theme, tone, pacing, totalChapters } = req.body;
+
+    if (!Types.ObjectId.isValid(storyArcId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid story arc ID format',
+      });
+    }
+
+    const storyArc = await storyArcService.updateStoryArc(storyArcId, {
+      theme,
+      tone,
+      pacing,
+      totalChapters,
+    });
+
+    if (!storyArc) {
+      return res.status(404).json({
+        success: false,
+        message: 'Story arc not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Story arc updated successfully',
+      data: storyArc,
+    });
+  } catch (error) {
+    logger.error(`Error updating story arc: ${error}`);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update story arc',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
  * @route POST /api/story-arcs/:storyArcId/story-beats
  * @desc Add a new story beat to an existing story arc
  * @access Public

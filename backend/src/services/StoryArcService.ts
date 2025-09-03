@@ -3,6 +3,15 @@ import { StoryArc, IStoryArc, IStoryBeat, IQuestProgress } from '../models/Story
 import { Campaign } from '../models';
 import { Types } from 'mongoose';
 
+// Helper function to transform story arc object to include id field
+const transformStoryArc = (storyArc: IStoryArc | null): any => {
+  if (!storyArc) return null;
+
+  // Use toJSON to get the virtual id field
+  const transformed = storyArc.toJSON();
+  return transformed;
+};
+
 export interface StoryArcCreationData {
   campaignId: Types.ObjectId;
   theme: string;
@@ -153,15 +162,43 @@ export class StoryArcService {
   /**
    * Get story arc by campaign ID
    */
-  async getStoryArcByCampaignId(campaignId: Types.ObjectId): Promise<IStoryArc | null> {
+  async getStoryArcByCampaignId(campaignId: Types.ObjectId): Promise<any> {
     try {
       const storyArc = await StoryArc.findOne({ campaignId }).populate(
         'storyBeats.characters',
         'name race class'
       );
-      return storyArc;
+      return transformStoryArc(storyArc);
     } catch (error) {
       logger.error(`Error getting story arc: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Update a story arc
+   */
+  async updateStoryArc(
+    storyArcId: string,
+    updateData: Partial<StoryArcCreationData>
+  ): Promise<any> {
+    try {
+      const updatedStoryArc = await StoryArc.findByIdAndUpdate(
+        storyArcId,
+        { ...updateData, updatedAt: new Date() },
+        { new: true, runValidators: true }
+      );
+
+      if (updatedStoryArc) {
+        logger.info('Story arc updated successfully', {
+          storyArcId: updatedStoryArc._id,
+          campaignId: updatedStoryArc.campaignId,
+        });
+      }
+
+      return transformStoryArc(updatedStoryArc);
+    } catch (error) {
+      logger.error('Error updating story arc:', error);
       throw error;
     }
   }

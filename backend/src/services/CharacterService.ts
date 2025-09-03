@@ -135,7 +135,8 @@ class CharacterService {
       // Validate campaign exists
       const campaign = await Campaign.findById(data.campaignId);
       if (!campaign) {
-        throw new Error('Campaign not found');
+        logger.error(`Campaign not found: ${data.campaignId}`);
+        throw new Error(`Campaign not found: ${data.campaignId}`);
       }
 
       // Calculate hit points based on class and constitution
@@ -176,7 +177,15 @@ class CharacterService {
         createdBy: data.createdBy,
       });
 
-      await character.save();
+      // Save character with error handling
+      try {
+        await character.save();
+      } catch (saveError) {
+        logger.error(`Failed to save character ${data.name}:`, saveError);
+        throw new Error(
+          `Failed to save character: ${saveError instanceof Error ? saveError.message : 'Unknown error'}`
+        );
+      }
 
       // Add character to campaign
       campaign.characters.push({
@@ -185,7 +194,31 @@ class CharacterService {
         joinedAt: new Date(),
         isActive: true,
       });
-      await campaign.save();
+
+      try {
+        await campaign.save();
+      } catch (campaignSaveError) {
+        logger.error(
+          `Failed to update campaign ${data.campaignId} with new character:`,
+          campaignSaveError
+        );
+        // Try to rollback character creation
+        try {
+          await Character.findByIdAndDelete(character._id);
+        } catch (rollbackError) {
+          logger.error(`Failed to rollback character creation:`, rollbackError);
+        }
+        throw new Error(
+          `Failed to update campaign: ${campaignSaveError instanceof Error ? campaignSaveError.message : 'Unknown error'}`
+        );
+      }
+
+      // Invalidate cache to ensure fresh data on next request
+      await this.invalidateCharacterCache(
+        character._id.toString(),
+        data.campaignId,
+        data.sessionId
+      );
 
       logger.info(
         `Created human character: ${character.name} (${character.race} ${character.class})`
@@ -291,6 +324,13 @@ class CharacterService {
         isActive: true,
       });
       await campaign.save();
+
+      // Invalidate cache to ensure fresh data on next request
+      await this.invalidateCharacterCache(
+        character._id.toString(),
+        data.campaignId,
+        data.sessionId
+      );
 
       logger.info(`Created AI character: ${character.name} (${character.race} ${character.class})`);
       return character;
@@ -1125,6 +1165,13 @@ class CharacterService {
         { $pull: { 'gameState.activeCharacters': characterId } }
       );
 
+      // Invalidate cache after deletion
+      await this.invalidateCharacterCache(
+        characterId,
+        character.campaignId.toString(),
+        character.sessionId
+      );
+
       logger.info(`Deleted character: ${character.name}`);
     } catch (error) {
       logger.error('Error deleting character:', error);
@@ -1172,6 +1219,13 @@ class CharacterService {
         Character.findByIdAndDelete(characterId),
       ]);
 
+      // Invalidate cache after hard deletion
+      await this.invalidateCharacterCache(
+        characterId,
+        character.campaignId.toString(),
+        character.sessionId
+      );
+
       logger.info(`Hard deleted character: ${character.name} and all related data`);
     } catch (error) {
       logger.error('Error hard deleting character:', error);
@@ -1216,6 +1270,14 @@ class CharacterService {
       character.hitPoints.current = character.hitPoints.maximum;
 
       await character.save();
+
+      // Invalidate cache after level up
+      await this.invalidateCharacterCache(
+        characterId,
+        character.campaignId.toString(),
+        character.sessionId
+      );
+
       logger.info(`Character ${character.name} leveled up to level ${character.level}`);
       return character;
     } catch (error) {
@@ -1243,6 +1305,14 @@ class CharacterService {
       }
 
       await character.save();
+
+      // Invalidate cache after experience update
+      await this.invalidateCharacterCache(
+        characterId,
+        character.campaignId.toString(),
+        character.sessionId
+      );
+
       return character;
     } catch (error) {
       logger.error('Error adding experience:', error);

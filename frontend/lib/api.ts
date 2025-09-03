@@ -288,21 +288,10 @@ class ApiService {
     locationId: string,
     locationData: Partial<Location>,
   ): Promise<Location> {
-    // Call backend directly since Next.js API routes don't exist for location updates
-    const backendUrl =
-      process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL;
-    if (!backendUrl) {
-      throw new Error(
-        "BACKEND_URL or NEXT_PUBLIC_API_URL environment variable is required",
-      );
-    }
-
-    const response = await fetch(`${backendUrl}/api/locations/${locationId}`, {
+    const response = await fetch(`/api/locations/${locationId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
       },
       body: JSON.stringify(locationData),
     });
@@ -311,7 +300,8 @@ class ApiService {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    return data.location || data;
   }
 
   async deleteLocation(locationId: string): Promise<void> {

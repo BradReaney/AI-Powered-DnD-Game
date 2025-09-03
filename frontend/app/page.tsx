@@ -83,6 +83,45 @@ export default function HomePage() {
     setSessionRefreshTrigger((prev) => prev + 1);
   };
 
+  const refreshCharactersData = async () => {
+    try {
+      // Fetch characters for all active campaigns
+      const allCharacters: Character[] = [];
+      const activeCampaigns = campaigns.filter(
+        (campaign) => campaign.status === "active",
+      );
+
+      if (activeCampaigns.length > 0) {
+        // Fetch characters for all campaigns in parallel
+        const characterPromises = activeCampaigns.map(async (campaign) => {
+          try {
+            const campaignCharacters = await apiService.getCharactersByCampaign(
+              campaign.id,
+            );
+            return Array.isArray(campaignCharacters) ? campaignCharacters : [];
+          } catch (err) {
+            console.error(
+              `Failed to fetch characters for campaign ${campaign.id}:`,
+              err,
+            );
+            return [];
+          }
+        });
+
+        const characterResults = await Promise.all(characterPromises);
+        characterResults.forEach((characters) => {
+          if (Array.isArray(characters)) {
+            allCharacters.push(...characters);
+          }
+        });
+      }
+
+      setCharacters(allCharacters);
+    } catch (err) {
+      console.error("Failed to refresh characters:", err);
+    }
+  };
+
   // Fetch initial data
   useEffect(() => {
     const fetchData = async () => {
@@ -147,6 +186,13 @@ export default function HomePage() {
 
     fetchData();
   }, []);
+
+  // Refresh characters when navigating to campaign-character-selector
+  useEffect(() => {
+    if (viewMode === "campaign-character-selector") {
+      refreshCharactersData();
+    }
+  }, [viewMode]);
 
   const handleCreateCampaign = () => {
     setSelectedCampaign(null);
@@ -277,6 +323,9 @@ export default function HomePage() {
         const newCharacter = await apiService.createCharacter(characterData);
         setCharacters([...characters, newCharacter]);
 
+        // Refresh characters data to ensure consistency
+        await refreshCharactersData();
+
         // Redirect back to overview after successful character creation
         setViewMode("overview");
         setSelectedCharacter(null);
@@ -295,14 +344,14 @@ export default function HomePage() {
       setIsSavingLocation(true);
       setError(null);
 
-      if (selectedLocation) {
+      if (locationData.id) {
         const updatedLocation = await apiService.updateLocation(
-          selectedLocation.id,
+          locationData.id,
           locationData,
         );
         setLocations(
           locations.map((l) =>
-            l.id === selectedLocation.id ? updatedLocation : l,
+            l.id === locationData.id ? updatedLocation : l,
           ),
         );
       } else {
