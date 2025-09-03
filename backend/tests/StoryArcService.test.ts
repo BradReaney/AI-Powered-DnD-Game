@@ -16,9 +16,15 @@ jest.mock('../src/models/StoryArc', () => ({
   StoryArc: Object.assign(
     jest.fn().mockImplementation(() => ({
       save: jest.fn().mockResolvedValue({}),
+      addStoryBeat: jest.fn().mockReturnValue('beat-123'),
+      completeStoryBeat: jest.fn().mockReturnValue(true),
+      addWorldStateChange: jest.fn().mockReturnValue('change-123'),
+      advanceChapter: jest.fn().mockReturnValue(true),
+      toJSON: jest.fn().mockReturnValue({}),
     })),
     {
       findOne: jest.fn(),
+      findById: jest.fn(),
       deleteOne: jest.fn(),
     }
   ),
@@ -35,6 +41,27 @@ jest.mock('../src/models', () => ({
 
 describe('StoryArcService', () => {
   let storyArcService: StoryArcService;
+
+  // Helper function to create consistent mock story arcs
+  const createMockStoryArc = (overrides = {}) => ({
+    _id: new Types.ObjectId(),
+    campaignId: new Types.ObjectId(),
+    storyBeats: [],
+    characterMilestones: [],
+    worldStateChanges: [],
+    questProgress: [],
+    currentChapter: 1,
+    currentAct: 1,
+    totalChapters: 3,
+    completedStoryBeats: 0,
+    save: jest.fn().mockResolvedValue({}),
+    addStoryBeat: jest.fn().mockReturnValue('beat-123'),
+    completeStoryBeat: jest.fn().mockReturnValue(true),
+    addWorldStateChange: jest.fn().mockReturnValue('change-123'),
+    advanceChapter: jest.fn().mockReturnValue(true),
+    toJSON: jest.fn().mockReturnValue({}),
+    ...overrides,
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -127,15 +154,7 @@ describe('StoryArcService', () => {
   describe('getStoryArcByCampaignId', () => {
     it('should retrieve story arc by campaign ID', async () => {
       const campaignId = new Types.ObjectId();
-      const mockStoryArc = {
-        _id: new Types.ObjectId(),
-        campaignId,
-        theme: 'fantasy',
-        storyBeats: [],
-        characterMilestones: [],
-        worldStateChanges: [],
-        questProgress: [],
-      };
+      const mockStoryArc = createMockStoryArc({ campaignId, theme: 'fantasy' });
 
       (StoryArc.findOne as any).mockReturnValue({
         populate: jest.fn().mockResolvedValue(mockStoryArc),
@@ -179,6 +198,384 @@ describe('StoryArcService', () => {
       const result = await storyArcService.deleteStoryArc(campaignId);
 
       expect(result).toBe(false);
+    });
+  });
+
+  describe('addStoryBeat', () => {
+    it('should add a story beat to the story arc', async () => {
+      const campaignId = new Types.ObjectId();
+      const beatData = {
+        title: 'Test Beat',
+        description: 'A test story beat',
+        chapter: 1,
+        act: 1,
+        type: 'development' as const,
+        importance: 'moderate' as const,
+        characters: [new Types.ObjectId()],
+        npcs: ['Test NPC'],
+        consequences: ['Test consequence'],
+      };
+
+      const mockStoryArc = createMockStoryArc({ campaignId });
+
+      (StoryArc.findOne as any).mockReturnValue({
+        populate: jest.fn().mockResolvedValue(mockStoryArc),
+      });
+
+      const result = await storyArcService.addStoryBeat(campaignId, beatData);
+
+      expect(result).toBeDefined();
+      expect(mockStoryArc.save).toHaveBeenCalled();
+    });
+
+    it('should handle errors when adding story beat', async () => {
+      const campaignId = new Types.ObjectId();
+      const beatData = {
+        title: 'Test Beat',
+        description: 'A test story beat',
+        chapter: 1,
+        act: 1,
+        type: 'development' as const,
+        importance: 'moderate' as const,
+        characters: [new Types.ObjectId()],
+        npcs: ['Test NPC'],
+        consequences: ['Test consequence'],
+      };
+
+      (StoryArc.findOne as any).mockReturnValue({
+        populate: jest.fn().mockResolvedValue(null),
+      });
+
+      await expect(storyArcService.addStoryBeat(campaignId, beatData)).rejects.toThrow();
+    });
+  });
+
+  describe('completeStoryBeat', () => {
+    it('should complete a story beat', async () => {
+      const campaignId = new Types.ObjectId();
+      const beatId = 'beat-123';
+      const outcome = 'Success';
+      const notes = 'Test notes';
+
+      const mockStoryArc = {
+        _id: new Types.ObjectId(),
+        campaignId,
+        storyBeats: [
+          {
+            id: beatId,
+            title: 'Test Beat',
+            completed: false,
+          },
+        ],
+        save: jest.fn().mockResolvedValue({}),
+      };
+
+      (StoryArc.findOne as any).mockReturnValue({
+        populate: jest.fn().mockResolvedValue(mockStoryArc),
+      });
+
+      const result = await storyArcService.completeStoryBeat(campaignId, beatId, outcome, notes);
+
+      expect(result).toBe(true);
+      expect(mockStoryArc.save).toHaveBeenCalled();
+    });
+
+    it('should return false if story beat not found', async () => {
+      const campaignId = new Types.ObjectId();
+      const beatId = 'nonexistent-beat';
+      const outcome = 'Success';
+      const notes = 'Test notes';
+
+      const mockStoryArc = {
+        _id: new Types.ObjectId(),
+        campaignId,
+        storyBeats: [],
+        save: jest.fn().mockResolvedValue({}),
+      };
+
+      (StoryArc.findOne as any).mockReturnValue({
+        populate: jest.fn().mockResolvedValue(mockStoryArc),
+      });
+
+      const result = await storyArcService.completeStoryBeat(campaignId, beatId, outcome, notes);
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('addCharacterMilestone', () => {
+    it('should add a character milestone', async () => {
+      const campaignId = new Types.ObjectId();
+      const milestoneData = {
+        characterId: new Types.ObjectId(),
+        type: 'level' as const,
+        title: 'Character Level Up',
+        description: 'Character reached new level',
+        impact: 'major' as const,
+        storyBeatId: 'beat-123',
+        metadata: { level: 5 },
+      };
+
+      const mockStoryArc = {
+        _id: new Types.ObjectId(),
+        campaignId,
+        characterMilestones: [],
+        save: jest.fn().mockResolvedValue({}),
+      };
+
+      (StoryArc.findOne as any).mockReturnValue({
+        populate: jest.fn().mockResolvedValue(mockStoryArc),
+      });
+
+      await storyArcService.addCharacterMilestone(campaignId, milestoneData);
+
+      expect(mockStoryArc.save).toHaveBeenCalled();
+    });
+  });
+
+  describe('addWorldStateChange', () => {
+    it('should add a world state change', async () => {
+      const campaignId = new Types.ObjectId();
+      const changeData = {
+        type: 'location' as const,
+        title: 'Location Discovered',
+        description: 'A new location was discovered',
+        impact: 'major' as const,
+        affectedElements: ['location'],
+        storyBeatId: 'beat-123',
+        characterIds: [new Types.ObjectId()],
+        location: 'Forest of Shadows',
+        permanent: true,
+      };
+
+      const mockStoryArc = {
+        _id: new Types.ObjectId(),
+        campaignId,
+        worldStateChanges: [],
+        save: jest.fn().mockResolvedValue({}),
+      };
+
+      (StoryArc.findOne as any).mockReturnValue({
+        populate: jest.fn().mockResolvedValue(mockStoryArc),
+      });
+
+      const result = await storyArcService.addWorldStateChange(campaignId, changeData);
+
+      expect(result).toBeDefined();
+      expect(mockStoryArc.save).toHaveBeenCalled();
+    });
+  });
+
+  describe('updateQuestProgress', () => {
+    it('should update quest progress', async () => {
+      const campaignId = new Types.ObjectId();
+      const questId = new Types.ObjectId();
+      const updates = {
+        status: 'completed' as const,
+        objectives: [
+          {
+            description: 'Find the artifact',
+            completed: true,
+            completedAt: new Date(),
+          },
+        ],
+      };
+
+      const mockStoryArc = {
+        _id: new Types.ObjectId(),
+        campaignId,
+        questProgress: [
+          {
+            questId: questId.toString(),
+            status: 'active',
+            objectives: [
+              {
+                description: 'Find the artifact',
+                completed: false,
+              },
+            ],
+          },
+        ],
+        save: jest.fn().mockResolvedValue({}),
+      };
+
+      (StoryArc.findOne as any).mockReturnValue({
+        populate: jest.fn().mockResolvedValue(mockStoryArc),
+      });
+
+      const result = await storyArcService.updateQuestProgress(campaignId, questId, updates);
+
+      expect(result).toBe(true);
+      expect(mockStoryArc.save).toHaveBeenCalled();
+    });
+  });
+
+  describe('advanceChapter', () => {
+    it('should advance to the next chapter', async () => {
+      const campaignId = new Types.ObjectId();
+
+      const mockStoryArc = {
+        _id: new Types.ObjectId(),
+        campaignId,
+        currentChapter: 1,
+        totalChapters: 3,
+        save: jest.fn().mockResolvedValue({}),
+      };
+
+      (StoryArc.findOne as any).mockReturnValue({
+        populate: jest.fn().mockResolvedValue(mockStoryArc),
+      });
+
+      const result = await storyArcService.advanceChapter(campaignId);
+
+      expect(result).toBe(true);
+      expect(mockStoryArc.save).toHaveBeenCalled();
+    });
+
+    it('should return false if already at last chapter', async () => {
+      const campaignId = new Types.ObjectId();
+
+      const mockStoryArc = {
+        _id: new Types.ObjectId(),
+        campaignId,
+        currentChapter: 3,
+        totalChapters: 3,
+        save: jest.fn().mockResolvedValue({}),
+      };
+
+      (StoryArc.findOne as any).mockReturnValue({
+        populate: jest.fn().mockResolvedValue(mockStoryArc),
+      });
+
+      const result = await storyArcService.advanceChapter(campaignId);
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('getCurrentStoryBeat', () => {
+    it('should get the current story beat', async () => {
+      const campaignId = new Types.ObjectId();
+      const currentBeat = {
+        id: 'beat-123',
+        title: 'Current Beat',
+        description: 'The current story beat',
+        chapter: 1,
+        act: 1,
+        type: 'development',
+        importance: 'moderate',
+        characters: [new Types.ObjectId()],
+        npcs: ['Test NPC'],
+        consequences: ['Test consequence'],
+        completed: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const mockStoryArc = {
+        _id: new Types.ObjectId(),
+        campaignId,
+        storyBeats: [currentBeat],
+      };
+
+      (StoryArc.findOne as any).mockReturnValue({
+        populate: jest.fn().mockResolvedValue(mockStoryArc),
+      });
+
+      const result = await storyArcService.getCurrentStoryBeat(campaignId);
+
+      expect(result).toBe(currentBeat);
+    });
+
+    it('should return null if no current story beat', async () => {
+      const campaignId = new Types.ObjectId();
+
+      const mockStoryArc = {
+        _id: new Types.ObjectId(),
+        campaignId,
+        storyBeats: [],
+      };
+
+      (StoryArc.findOne as any).mockReturnValue({
+        populate: jest.fn().mockResolvedValue(mockStoryArc),
+      });
+
+      const result = await storyArcService.getCurrentStoryBeat(campaignId);
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('validateStoryConsistency', () => {
+    it('should validate story consistency', async () => {
+      const campaignId = new Types.ObjectId();
+      const validationResult = {
+        isValid: true,
+        issues: [],
+        warnings: [],
+        suggestions: [],
+      };
+
+      const mockStoryArc = {
+        _id: new Types.ObjectId(),
+        campaignId,
+        storyBeats: [],
+        characterMilestones: [],
+        worldStateChanges: [],
+        questProgress: [],
+        toJSON: jest.fn().mockReturnValue({
+          _id: new Types.ObjectId(),
+          campaignId,
+          storyBeats: [],
+          characterMilestones: [],
+          worldStateChanges: [],
+          questProgress: [],
+        }),
+      };
+
+      (StoryArc.findOne as any).mockReturnValue({
+        populate: jest.fn().mockResolvedValue(mockStoryArc),
+      });
+
+      // Mock the validation logic
+      const result = await storyArcService.validateStoryConsistency(campaignId);
+
+      expect(result).toBeDefined();
+      expect(result.valid).toBeDefined();
+    });
+  });
+
+  describe('getStoryProgression', () => {
+    it('should get story progression data', async () => {
+      const campaignId = new Types.ObjectId();
+      const progressionData = {
+        currentChapter: 1,
+        currentAct: 1,
+        totalChapters: 3,
+        totalActs: 3,
+        completedBeats: 0,
+        totalBeats: 0,
+        progressPercentage: 0,
+      };
+
+      const mockStoryArc = {
+        _id: new Types.ObjectId(),
+        campaignId,
+        currentChapter: 1,
+        currentAct: 1,
+        totalChapters: 3,
+        storyBeats: [],
+        completedStoryBeats: 0,
+      };
+
+      (StoryArc.findOne as any).mockReturnValue({
+        populate: jest.fn().mockResolvedValue(mockStoryArc),
+      });
+
+      const result = await storyArcService.getStoryProgression(campaignId);
+
+      expect(result).toBeDefined();
+      expect(result.currentChapter).toBe(1);
     });
   });
 
