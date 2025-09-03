@@ -1,0 +1,168 @@
+{
+  "info": {
+    "name": "AI-Powered D&D Game - Collection Runner Configuration",
+    "description": "Configuration for running the complete API test suite",
+    "version": "1.0.0"
+  },
+  "config": {
+    "environment": "Testing",
+    "iterations": 1,
+    "delay": {
+      "item": 1000,
+      "request": 500
+    },
+    "data": [],
+    "runOrder": "inOrder",
+    "stopOnError": false,
+    "timeout": {
+      "request": 30000,
+      "script": 5000
+    }
+  },
+  "testData": {
+    "campaigns": [
+      {
+        "name": "Fantasy Adventure Campaign",
+        "theme": "High Fantasy",
+        "description": "A classic fantasy adventure with dragons and magic"
+      },
+      {
+        "name": "Sci-Fi Space Campaign",
+        "theme": "Science Fiction",
+        "description": "A space exploration campaign with alien encounters"
+      },
+      {
+        "name": "Horror Mystery Campaign",
+        "theme": "Horror",
+        "description": "A dark and mysterious campaign with supernatural elements"
+      }
+    ],
+    "characters": [
+      {
+        "name": "Aragorn the Ranger",
+        "race": "Human",
+        "class": "Ranger",
+        "level": 5
+      },
+      {
+        "name": "Gandalf the Wizard",
+        "race": "Human",
+        "class": "Wizard",
+        "level": 8
+      },
+      {
+        "name": "Legolas the Archer",
+        "race": "Elf",
+        "class": "Fighter",
+        "level": 6
+      }
+    ],
+    "sessions": [
+      {
+        "title": "The Dragon's Lair",
+        "description": "The party discovers an ancient dragon's lair"
+      },
+      {
+        "title": "The Mysterious Forest",
+        "description": "A journey through an enchanted forest"
+      },
+      {
+        "title": "The Final Battle",
+        "description": "The climactic battle against the dark lord"
+      }
+    ]
+  },
+  "testScenarios": [
+    {
+      "name": "Complete Campaign Workflow",
+      "description": "Test the complete workflow from campaign creation to session management",
+      "requests": [
+        "Health Check - Light",
+        "Create Campaign",
+        "Get Campaign Stats",
+        "Create Character",
+        "Get Characters by Campaign",
+        "Create Session",
+        "Send Message to Session",
+        "Get AI Response",
+        "Perform Skill Check",
+        "Roll Dice",
+        "End Session",
+        "Delete Character",
+        "Delete Session"
+      ]
+    },
+    {
+      "name": "Performance Testing",
+      "description": "Test response times and performance under load",
+      "requests": [
+        "Health Check - Light",
+        "Get All Campaigns",
+        "Get All Characters",
+        "Get Active Sessions",
+        "Get Campaign Context",
+        "Get Prompt Templates"
+      ],
+      "iterations": 10
+    },
+    {
+      "name": "Error Handling",
+      "description": "Test error handling and edge cases",
+      "requests": [
+        "Get Campaign by Invalid ID",
+        "Get Character by Invalid ID",
+        "Get Session by Invalid ID",
+        "Create Campaign with Missing Fields",
+        "Create Character with Invalid Data"
+      ]
+    },
+    {
+      "name": "Combat System",
+      "description": "Test the complete combat system",
+      "requests": [
+        "Create Combat Encounter",
+        "Get Combat Encounter",
+        "Add Combat Participant",
+        "Start Combat Encounter",
+        "End Combat Encounter"
+      ]
+    },
+    {
+      "name": "Location and Quest Management",
+      "description": "Test location and quest management features",
+      "requests": [
+        "Create Location",
+        "Get Locations by Campaign",
+        "Create Quest",
+        "Get Quests by Campaign",
+        "Create Story Arc",
+        "Get Story Arcs by Campaign"
+      ]
+    }
+  ],
+  "assertions": {
+    "responseTime": {
+      "max": 5000,
+      "warning": 2000
+    },
+    "statusCodes": {
+      "success": [200, 201],
+      "clientError": [400, 401, 403, 404],
+      "serverError": [500, 502, 503]
+    },
+    "requiredFields": {
+      "campaign": ["_id", "name", "theme", "description", "createdBy"],
+      "character": ["_id", "name", "race", "class", "level", "campaignId"],
+      "session": ["_id", "title", "campaignId", "participants", "gameMaster"],
+      "health": ["status", "timestamp"]
+    }
+  },
+  "reporting": {
+    "generateReport": true,
+    "reportFormat": "html",
+    "includeRequestDetails": true,
+    "includeResponseDetails": true,
+    "includeTestResults": true,
+    "includePerformanceMetrics": true
+  }
+}
