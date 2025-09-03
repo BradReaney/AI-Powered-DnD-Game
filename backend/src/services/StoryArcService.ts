@@ -98,6 +98,15 @@ export interface StoryProgressionData {
 
 export class StoryArcService {
   /**
+   * Validate ObjectId format
+   */
+  validateObjectId(id: string): void {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new Error('Invalid ObjectId');
+    }
+  }
+
+  /**
    * Create a new story arc for a campaign
    */
   async createStoryArc(data: StoryArcCreationData): Promise<IStoryArc> {
@@ -158,6 +167,22 @@ export class StoryArcService {
   }
 
   /**
+   * Get story arc by ID
+   */
+  async getStoryArcById(storyArcId: Types.ObjectId): Promise<IStoryArc | null> {
+    try {
+      const storyArc = await StoryArc.findById(storyArcId).populate(
+        'storyBeats.characters',
+        'name race class'
+      );
+      return storyArc;
+    } catch (error) {
+      logger.error(`Error getting story arc by ID: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
    * Add a new story beat to the story arc
    */
   async addStoryBeat(campaignId: Types.ObjectId, beatData: StoryBeatData): Promise<string> {
@@ -213,13 +238,13 @@ export class StoryArcService {
    * Add a character milestone
    */
   async addCharacterMilestone(
-    campaignId: Types.ObjectId,
+    storyArcId: Types.ObjectId,
     milestoneData: CharacterMilestoneData
-  ): Promise<void> {
+  ): Promise<IStoryArc> {
     try {
-      const storyArc = await StoryArc.findOne({ campaignId });
+      const storyArc = await StoryArc.findById(storyArcId);
       if (!storyArc) {
-        throw new Error(`Story arc not found for campaign ${campaignId}`);
+        throw new Error(`Story arc not found with ID ${storyArcId}`);
       }
 
       storyArc.addCharacterMilestone({
@@ -228,7 +253,8 @@ export class StoryArcService {
       });
 
       await storyArc.save();
-      logger.info(`Character milestone "${milestoneData.title}" added to campaign ${campaignId}`);
+      logger.info(`Character milestone "${milestoneData.title}" added to story arc ${storyArcId}`);
+      return storyArc;
     } catch (error) {
       logger.error(`Error adding character milestone: ${error}`);
       throw error;
@@ -263,23 +289,60 @@ export class StoryArcService {
   }
 
   /**
+   * Add quest progress to story arc
+   */
+  async addQuestProgress(
+    storyArcId: Types.ObjectId,
+    questProgressData: QuestProgressData
+  ): Promise<IStoryArc> {
+    try {
+      const storyArc = await StoryArc.findById(storyArcId);
+      if (!storyArc) {
+        throw new Error(`Story arc not found with ID ${storyArcId}`);
+      }
+
+      // Check if quest already exists
+      const existingQuest = storyArc.questProgress.find(
+        (q: IQuestProgress) => q.questId.toString() === questProgressData.questId.toString()
+      );
+
+      if (existingQuest) {
+        // Update existing quest
+        Object.assign(existingQuest, questProgressData);
+      } else {
+        // Add new quest progress
+        storyArc.questProgress.push(questProgressData);
+      }
+
+      await storyArc.save();
+      logger.info(
+        `Quest progress added/updated for quest ${questProgressData.questId} in story arc ${storyArcId}`
+      );
+      return storyArc;
+    } catch (error) {
+      logger.error(`Error adding quest progress: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
    * Update quest progress
    */
   async updateQuestProgress(
-    campaignId: Types.ObjectId,
+    storyArcId: Types.ObjectId,
     questId: Types.ObjectId,
     updates: Partial<IQuestProgress>
   ): Promise<boolean> {
     try {
-      const storyArc = await StoryArc.findOne({ campaignId });
+      const storyArc = await StoryArc.findById(storyArcId);
       if (!storyArc) {
-        throw new Error(`Story arc not found for campaign ${campaignId}`);
+        throw new Error(`Story arc not found with ID ${storyArcId}`);
       }
 
       const success = storyArc.updateQuestProgress(questId, updates);
       if (success) {
         await storyArc.save();
-        logger.info(`Quest progress updated for quest ${questId} in campaign ${campaignId}`);
+        logger.info(`Quest progress updated for quest ${questId} in story arc ${storyArcId}`);
       }
 
       return success;

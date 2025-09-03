@@ -43,7 +43,7 @@ export class StoryValidator {
     this.geminiClient = geminiClient;
     logger.debug('Gemini client assigned, initializing rules...');
     this.initializeRules();
-    logger.debug(`StoryValidator initialized with ${this.rules.length} rules`);
+    logger.debug(`StoryValidator initialized with ${this.rules?.length || 0} rules`);
   }
 
   /**
@@ -382,8 +382,8 @@ export class StoryValidator {
       const currentChange = worldChanges[i];
 
       // Check for overlapping affected elements
-      const overlappingElements = prevChange.affectedElements.filter(element =>
-        currentChange.affectedElements.includes(element)
+      const overlappingElements = (prevChange.affectedElements || []).filter(element =>
+        (currentChange.affectedElements || []).includes(element)
       );
 
       if (overlappingElements.length > 0) {
@@ -732,12 +732,12 @@ Respond with a JSON object containing:
     const recommendations: string[] = [];
 
     // Collect all suggestions and warnings
-    const allSuggestions = results.flatMap(r => r.suggestions);
-    const allWarnings = results.flatMap(r => r.warnings);
+    const allSuggestions = results.flatMap(r => r.suggestions || []);
+    const allWarnings = results.flatMap(r => r.warnings || []);
 
     // Add high-priority suggestions
     const highPrioritySuggestions = allSuggestions.filter(
-      suggestion => suggestion.includes('Consider') || suggestion.includes('Review')
+      suggestion => suggestion && (suggestion.includes('Consider') || suggestion.includes('Review'))
     );
     recommendations.push(...highPrioritySuggestions.slice(0, 3));
 

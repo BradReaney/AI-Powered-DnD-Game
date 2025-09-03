@@ -353,3 +353,120 @@ export interface CommandHelp {
   examples: string[];
   category: string;
 }
+
+// Story Arc Types
+export interface StoryBeat {
+  id: string;
+  title: string;
+  description: string;
+  type:
+    | "setup"
+    | "development"
+    | "climax"
+    | "resolution"
+    | "twist"
+    | "character"
+    | "world";
+  importance: "minor" | "moderate" | "major" | "critical";
+  chapter: number;
+  act: number;
+  characters: string[];
+  location: string;
+  npcs: string[];
+  consequences: string[];
+  completed: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  _id?: string;
+}
+
+export interface CharacterMilestone {
+  id: string;
+  characterId: string;
+  type: "level" | "relationship" | "story" | "achievement";
+  title: string;
+  description: string;
+  chapter: number;
+  act: number;
+  completed: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  _id?: string;
+}
+
+export interface WorldStateChange {
+  id: string;
+  title: string;
+  description: string;
+  type: "political" | "environmental" | "social" | "magical" | "technological";
+  impact: "minor" | "moderate" | "major" | "catastrophic";
+  affectedElements: string[];
+  storyBeatId?: string;
+  chapter: number;
+  act: number;
+  createdAt: Date;
+  updatedAt: Date;
+  _id?: string;
+}
+
+export interface QuestProgress {
+  id: string;
+  questName: string;
+  description: string;
+  type: "main" | "side" | "character" | "world";
+  status: "active" | "completed" | "failed" | "paused";
+  objectives: Array<{
+    description: string;
+    completed: boolean;
+  }>;
+  rewards: string[];
+  chapter: number;
+  act: number;
+  createdAt: Date;
+  updatedAt: Date;
+  _id?: string;
+}
+
+export interface StoryArc {
+  id: string;
+  campaignId: string;
+  theme: string;
+  tone: "light" | "serious" | "dark" | "humorous" | "epic";
+  pacing: "slow" | "normal" | "fast";
+  storyPhase: "setup" | "development" | "climax" | "resolution";
+  currentChapter: number;
+  currentAct: number;
+  totalChapters: number;
+  storyBeats: StoryBeat[];
+  characterMilestones: CharacterMilestone[];
+  worldStateChanges: WorldStateChange[];
+  questProgress: QuestProgress[];
+  completedStoryBeats: number;
+  createdAt: Date;
+  updatedAt: Date;
+  _id?: string;
+}
+
+export interface ValidationResult {
+  ruleId: string;
+  ruleName: string;
+  passed: boolean;
+  issues: string[];
+  warnings: string[];
+  suggestions: string[];
+  score: number;
+}
+
+export interface StoryValidationReport {
+  overallScore: number | null;
+  valid: boolean;
+  results: ValidationResult[];
+  summary: {
+    totalRules: number;
+    passedRules: number;
+    failedRules: number;
+    warnings: number;
+    suggestions: number;
+  };
+  recommendations: string[];
+}

@@ -289,16 +289,15 @@ router.put('/:storyArcId/quest-progress', async (req, res) => {
       });
     }
 
-    const success = await storyArcService.updateQuestProgress(
-      new Types.ObjectId(storyArcId),
-      new Types.ObjectId(questId),
-      updates
-    );
+    const updatedStoryArc = await storyArcService.addQuestProgress(new Types.ObjectId(storyArcId), {
+      questId: new Types.ObjectId(questId),
+      ...updates,
+    });
 
     res.json({
       success: true,
-      message: success ? 'Quest progress updated successfully' : 'Quest not found',
-      data: { success },
+      message: 'Quest progress added/updated successfully',
+      data: updatedStoryArc,
     });
   } catch (error) {
     logger.error(`Error updating quest progress: ${error}`);
@@ -393,8 +392,8 @@ router.post('/:storyArcId/validate', async (req, res) => {
       });
     }
 
-    logger.debug(`Validating story arc for campaign: ${storyArcId}`);
-    const storyArc = await storyArcService.getStoryArcByCampaignId(new Types.ObjectId(storyArcId));
+    logger.debug(`Validating story arc: ${storyArcId}`);
+    const storyArc = await storyArcService.getStoryArcById(new Types.ObjectId(storyArcId));
     if (!storyArc) {
       return res.status(404).json({
         success: false,
@@ -405,6 +404,14 @@ router.post('/:storyArcId/validate', async (req, res) => {
     logger.debug(
       `Story arc found, starting validation. StoryValidator instance: ${storyValidator ? 'exists' : 'undefined'}`
     );
+
+    if (!storyValidator) {
+      return res.status(500).json({
+        success: false,
+        message: 'Story validator not initialized',
+      });
+    }
+
     const validationResult = await storyValidator.validateStoryArc(storyArc);
 
     res.json({
