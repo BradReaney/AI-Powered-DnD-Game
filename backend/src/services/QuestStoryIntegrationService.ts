@@ -402,19 +402,10 @@ export class QuestStoryIntegrationService {
     characterIds: string[]
   ): Promise<void> {
     try {
-      logger.error('DEBUG: processQuestCompletionForStory called with:', {
-        campaignId,
-        questId,
-        questName,
-        characterIds,
-      });
-
       // Find the quest-story link
       const questStoryLink = await this.findQuestStoryLink(campaignId, questId);
-      logger.error('DEBUG: findQuestStoryLink returned:', questStoryLink);
 
       if (!questStoryLink) {
-        logger.error('DEBUG: No story link found, returning early');
         logger.warn('No story link found for quest completion', { campaignId, questId });
         return;
       }
@@ -453,15 +444,9 @@ export class QuestStoryIntegrationService {
       }
 
       // Update story beat status
-      logger.error('DEBUG: About to call updateStoryBeat with:', {
-        campaignId,
-        storyBeatId: questStoryLink.storyBeatId,
-        status: questStatus,
-      });
       await this.contextManager.updateStoryBeat(campaignId, questStoryLink.storyBeatId, {
         status: questStatus,
       });
-      logger.error('DEBUG: updateStoryBeat called successfully');
 
       logger.info('Quest completion processed for story progression', {
         campaignId,
