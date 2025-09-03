@@ -1,0 +1,1135 @@
+{
+  "info": {
+    "name": "AI-Powered D&D Game - Complete API Collection",
+    "description": "Comprehensive Postman collection for testing all endpoints in the AI-Powered D&D Game application",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5001",
+      "type": "string"
+    },
+    {
+      "key": "campaignId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "characterId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sessionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "test-user-123",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health & System",
+      "item": [
+        {
+          "name": "Health Check - Light",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is less than 1000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});",
+                  "",
+                  "pm.test('Response has status field', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/light",
+              "host": ["{{baseUrl}}"],
+              "path": ["health", "light"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Health Check - Full",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cache Performance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cache/performance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cache", "performance"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Clear Cache",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cache/clear",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cache", "clear"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Warm Cache",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cache/warm",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cache", "warm"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Campaigns",
+      "item": [
+        {
+          "name": "Get All Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/campaigns",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "campaigns"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Campaigns by User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/campaigns/user/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "campaigns", "user", "{{userId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Campaign",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('campaignId', response._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Campaign\",\n  \"theme\": \"Fantasy Adventure\",\n  \"description\": \"A test campaign for API testing\",\n  \"createdBy\": \"{{userId}}\",\n  \"settings\": {\n    \"maxPlayers\": 6,\n    \"difficulty\": \"medium\",\n    \"allowPvP\": false\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/campaigns",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "campaigns"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Campaign Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/campaigns/{{campaignId}}/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "campaigns", "{{campaignId}}", "stats"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Campaign Characters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/campaigns/{{campaignId}}/characters",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "campaigns", "{{campaignId}}", "characters"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Characters",
+      "item": [
+        {
+          "name": "Get All Characters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/characters",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "characters"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Characters by Campaign",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/characters?campaignId={{campaignId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "characters"],
+              "query": [
+                {
+                  "key": "campaignId",
+                  "value": "{{campaignId}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Characters by Campaign (Path)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/characters/campaign/{{campaignId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "characters", "campaign", "{{campaignId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Character",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('characterId', response._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Character\",\n  \"race\": \"Human\",\n  \"class\": \"Fighter\",\n  \"level\": 1,\n  \"campaignId\": \"{{campaignId}}\",\n  \"playerId\": \"{{userId}}\",\n  \"stats\": {\n    \"strength\": 15,\n    \"dexterity\": 14,\n    \"constitution\": 13,\n    \"intelligence\": 12,\n    \"wisdom\": 11,\n    \"charisma\": 10\n  },\n  \"hitPoints\": 12,\n  \"armorClass\": 16,\n  \"speed\": 30\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/characters",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "characters"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Character by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/characters/{{characterId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "characters", "{{characterId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Character",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Test Character\",\n  \"level\": 2,\n  \"hitPoints\": 20,\n  \"experience\": 500\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/characters/{{characterId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "characters", "{{characterId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Character",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/characters/{{characterId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "characters", "{{characterId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Sessions",
+      "item": [
+        {
+          "name": "Get Sessions Approaching Inactivity",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions/approaching-inactivity?threshold=45",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sessions", "approaching-inactivity"],
+              "query": [
+                {
+                  "key": "threshold",
+                  "value": "45"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Sessions by Campaign",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions/campaign/{{campaignId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sessions", "campaign", "{{campaignId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Session Creation Form",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions/new",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sessions", "new"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('sessionId', response._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"campaignId\": \"{{campaignId}}\",\n  \"title\": \"Test Session\",\n  \"description\": \"A test session for API testing\",\n  \"participants\": [\"{{characterId}}\"],\n  \"gameMaster\": \"{{userId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sessions"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Session by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions/{{sessionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sessions", "{{sessionId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Active Sessions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions/active/list",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sessions", "active", "list"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Active Sessions Continuity",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions/active/continuity",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sessions", "active", "continuity"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Session Activity",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lastActivity\": \"{{$timestamp}}\",\n  \"activityType\": \"player_action\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions/{{sessionId}}/activity",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sessions", "{{sessionId}}", "activity"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Session Messages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions/{{sessionId}}/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sessions", "{{sessionId}}", "messages"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Send Message to Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Hello, this is a test message!\",\n  \"senderId\": \"{{userId}}\",\n  \"senderType\": \"player\",\n  \"messageType\": \"chat\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions/{{sessionId}}/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sessions", "{{sessionId}}", "messages"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get AI Response",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"The party enters a dark cave. What do they see?\",\n  \"context\": {\n    \"campaignId\": \"{{campaignId}}\",\n    \"sessionId\": \"{{sessionId}}\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions/{{sessionId}}/ai-response",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sessions", "{{sessionId}}", "ai-response"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Session Game State",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions/{{sessionId}}/game-state",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sessions", "{{sessionId}}", "game-state"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "End Session",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"endReason\": \"session_complete\",\n  \"summary\": \"Test session completed successfully\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions/{{sessionId}}/end",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sessions", "{{sessionId}}", "end"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Session",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions/{{sessionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sessions", "{{sessionId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Gameplay",
+      "item": [
+        {
+          "name": "Perform Skill Check",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"characterId\": \"{{characterId}}\",\n  \"skill\": \"perception\",\n  \"difficultyClass\": 15,\n  \"modifiers\": {\n    \"advantage\": false,\n    \"disadvantage\": false\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/gameplay/skill-check",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "gameplay", "skill-check"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Roll Dice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dice\": \"1d20\",\n  \"modifier\": 3,\n  \"reason\": \"Attack roll\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/gameplay/dice-roll",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "gameplay", "dice-roll"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get AI Response for Gameplay",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"The party encounters a dragon. How do they react?\",\n  \"context\": {\n    \"campaignId\": \"{{campaignId}}\",\n    \"sessionId\": \"{{sessionId}}\",\n    \"characterId\": \"{{characterId}}\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/gameplay/ai-response",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "gameplay", "ai-response"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Campaign Context",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/gameplay/context/{{campaignId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "gameplay", "context", "{{campaignId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Prompt Templates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/gameplay/prompt-templates",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "gameplay", "prompt-templates"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Combat",
+      "item": [
+        {
+          "name": "Create Combat Encounter",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"campaignId\": \"{{campaignId}}\",\n  \"sessionId\": \"{{sessionId}}\",\n  \"name\": \"Test Combat Encounter\",\n  \"description\": \"A test combat encounter\",\n  \"difficulty\": \"medium\",\n  \"environment\": \"cave\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/combat/encounters",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "combat", "encounters"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Combat Encounter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/combat/encounters/:encounterId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "combat", "encounters", ":encounterId"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Start Combat Encounter",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/combat/encounters/:encounterId/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "combat", "encounters", ":encounterId", "start"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "End Combat Encounter",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"result\": \"victory\",\n  \"summary\": \"The party defeated the enemies\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/combat/encounters/:encounterId/end",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "combat", "encounters", ":encounterId", "end"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Combat Participant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"characterId\": \"{{characterId}}\",\n  \"initiative\": 15,\n  \"isPlayer\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/combat/encounters/:encounterId/participants",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "combat",
+                "encounters",
+                ":encounterId",
+                "participants"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Locations",
+      "item": [
+        {
+          "name": "Get All Locations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/locations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "locations"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Locations by Campaign",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/locations/campaign/{{campaignId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "locations", "campaign", "{{campaignId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Location",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Location\",\n  \"description\": \"A mysterious test location\",\n  \"type\": \"dungeon\",\n  \"campaignId\": \"{{campaignId}}\",\n  \"coordinates\": {\n    \"x\": 100,\n    \"y\": 200\n  },\n  \"features\": [\"dark\", \"damp\", \"mysterious\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/locations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "locations"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Quests",
+      "item": [
+        {
+          "name": "Get All Quests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/quests",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "quests"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Quests by Campaign",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/quests/campaign/{{campaignId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "quests", "campaign", "{{campaignId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Quest",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Test Quest\",\n  \"description\": \"A test quest for API testing\",\n  \"campaignId\": \"{{campaignId}}\",\n  \"type\": \"main\",\n  \"difficulty\": \"medium\",\n  \"rewards\": {\n    \"experience\": 500,\n    \"gold\": 100\n  },\n  \"objectives\": [\n    {\n      \"description\": \"Find the ancient artifact\",\n      \"completed\": false\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/quests",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "quests"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Character Development",
+      "item": [
+        {
+          "name": "Get Character Development",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/character-development/{{characterId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "character-development", "{{characterId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Character Skills",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"skills\": {\n    \"perception\": 3,\n    \"stealth\": 2,\n    \"athletics\": 4\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/characters/{{characterId}}/skills",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "characters", "{{characterId}}", "skills"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Character Spells",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"spells\": [\n    {\n      \"name\": \"Magic Missile\",\n      \"level\": 1,\n      \"description\": \"A bolt of magical energy\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/characters/{{characterId}}/spells",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "characters", "{{characterId}}", "spells"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Character Equipment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"equipment\": [\n    {\n      \"name\": \"Longsword\",\n      \"type\": \"weapon\",\n      \"damage\": \"1d8+3\",\n      \"equipped\": true\n    },\n    {\n      \"name\": \"Leather Armor\",\n      \"type\": \"armor\",\n      \"armorClass\": 11,\n      \"equipped\": true\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/characters/{{characterId}}/equipment",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "characters", "{{characterId}}", "equipment"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Campaign Themes",
+      "item": [
+        {
+          "name": "Get All Campaign Themes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/campaign-themes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "campaign-themes"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Campaign Theme by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/campaign-themes/:themeId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "campaign-themes", ":themeId"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "AI Analytics",
+      "item": [
+        {
+          "name": "Get AI Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ai-analytics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ai-analytics"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get AI Analytics by Campaign",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ai-analytics/campaign/{{campaignId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ai-analytics", "campaign", "{{campaignId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get AI Analytics by Session",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ai-analytics/session/{{sessionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ai-analytics", "session", "{{sessionId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Story Arcs",
+      "item": [
+        {
+          "name": "Get All Story Arcs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/story-arcs",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "story-arcs"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Story Arcs by Campaign",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/story-arcs/campaign/{{campaignId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "story-arcs", "campaign", "{{campaignId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Story Arc",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Test Story Arc\",\n  \"description\": \"A test story arc for API testing\",\n  \"campaignId\": \"{{campaignId}}\",\n  \"type\": \"main\",\n  \"status\": \"active\",\n  \"chapters\": [\n    {\n      \"title\": \"Chapter 1\",\n      \"description\": \"The beginning\",\n      \"completed\": false\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/story-arcs",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "story-arcs"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
