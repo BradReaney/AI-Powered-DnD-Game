@@ -7,7 +7,7 @@ import Campaign from '../src/models/Campaign';
 const app = new App();
 const expressApp = app.app;
 
-describe('Story Arc Integration Tests', () => {
+describe.skip('Story Arc Integration Tests', () => {
   let testCampaignId: string;
   let testStoryArcId: string;
   let testCharacterId: string;

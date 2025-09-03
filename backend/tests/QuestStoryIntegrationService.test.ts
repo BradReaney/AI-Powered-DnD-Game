@@ -15,27 +15,59 @@ const mockContextManager = {
 
 // Mock the QuestService
 const mockQuestService = {
-  generateQuest: jest.fn().mockResolvedValue({
-    id: 'mock-quest-id',
-    name: 'Mock Story Quest',
-    description: 'A mock quest for testing',
-    objectives: ['Complete the mock objective'],
-    rewards: {
-      experience: 1000,
-      gold: 100,
-      items: [],
-      reputation: { faction: 'test', amount: 50 },
-    },
-    difficulty: 'medium',
-    estimatedDuration: '1-2 hours',
-    storyIntegration: {
-      storyBeatId: 'test-story-beat',
-      storyType: 'setup',
-      storyImpact: 'moderate',
-      characterDevelopmentOpportunities: ['Combat skills'],
-      worldStateChanges: ['Quest completed'],
-    },
-  }),
+  generateQuest: jest
+    .fn()
+    .mockImplementation(
+      (campaignId, questType, difficulty, partyLevel, partySize, currentLocation, worldState) => {
+        // Try to determine story type from worldState or use a default
+        let storyType = 'setup';
+        let questName = 'The Whispers of the Ancient Evil';
+
+        // Check if worldState contains story beat information
+        if (worldState && worldState.storyBeat) {
+          const storyBeatTitle = worldState.storyBeat.toLowerCase();
+          if (storyBeatTitle.includes('development') || storyBeatTitle.includes('growth')) {
+            storyType = 'development';
+            questName = 'The Trials of Growth';
+          } else if (
+            storyBeatTitle.includes('climax') ||
+            storyBeatTitle.includes('confrontation')
+          ) {
+            storyType = 'climax';
+            questName = 'The Final Confrontation';
+          } else if (
+            storyBeatTitle.includes('resolution') ||
+            storyBeatTitle.includes('aftermath')
+          ) {
+            storyType = 'resolution';
+            questName = 'The Aftermath';
+          }
+        }
+
+        return Promise.resolve({
+          id: 'mock-quest-id',
+          name: questName,
+          description: 'A mock quest for testing',
+          objectives: ['Complete the mock objective'],
+          rewards: {
+            experience: 1000,
+            gold: 100,
+            items: [],
+            reputation: { faction: 'test', amount: 50 },
+          },
+          difficulty: 'medium',
+          estimatedDuration: '1-2 hours',
+          storyIntegration: {
+            storyBeatId: 'test-story-beat',
+            storyType: storyType,
+            storyImpact:
+              storyType === 'climax' ? 'critical' : storyType === 'setup' ? 'major' : 'moderate',
+            characterDevelopmentOpportunities: ['Combat skills'],
+            worldStateChanges: ['Quest completed'],
+          },
+        });
+      }
+    ),
   updateQuest: jest.fn(),
 };
 
