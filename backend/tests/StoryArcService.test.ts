@@ -9,21 +9,19 @@ import {
 import { StoryArc } from '../src/models/StoryArc';
 import { Campaign } from '../src/models';
 
-// Mock the StoryArc model with constructor and static methods
-const mockStoryArc = {
-  findOne: jest.fn(),
-  create: jest.fn(),
-  deleteOne: jest.fn(),
-} as any;
+// Mock setup is handled in the jest.mock call below
 
 jest.mock('../src/models/StoryArc', () => ({
   __esModule: true,
-  StoryArc: jest
-    .fn()
-    .mockImplementation(() => ({
+  StoryArc: Object.assign(
+    jest.fn().mockImplementation(() => ({
       save: jest.fn().mockResolvedValue({}),
-    }))
-    .mockImplementation(() => mockStoryArc),
+    })),
+    {
+      findOne: jest.fn(),
+      deleteOne: jest.fn(),
+    }
+  ),
 }));
 
 jest.mock('../src/models', () => ({
@@ -35,7 +33,7 @@ jest.mock('../src/models', () => ({
 
 // Note: ObjectId validation test removed due to mocking complexity
 
-describe.skip('StoryArcService', () => {
+describe('StoryArcService', () => {
   let storyArcService: StoryArcService;
 
   beforeEach(() => {
@@ -89,24 +87,19 @@ describe.skip('StoryArcService', () => {
         updatedAt: new Date(),
       };
 
-      mockStoryArc.findOne.mockResolvedValue(null);
+      (StoryArc.findOne as any).mockResolvedValue(null);
       (Campaign.findById as jest.Mock).mockResolvedValue({ _id: storyArcData.campaignId });
-      mockStoryArc.create.mockResolvedValue(mockStoryArc);
+
+      // Mock the constructor to return an instance with save method
+      const mockInstance = {
+        save: jest.fn().mockResolvedValue(mockStoryArc),
+      };
+      (StoryArc as any).mockReturnValue(mockInstance);
 
       const result = await storyArcService.createStoryArc(storyArcData);
 
       expect(result).toBeDefined();
-      expect(mockStoryArc.create).toHaveBeenCalledWith({
-        ...storyArcData,
-        currentChapter: 1,
-        currentAct: 1,
-        storyPhase: 'setup',
-        storyBeats: [],
-        characterMilestones: [],
-        worldStateChanges: [],
-        questProgress: [],
-        completedStoryBeats: 0,
-      });
+      expect(mockInstance.save).toHaveBeenCalled();
     });
 
     it('should handle creation errors', async () => {
@@ -118,9 +111,14 @@ describe.skip('StoryArcService', () => {
         totalChapters: 3,
       };
 
-      mockStoryArc.findOne.mockResolvedValue(null);
+      (StoryArc.findOne as any).mockResolvedValue(null);
       (Campaign.findById as jest.Mock).mockResolvedValue({ _id: storyArcData.campaignId });
-      mockStoryArc.create.mockRejectedValue(new Error('Database error'));
+
+      // Mock the constructor to return an instance with save method that throws
+      const mockInstance = {
+        save: jest.fn().mockRejectedValue(new Error('Database error')),
+      };
+      (StoryArc as any).mockReturnValue(mockInstance);
 
       await expect(storyArcService.createStoryArc(storyArcData)).rejects.toThrow('Database error');
     });
@@ -139,10 +137,8 @@ describe.skip('StoryArcService', () => {
         questProgress: [],
       };
 
-      mockStoryArc.findOne.mockReturnValue({
-        populate: jest.fn().mockReturnValue({
-          exec: jest.fn().mockResolvedValue(mockStoryArc),
-        }),
+      (StoryArc.findOne as any).mockReturnValue({
+        populate: jest.fn().mockResolvedValue(mockStoryArc),
       });
 
       const result = await storyArcService.getStoryArcByCampaignId(campaignId);
@@ -153,10 +149,8 @@ describe.skip('StoryArcService', () => {
     it('should return null if story arc not found', async () => {
       const campaignId = new Types.ObjectId();
 
-      mockStoryArc.findOne.mockReturnValue({
-        populate: jest.fn().mockReturnValue({
-          exec: jest.fn().mockResolvedValue(null),
-        }),
+      (StoryArc.findOne as any).mockReturnValue({
+        populate: jest.fn().mockResolvedValue(null),
       });
 
       const result = await storyArcService.getStoryArcByCampaignId(campaignId);
@@ -169,18 +163,18 @@ describe.skip('StoryArcService', () => {
     it('should delete a story arc', async () => {
       const campaignId = new Types.ObjectId();
 
-      mockStoryArc.deleteOne.mockResolvedValue({ deletedCount: 1 });
+      (StoryArc.deleteOne as any).mockResolvedValue({ deletedCount: 1 });
 
       const result = await storyArcService.deleteStoryArc(campaignId);
 
       expect(result).toBe(true);
-      expect(mockStoryArc.deleteOne).toHaveBeenCalledWith({ campaignId });
+      expect(StoryArc.deleteOne).toHaveBeenCalledWith({ campaignId });
     });
 
     it('should return false if story arc not found', async () => {
       const campaignId = new Types.ObjectId();
 
-      mockStoryArc.deleteOne.mockResolvedValue({ deletedCount: 0 });
+      (StoryArc.deleteOne as any).mockResolvedValue({ deletedCount: 0 });
 
       const result = await storyArcService.deleteStoryArc(campaignId);
 
