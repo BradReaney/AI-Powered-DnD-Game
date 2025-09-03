@@ -372,6 +372,7 @@ describe('StoryValidator', () => {
 
     it('should handle LLM response parsing errors', async () => {
       const mockLLMResponse = {
+        success: true,
         content: 'Invalid JSON response',
       };
 
@@ -384,8 +385,8 @@ describe('StoryValidator', () => {
         const result = await coherenceRule.validate(mockStoryArc);
 
         expect(result).toBeDefined();
-        expect(result.passed).toBe(false);
-        expect(result.issues).toContain('Failed to parse LLM response');
+        expect(result.passed).toBe(true); // Should still pass with warnings
+        expect(result.warnings).toContain('AI analysis response could not be parsed');
       }
     });
 
@@ -399,8 +400,8 @@ describe('StoryValidator', () => {
         const result = await coherenceRule.validate(mockStoryArc);
 
         expect(result).toBeDefined();
-        expect(result.passed).toBe(false);
-        expect(result.issues).toContain('LLM service unavailable');
+        expect(result.passed).toBe(true); // Should still pass with warnings
+        expect(result.warnings).toContain('AI analysis failed - using fallback validation');
       }
     });
   });

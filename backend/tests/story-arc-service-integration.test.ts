@@ -15,7 +15,7 @@ describe('Story Arc Integration Tests', () => {
 
   beforeAll(async () => {
     // Create a test campaign
-    const campaign = new Campaign({
+    const campaign = await Campaign.create({
       name: 'Integration Test Campaign',
       theme: 'fantasy',
       description: 'A test campaign for integration testing',
@@ -83,7 +83,6 @@ describe('Story Arc Integration Tests', () => {
       },
     });
 
-    await campaign.save();
     testCampaignId = campaign._id.toString();
 
     // Create a test character
