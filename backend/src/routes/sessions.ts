@@ -262,6 +262,37 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Get active sessions for a campaign - MUST COME BEFORE /:sessionId route
+router.get('/active', async (req, res) => {
+  try {
+    if (!sessionService) {
+      return res.status(500).json({ error: 'Session service not initialized' });
+    }
+
+    const { campaignId } = req.query;
+
+    if (!campaignId || typeof campaignId !== 'string') {
+      return res.status(400).json({
+        error: 'Campaign ID is required',
+        message: 'Please provide a campaign ID to get active sessions',
+      });
+    }
+
+    const sessions = await sessionService.searchSessions({ campaignId });
+    const activeSessions = sessions.filter((s: any) => s.status === 'active');
+
+    res.json({
+      message: 'Active sessions retrieved successfully',
+      campaignId,
+      sessions: activeSessions,
+      count: activeSessions.length,
+    });
+  } catch (error) {
+    logger.error('Error getting active sessions:', error);
+    res.status(500).json({ error: 'Failed to get active sessions' });
+  }
+});
+
 // Get session by ID
 router.get('/:sessionId', async (req, res) => {
   try {
@@ -271,9 +302,8 @@ router.get('/:sessionId', async (req, res) => {
 
     const { sessionId } = req.params;
 
-    // Use searchSessions to find the session
-    const sessions = await sessionService.searchSessions({ campaignId: 'temp' });
-    const session = sessions.find((s: any) => s._id === sessionId) || null;
+    // Get session directly by ID using Session model
+    const session = await Session.findOne({ _id: sessionId });
 
     if (!session) {
       return res.status(404).json({
@@ -335,37 +365,6 @@ router.delete('/:sessionId', async (req, res) => {
 // ============================================================================
 // SESSION ACTIVITY & CONTINUITY
 // ============================================================================
-
-// Get active sessions for a campaign
-router.get('/active', async (req, res) => {
-  try {
-    if (!sessionService) {
-      return res.status(500).json({ error: 'Session service not initialized' });
-    }
-
-    const { campaignId } = req.query;
-
-    if (!campaignId || typeof campaignId !== 'string') {
-      return res.status(400).json({
-        error: 'Campaign ID is required',
-        message: 'Please provide a campaign ID to get active sessions',
-      });
-    }
-
-    const sessions = await sessionService.searchSessions({ campaignId });
-    const activeSessions = sessions.filter((s: any) => s.status === 'active');
-
-    res.json({
-      message: 'Active sessions retrieved successfully',
-      campaignId,
-      sessions: activeSessions,
-      count: activeSessions.length,
-    });
-  } catch (error) {
-    logger.error('Error getting active sessions:', error);
-    res.status(500).json({ error: 'Failed to get active sessions' });
-  }
-});
 
 // Get session continuity data
 router.get('/active/continuity', async (req, res) => {
@@ -449,6 +448,42 @@ router.post('/close-inactive', async (req, res) => {
   } catch (error) {
     logger.error('Error closing inactive sessions:', error);
     res.status(500).json({ error: 'Failed to close inactive sessions' });
+  }
+});
+
+// Get messages for a session
+router.get('/:sessionId/messages', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { limit = 50, offset = 0 } = req.query;
+
+    // Validate sessionId
+    if (!sessionId) {
+      return res.status(400).json({
+        error: 'Session ID is required',
+        message: 'Please provide a valid session ID',
+      });
+    }
+
+    // Import Message model
+    const { Message } = await import('../models');
+
+    // Get messages for the session
+    const messages = await Message.getSessionMessages(
+      sessionId,
+      parseInt(limit as string),
+      parseInt(offset as string)
+    );
+
+    res.json({
+      message: 'Session messages retrieved successfully',
+      sessionId,
+      messages,
+      count: messages.length,
+    });
+  } catch (error) {
+    logger.error('Error getting session messages:', error);
+    res.status(500).json({ error: 'Failed to get session messages' });
   }
 });
 

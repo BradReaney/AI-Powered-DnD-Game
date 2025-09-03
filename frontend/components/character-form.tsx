@@ -152,8 +152,8 @@ export function CharacterForm({
     ideals: character?.personality?.ideals || [],
     bonds: character?.personality?.bonds || [],
     flaws: character?.personality?.flaws || [],
-    equipment: character?.equipment || [],
-    spells: character?.spells || [], // Add missing spells field
+    equipment: Array.isArray(character?.equipment) ? character?.equipment : [],
+    spells: Array.isArray(character?.spells) ? character?.spells : [], // Add missing spells field
     backstory: character?.backstory || "",
   });
 
@@ -628,7 +628,11 @@ export function CharacterForm({
                 <Label htmlFor="equipment">Equipment (one per line)</Label>
                 <Textarea
                   id="equipment"
-                  value={(formData.equipment || []).join("\n")}
+                  value={
+                    Array.isArray(formData.equipment)
+                      ? formData.equipment.join("\n")
+                      : ""
+                  }
                   onChange={(e) =>
                     setFormData({
                       ...formData,
@@ -646,7 +650,11 @@ export function CharacterForm({
                 <Label htmlFor="spells">Spells (one per line)</Label>
                 <Textarea
                   id="spells"
-                  value={(formData.spells || []).join("\n")}
+                  value={
+                    Array.isArray(formData.spells)
+                      ? formData.spells.join("\n")
+                      : ""
+                  }
                   onChange={(e) =>
                     setFormData({
                       ...formData,
