@@ -294,6 +294,7 @@ export function CharacterForm({
                   <Label htmlFor="name">Character Name</Label>
                   <Input
                     id="name"
+                    data-testid="character-name"
                     value={formData.name}
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
@@ -328,7 +329,7 @@ export function CharacterForm({
                       setFormData({ ...formData, race: value })
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger data-testid="character-race">
                       <SelectValue placeholder="Select race..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -349,7 +350,7 @@ export function CharacterForm({
                       setFormData({ ...formData, class: value })
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger data-testid="character-class">
                       <SelectValue placeholder="Select class..." />
                     </SelectTrigger>
                     <SelectContent>

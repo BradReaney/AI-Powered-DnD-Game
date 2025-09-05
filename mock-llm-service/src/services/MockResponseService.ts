@@ -88,6 +88,8 @@ export class MockResponseService {
         return this.generateCharacterExtractionResponse();
       case "location_extraction":
         return this.generateLocationExtractionResponse();
+      case "story_arc_generation":
+        return this.generateStoryArcResponse();
       case "connection_test":
         return "OK";
       default:
@@ -513,6 +515,258 @@ export class MockResponseService {
   }
 
   /**
+   * Generate story arc response
+   */
+  private generateStoryArcResponse(): string {
+    const themes = ["fantasy", "sci-fi", "horror", "mystery", "western"];
+    const tones = ["light", "serious", "dark", "humorous", "mysterious"];
+    const pacings = ["slow", "normal", "fast"];
+
+    const theme =
+      themes[Math.floor(Math.random() * themes.length)] || "fantasy";
+    const tone = tones[Math.floor(Math.random() * tones.length)] || "serious";
+    const pacing =
+      pacings[Math.floor(Math.random() * pacings.length)] || "normal";
+    const totalChapters = Math.floor(Math.random() * 6) + 5; // 5-10 chapters
+
+    // Generate story beats based on theme
+    const storyBeats = this.generateStoryBeats(theme, totalChapters);
+
+    return `{
+  "tone": "${tone}",
+  "pacing": "${pacing}",
+  "totalChapters": ${totalChapters},
+  "storyBeats": ${JSON.stringify(storyBeats, null, 2)}
+}`;
+  }
+
+  /**
+   * Generate story beats for a given theme and chapter count
+   */
+  private generateStoryBeats(theme: string, totalChapters: number): any[] {
+    const beats = [];
+
+    // Generate beats for each chapter
+    for (let i = 1; i <= totalChapters; i++) {
+      const beatType =
+        i === 1
+          ? "setup"
+          : i === totalChapters
+            ? "resolution"
+            : i === Math.ceil(totalChapters * 0.7)
+              ? "climax"
+              : "development";
+
+      const importance =
+        beatType === "setup" ||
+        beatType === "climax" ||
+        beatType === "resolution"
+          ? "major"
+          : "moderate";
+
+      const act =
+        i <= Math.ceil(totalChapters * 0.3)
+          ? 1
+          : i <= Math.ceil(totalChapters * 0.7)
+            ? 2
+            : 3;
+
+      const beat = {
+        title: this.generateBeatTitle(theme, beatType),
+        description: this.generateBeatDescription(theme, beatType),
+        type: beatType,
+        importance: importance,
+        chapter: i,
+        act: act,
+        location: this.generateLocation(theme),
+        npcs: this.generateNPCs(theme, beatType),
+        consequences: this.generateConsequences(beatType),
+      };
+
+      beats.push(beat);
+    }
+
+    return beats;
+  }
+
+  private generateBeatTitle(theme: string, beatType: string): string {
+    const titles = {
+      fantasy: {
+        setup: [
+          "The Call to Adventure",
+          "A Mysterious Beginning",
+          "The Ancient Prophecy",
+        ],
+        development: [
+          "The First Challenge",
+          "Secrets Revealed",
+          "The Dark Path",
+        ],
+        climax: ["The Final Battle", "Confronting Evil", "The Ultimate Test"],
+        resolution: [
+          "Victory and Peace",
+          "A New Beginning",
+          "The Hero's Return",
+        ],
+      },
+      "sci-fi": {
+        setup: ["First Contact", "The Discovery", "Mission Briefing"],
+        development: ["Into the Unknown", "Alien Encounters", "The Conspiracy"],
+        climax: [
+          "The Final Showdown",
+          "Save the Galaxy",
+          "The Ultimate Weapon",
+        ],
+        resolution: ["New Horizons", "Peace Among Stars", "The Future Awaits"],
+      },
+      horror: {
+        setup: [
+          "The Haunting Begins",
+          "Strange Occurrences",
+          "The Dark Secret",
+        ],
+        development: [
+          "Deeper into Darkness",
+          "The Truth Emerges",
+          "Escape Attempts",
+        ],
+        climax: [
+          "The Final Confrontation",
+          "Face Your Fears",
+          "The Last Stand",
+        ],
+        resolution: ["Survival", "The Aftermath", "New Nightmares"],
+      },
+    };
+
+    const themeTitles = titles[theme as keyof typeof titles] || titles.fantasy;
+    const typeTitles = themeTitles[beatType as keyof typeof themeTitles] || [
+      "The Adventure Continues",
+    ];
+    return (
+      typeTitles[Math.floor(Math.random() * typeTitles.length)] ||
+      "The Adventure Continues"
+    );
+  }
+
+  private generateBeatDescription(theme: string, beatType: string): string {
+    const descriptions = {
+      setup: `The adventure begins as the party ${this.getThemeAction(theme)} and learns about the main quest.`,
+      development: `The party faces new challenges and ${this.getThemeAction(theme)} while uncovering important clues.`,
+      climax: `The ultimate confrontation approaches as the party must ${this.getThemeAction(theme)} to save the day.`,
+      resolution: `With the main conflict resolved, the party ${this.getThemeAction(theme)} and prepares for what comes next.`,
+    };
+
+    return (
+      descriptions[beatType as keyof typeof descriptions] ||
+      "The story continues with new developments."
+    );
+  }
+
+  private getThemeAction(theme: string): string {
+    const actions = {
+      fantasy: "explores ancient ruins and encounters magical creatures",
+      "sci-fi": "investigates alien technology and navigates space stations",
+      horror: "investigates supernatural phenomena and confronts dark forces",
+      mystery: "solves puzzles and uncovers hidden secrets",
+      western: "rides through frontier towns and faces outlaws",
+    };
+
+    return (
+      actions[theme as keyof typeof actions] || "embarks on an epic journey"
+    );
+  }
+
+  private generateLocation(theme: string): string {
+    const locations = {
+      fantasy: [
+        "Ancient Forest",
+        "Mystical Castle",
+        "Dragon's Lair",
+        "Enchanted Village",
+      ],
+      "sci-fi": [
+        "Space Station",
+        "Alien Planet",
+        "Research Facility",
+        "Starship Bridge",
+      ],
+      horror: [
+        "Haunted Mansion",
+        "Dark Forest",
+        "Abandoned Asylum",
+        "Cursed Cemetery",
+      ],
+      mystery: [
+        "Crime Scene",
+        "Secret Laboratory",
+        "Private Estate",
+        "Underground Tunnels",
+      ],
+      western: ["Frontier Town", "Desert Oasis", "Mountain Pass", "Saloon"],
+    };
+
+    const themeLocations =
+      locations[theme as keyof typeof locations] || locations.fantasy;
+    return (
+      themeLocations[Math.floor(Math.random() * themeLocations.length)] ||
+      "Mysterious Location"
+    );
+  }
+
+  private generateNPCs(theme: string, beatType: string): string[] {
+    const npcs = {
+      fantasy: [
+        "Wise Wizard",
+        "Brave Knight",
+        "Mysterious Elf",
+        "Ancient Dragon",
+      ],
+      "sci-fi": [
+        "Alien Ambassador",
+        "Space Captain",
+        "Robot Assistant",
+        "Scientist",
+      ],
+      horror: ["Ghost", "Cultist", "Survivor", "Demon"],
+      mystery: ["Detective", "Witness", "Suspect", "Informant"],
+      western: ["Sheriff", "Outlaw", "Saloon Keeper", "Native Guide"],
+    };
+
+    const themeNPCs = npcs[theme as keyof typeof npcs] || npcs.fantasy;
+    const count = beatType === "setup" ? 2 : beatType === "climax" ? 3 : 1;
+    const selected = [];
+
+    for (let i = 0; i < count; i++) {
+      selected.push(
+        themeNPCs[Math.floor(Math.random() * themeNPCs.length)] ||
+          "Mysterious Figure",
+      );
+    }
+
+    return selected;
+  }
+
+  private generateConsequences(beatType: string): string[] {
+    const consequences = {
+      setup: ["Quest acceptance", "Party formation", "Initial goal setting"],
+      development: [
+        "Skill development",
+        "Resource gathering",
+        "Plot advancement",
+      ],
+      climax: ["Major victory", "Key revelation", "Turning point"],
+      resolution: ["Quest completion", "Character growth", "New opportunities"],
+    };
+
+    return (
+      consequences[beatType as keyof typeof consequences] || [
+        "Story progression",
+      ]
+    );
+  }
+
+  /**
    * Generate general response
    */
   private generateGeneralResponse(
@@ -573,6 +827,7 @@ export class MockResponseService {
       story_progression: "flash",
       story_beat_generation: "flash",
       story_consistency_check: "flash",
+      story_arc_generation: "pro",
       connection_test: "flash-lite",
     };
 
