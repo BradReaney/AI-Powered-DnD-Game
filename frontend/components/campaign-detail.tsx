@@ -29,7 +29,6 @@ import {
   ArrowLeft,
   Edit,
   Settings,
-  Play,
   Users,
   MapPin,
   Plus,
@@ -571,12 +570,8 @@ export function CampaignDetail({
       </Card>
 
       {/* Campaign Management Tabs */}
-      <Tabs defaultValue="sessions" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="sessions" className="flex items-center gap-2">
-            <Play className="h-4 w-4" />
-            Sessions
-          </TabsTrigger>
+      <Tabs defaultValue="characters" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="characters" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             Characters
@@ -594,33 +589,6 @@ export function CampaignDetail({
             Settings
           </TabsTrigger>
         </TabsList>
-
-        <TabsContent value="sessions">
-          <Card>
-            <CardHeader>
-              <CardTitle>Session Management</CardTitle>
-              <CardDescription>
-                Sessions are automatically created and managed during gameplay
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <p className="text-muted-foreground mb-4">
-                  Sessions are automatically created when you start playing. No
-                  manual session management required!
-                </p>
-                <div className="text-sm text-muted-foreground">
-                  <p>• Sessions start automatically when you begin a story</p>
-                  <p>• Session data is automatically saved and managed</p>
-                  <p>
-                    • You can view session history and continue where you left
-                    off
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="characters">
           {characterViewMode === "create" || characterViewMode === "edit" ? (
