@@ -220,7 +220,7 @@ export function adaptCharacter(backendCharacter: any): Character {
     },
     skills: extractSkills(backendCharacter.skills),
     equipment: extractEquipment(backendCharacter.equipment),
-    backstory: backendCharacter.personality?.traits?.join(", ") || "",
+    backstory: backendCharacter.personality?.backstory || "",
     createdAt: new Date(backendCharacter.createdAt),
     updatedAt: new Date(backendCharacter.updatedAt),
   };

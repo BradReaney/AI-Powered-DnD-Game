@@ -47,6 +47,7 @@ export interface ICharacter extends Document {
     flaws: string[];
     background: string;
     alignment: string;
+    backstory?: string;
   };
 
   // AI-specific properties
@@ -241,6 +242,7 @@ const CharacterSchema = new Schema<ICharacter>(
       flaws: [String],
       background: String,
       alignment: String,
+      backstory: String,
     },
 
     aiPersonality: {

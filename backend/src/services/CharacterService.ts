@@ -26,6 +26,9 @@ export interface CharacterCreationData {
     background: string;
     alignment: string;
   };
+  equipment?: string[];
+  backstory?: string;
+  currentLocation?: string;
   campaignId: string;
   sessionId: string;
   createdBy: string;
@@ -151,6 +154,22 @@ class CharacterService {
       // Initialize skills map
       const skills = this.initializeSkills(data.class);
 
+      // Process equipment from form data - simplified for now
+      const equipment =
+        data.equipment && Array.isArray(data.equipment)
+          ? {
+              weapons: [],
+              armor: null,
+              items: data.equipment.map(item => ({
+                name: item,
+                description: '',
+                quantity: 1,
+                weight: 1,
+                magical: false,
+              })),
+            }
+          : { weapons: [], armor: null, items: [] };
+
       const character = new Character({
         name: data.name,
         characterType: 'human',
@@ -165,12 +184,11 @@ class CharacterService {
         initiative: 0,
         speed,
         skills,
-        personality: data.personality,
-        equipment: {
-          weapons: [],
-          armor: null,
-          items: [],
+        personality: {
+          ...data.personality,
+          backstory: data.backstory || '',
         },
+        equipment: equipment,
         campaignId: data.campaignId,
         sessionId: data.sessionId,
         isActive: true,

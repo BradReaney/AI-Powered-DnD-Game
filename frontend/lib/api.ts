@@ -136,7 +136,7 @@ class ApiService {
   }
 
   async createCharacter(characterData: Partial<Character>): Promise<Character> {
-    return this.request<Character>("/characters/simple", {
+    return this.request<Character>("/characters", {
       method: "POST",
       body: JSON.stringify(characterData),
     });
