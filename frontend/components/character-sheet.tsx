@@ -306,7 +306,7 @@ function CharacterSheetContent({
             <CardContent>
               {safeCharacter.skills.length > 0 ? (
                 <div className="grid gap-2 md:grid-cols-2">
-                  {safeCharacter.skills.map((skill) => (
+                  {safeCharacter.skills.map((skill: string) => (
                     <Badge
                       key={skill}
                       variant="secondary"
@@ -334,15 +334,17 @@ function CharacterSheetContent({
             <CardContent>
               {safeCharacter.equipment.length > 0 ? (
                 <div className="space-y-2">
-                  {safeCharacter.equipment.map((item, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-2 p-2 bg-muted rounded"
-                    >
-                      <Sword className="h-4 w-4 text-muted-foreground" />
-                      <span>{item}</span>
-                    </div>
-                  ))}
+                  {safeCharacter.equipment.map(
+                    (item: string, index: number) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 p-2 bg-muted rounded"
+                      >
+                        <Sword className="h-4 w-4 text-muted-foreground" />
+                        <span>{item}</span>
+                      </div>
+                    ),
+                  )}
                 </div>
               ) : (
                 <p className="text-muted-foreground">No equipment listed.</p>
@@ -357,7 +359,7 @@ function CharacterSheetContent({
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {safeCharacter.spells.map((spell, index) => (
+                  {safeCharacter.spells.map((spell: string, index: number) => (
                     <div
                       key={index}
                       className="flex items-center gap-2 p-2 bg-muted rounded"
