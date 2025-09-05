@@ -16,8 +16,9 @@ router.get('/', async (req, res) => {
       return res.json(characters);
     }
 
-    // If no campaignId, return all characters (or empty array)
-    return res.json([]);
+    // If no campaignId, return all characters
+    const characters = await characterService.getAllCharacters();
+    return res.json(characters);
   } catch (error) {
     logger.error('Error getting characters:', error);
     return res.status(500).json({ error: 'Failed to get characters' });

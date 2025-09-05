@@ -325,6 +325,40 @@ const CharacterSchema = new Schema<ICharacter>(
   },
   {
     timestamps: true,
+    toJSON: {
+      virtuals: false,
+      transform: function (doc, ret) {
+        // Remove Mongoose internal properties
+        delete ret.__v;
+        delete ret._id;
+
+        // Remove arrivedAt from currentLocation if it exists
+        if (ret.currentLocation && ret.currentLocation.arrivedAt) {
+          delete ret.currentLocation.arrivedAt;
+        }
+
+        // Convert _id to id for frontend compatibility
+        ret.id = doc._id.toString();
+        return ret;
+      },
+    },
+    toObject: {
+      virtuals: false,
+      transform: function (doc, ret) {
+        // Remove Mongoose internal properties
+        delete ret.__v;
+        delete ret._id;
+
+        // Remove arrivedAt from currentLocation if it exists
+        if (ret.currentLocation && ret.currentLocation.arrivedAt) {
+          delete ret.currentLocation.arrivedAt;
+        }
+
+        // Convert _id to id for frontend compatibility
+        ret.id = doc._id.toString();
+        return ret;
+      },
+    },
   }
 );
 

@@ -905,6 +905,30 @@ class CharacterService {
     }
   }
 
+  public async getAllCharacters(): Promise<ICharacter[]> {
+    try {
+      // Try to get from cache first
+      const cacheKey = 'characters:all';
+      const cached = await cacheService.get<ICharacter[]>(cacheKey);
+      if (cached) {
+        logger.debug('Cache hit for all characters');
+        return cached;
+      }
+
+      // If not in cache, get from database
+      const characters = await Character.find({});
+
+      // Cache the result for 3 minutes
+      await cacheService.set(cacheKey, characters, { ttl: 180 });
+      logger.debug('Cached all characters');
+
+      return characters;
+    } catch (error) {
+      logger.error('Error getting all characters:', error);
+      throw error;
+    }
+  }
+
   public async getCharactersByCampaign(campaignId: string): Promise<ICharacter[]> {
     try {
       // Try to get from cache first
@@ -916,7 +940,7 @@ class CharacterService {
       }
 
       // If not in cache, get from database
-      const characters = await Character.find({ campaignId, isActive: true });
+      const characters = await Character.find({ campaignId });
 
       // Cache the result for 3 minutes
       await cacheService.set(cacheKey, characters, { ttl: 180 });
