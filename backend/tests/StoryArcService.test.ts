@@ -18,13 +18,16 @@ jest.mock('../src/models/StoryArc', () => ({
       save: jest.fn().mockResolvedValue({}),
       addStoryBeat: jest.fn().mockReturnValue('beat-123'),
       completeStoryBeat: jest.fn().mockReturnValue(true),
+      addCharacterMilestone: jest.fn(),
       addWorldStateChange: jest.fn().mockReturnValue('change-123'),
+      updateQuestProgress: jest.fn().mockReturnValue(true),
       advanceChapter: jest.fn().mockReturnValue(true),
       toJSON: jest.fn().mockReturnValue({}),
     })),
     {
       findOne: jest.fn(),
       findById: jest.fn(),
+      findByIdAndUpdate: jest.fn(),
       deleteOne: jest.fn(),
     }
   ),
@@ -43,25 +46,33 @@ describe('StoryArcService', () => {
   let storyArcService: StoryArcService;
 
   // Helper function to create consistent mock story arcs
-  const createMockStoryArc = (overrides = {}) => ({
-    _id: new Types.ObjectId(),
-    campaignId: new Types.ObjectId(),
-    storyBeats: [],
-    characterMilestones: [],
-    worldStateChanges: [],
-    questProgress: [],
-    currentChapter: 1,
-    currentAct: 1,
-    totalChapters: 3,
-    completedStoryBeats: 0,
-    save: jest.fn().mockResolvedValue({}),
-    addStoryBeat: jest.fn().mockReturnValue('beat-123'),
-    completeStoryBeat: jest.fn().mockReturnValue(true),
-    addWorldStateChange: jest.fn().mockReturnValue('change-123'),
-    advanceChapter: jest.fn().mockReturnValue(true),
-    toJSON: jest.fn().mockReturnValue({}),
-    ...overrides,
-  });
+  const createMockStoryArc = (overrides = {}) => {
+    const mockStoryArc = {
+      _id: new Types.ObjectId(),
+      campaignId: new Types.ObjectId(),
+      storyBeats: [],
+      characterMilestones: [],
+      worldStateChanges: [],
+      questProgress: [],
+      currentChapter: 1,
+      currentAct: 1,
+      totalChapters: 3,
+      completedStoryBeats: 0,
+      save: jest.fn().mockResolvedValue({}),
+      addStoryBeat: jest.fn().mockReturnValue('beat-123'),
+      completeStoryBeat: jest.fn().mockReturnValue(true),
+      addCharacterMilestone: jest.fn(),
+      addWorldStateChange: jest.fn().mockReturnValue('change-123'),
+      updateQuestProgress: jest.fn().mockReturnValue(true),
+      advanceChapter: jest.fn().mockReturnValue(true),
+      toJSON: jest.fn().mockReturnValue({}),
+      ...overrides,
+    };
+
+    // Make toJSON return the mock object itself
+    mockStoryArc.toJSON.mockReturnValue(mockStoryArc);
+    return mockStoryArc;
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -162,7 +173,7 @@ describe('StoryArcService', () => {
 
       const result = await storyArcService.getStoryArcByCampaignId(campaignId);
 
-      expect(result).toBe(mockStoryArc);
+      expect(result).toEqual(mockStoryArc);
     });
 
     it('should return null if story arc not found', async () => {
@@ -218,9 +229,7 @@ describe('StoryArcService', () => {
 
       const mockStoryArc = createMockStoryArc({ campaignId });
 
-      (StoryArc.findOne as any).mockReturnValue({
-        populate: jest.fn().mockResolvedValue(mockStoryArc),
-      });
+      (StoryArc.findOne as any).mockResolvedValue(mockStoryArc);
 
       const result = await storyArcService.addStoryBeat(campaignId, beatData);
 
@@ -242,9 +251,7 @@ describe('StoryArcService', () => {
         consequences: ['Test consequence'],
       };
 
-      (StoryArc.findOne as any).mockReturnValue({
-        populate: jest.fn().mockResolvedValue(null),
-      });
+      (StoryArc.findOne as any).mockResolvedValue(null);
 
       await expect(storyArcService.addStoryBeat(campaignId, beatData)).rejects.toThrow();
     });
@@ -257,8 +264,7 @@ describe('StoryArcService', () => {
       const outcome = 'Success';
       const notes = 'Test notes';
 
-      const mockStoryArc = {
-        _id: new Types.ObjectId(),
+      const mockStoryArc = createMockStoryArc({
         campaignId,
         storyBeats: [
           {
@@ -267,12 +273,9 @@ describe('StoryArcService', () => {
             completed: false,
           },
         ],
-        save: jest.fn().mockResolvedValue({}),
-      };
-
-      (StoryArc.findOne as any).mockReturnValue({
-        populate: jest.fn().mockResolvedValue(mockStoryArc),
       });
+
+      (StoryArc.findOne as any).mockResolvedValue(mockStoryArc);
 
       const result = await storyArcService.completeStoryBeat(campaignId, beatId, outcome, notes);
 
@@ -286,16 +289,15 @@ describe('StoryArcService', () => {
       const outcome = 'Success';
       const notes = 'Test notes';
 
-      const mockStoryArc = {
-        _id: new Types.ObjectId(),
+      const mockStoryArc = createMockStoryArc({
         campaignId,
         storyBeats: [],
-        save: jest.fn().mockResolvedValue({}),
-      };
-
-      (StoryArc.findOne as any).mockReturnValue({
-        populate: jest.fn().mockResolvedValue(mockStoryArc),
       });
+
+      // Mock completeStoryBeat to return false for this test
+      mockStoryArc.completeStoryBeat.mockReturnValue(false);
+
+      (StoryArc.findOne as any).mockResolvedValue(mockStoryArc);
 
       const result = await storyArcService.completeStoryBeat(campaignId, beatId, outcome, notes);
 
@@ -305,7 +307,7 @@ describe('StoryArcService', () => {
 
   describe('addCharacterMilestone', () => {
     it('should add a character milestone', async () => {
-      const campaignId = new Types.ObjectId();
+      const storyArcId = new Types.ObjectId();
       const milestoneData = {
         characterId: new Types.ObjectId(),
         type: 'level' as const,
@@ -316,19 +318,16 @@ describe('StoryArcService', () => {
         metadata: { level: 5 },
       };
 
-      const mockStoryArc = {
-        _id: new Types.ObjectId(),
-        campaignId,
+      const mockStoryArc = createMockStoryArc({
+        _id: storyArcId,
         characterMilestones: [],
-        save: jest.fn().mockResolvedValue({}),
-      };
-
-      (StoryArc.findOne as any).mockReturnValue({
-        populate: jest.fn().mockResolvedValue(mockStoryArc),
       });
 
-      await storyArcService.addCharacterMilestone(campaignId, milestoneData);
+      (StoryArc.findById as any).mockResolvedValue(mockStoryArc);
 
+      const result = await storyArcService.addCharacterMilestone(storyArcId, milestoneData);
+
+      expect(result).toBe(mockStoryArc);
       expect(mockStoryArc.save).toHaveBeenCalled();
     });
   });
@@ -348,16 +347,12 @@ describe('StoryArcService', () => {
         permanent: true,
       };
 
-      const mockStoryArc = {
-        _id: new Types.ObjectId(),
+      const mockStoryArc = createMockStoryArc({
         campaignId,
         worldStateChanges: [],
-        save: jest.fn().mockResolvedValue({}),
-      };
-
-      (StoryArc.findOne as any).mockReturnValue({
-        populate: jest.fn().mockResolvedValue(mockStoryArc),
       });
+
+      (StoryArc.findOne as any).mockResolvedValue(mockStoryArc);
 
       const result = await storyArcService.addWorldStateChange(campaignId, changeData);
 
@@ -368,7 +363,7 @@ describe('StoryArcService', () => {
 
   describe('updateQuestProgress', () => {
     it('should update quest progress', async () => {
-      const campaignId = new Types.ObjectId();
+      const storyArcId = new Types.ObjectId();
       const questId = new Types.ObjectId();
       const updates = {
         status: 'completed' as const,
@@ -381,9 +376,8 @@ describe('StoryArcService', () => {
         ],
       };
 
-      const mockStoryArc = {
-        _id: new Types.ObjectId(),
-        campaignId,
+      const mockStoryArc = createMockStoryArc({
+        _id: storyArcId,
         questProgress: [
           {
             questId: questId.toString(),
@@ -396,14 +390,11 @@ describe('StoryArcService', () => {
             ],
           },
         ],
-        save: jest.fn().mockResolvedValue({}),
-      };
-
-      (StoryArc.findOne as any).mockReturnValue({
-        populate: jest.fn().mockResolvedValue(mockStoryArc),
       });
 
-      const result = await storyArcService.updateQuestProgress(campaignId, questId, updates);
+      (StoryArc.findById as any).mockResolvedValue(mockStoryArc);
+
+      const result = await storyArcService.updateQuestProgress(storyArcId, questId, updates);
 
       expect(result).toBe(true);
       expect(mockStoryArc.save).toHaveBeenCalled();
@@ -414,17 +405,13 @@ describe('StoryArcService', () => {
     it('should advance to the next chapter', async () => {
       const campaignId = new Types.ObjectId();
 
-      const mockStoryArc = {
-        _id: new Types.ObjectId(),
+      const mockStoryArc = createMockStoryArc({
         campaignId,
         currentChapter: 1,
         totalChapters: 3,
-        save: jest.fn().mockResolvedValue({}),
-      };
-
-      (StoryArc.findOne as any).mockReturnValue({
-        populate: jest.fn().mockResolvedValue(mockStoryArc),
       });
+
+      (StoryArc.findOne as any).mockResolvedValue(mockStoryArc);
 
       const result = await storyArcService.advanceChapter(campaignId);
 
@@ -435,17 +422,16 @@ describe('StoryArcService', () => {
     it('should return false if already at last chapter', async () => {
       const campaignId = new Types.ObjectId();
 
-      const mockStoryArc = {
-        _id: new Types.ObjectId(),
+      const mockStoryArc = createMockStoryArc({
         campaignId,
         currentChapter: 3,
         totalChapters: 3,
-        save: jest.fn().mockResolvedValue({}),
-      };
-
-      (StoryArc.findOne as any).mockReturnValue({
-        populate: jest.fn().mockResolvedValue(mockStoryArc),
       });
+
+      // Mock advanceChapter to return false for this test
+      mockStoryArc.advanceChapter.mockReturnValue(false);
+
+      (StoryArc.findOne as any).mockResolvedValue(mockStoryArc);
 
       const result = await storyArcService.advanceChapter(campaignId);
 
@@ -472,15 +458,12 @@ describe('StoryArcService', () => {
         updatedAt: new Date(),
       };
 
-      const mockStoryArc = {
-        _id: new Types.ObjectId(),
+      const mockStoryArc = createMockStoryArc({
         campaignId,
         storyBeats: [currentBeat],
-      };
-
-      (StoryArc.findOne as any).mockReturnValue({
-        populate: jest.fn().mockResolvedValue(mockStoryArc),
       });
+
+      (StoryArc.findOne as any).mockResolvedValue(mockStoryArc);
 
       const result = await storyArcService.getCurrentStoryBeat(campaignId);
 
@@ -490,15 +473,12 @@ describe('StoryArcService', () => {
     it('should return null if no current story beat', async () => {
       const campaignId = new Types.ObjectId();
 
-      const mockStoryArc = {
-        _id: new Types.ObjectId(),
+      const mockStoryArc = createMockStoryArc({
         campaignId,
         storyBeats: [],
-      };
-
-      (StoryArc.findOne as any).mockReturnValue({
-        populate: jest.fn().mockResolvedValue(mockStoryArc),
       });
+
+      (StoryArc.findOne as any).mockResolvedValue(mockStoryArc);
 
       const result = await storyArcService.getCurrentStoryBeat(campaignId);
 
@@ -516,26 +496,15 @@ describe('StoryArcService', () => {
         suggestions: [],
       };
 
-      const mockStoryArc = {
-        _id: new Types.ObjectId(),
+      const mockStoryArc = createMockStoryArc({
         campaignId,
         storyBeats: [],
         characterMilestones: [],
         worldStateChanges: [],
         questProgress: [],
-        toJSON: jest.fn().mockReturnValue({
-          _id: new Types.ObjectId(),
-          campaignId,
-          storyBeats: [],
-          characterMilestones: [],
-          worldStateChanges: [],
-          questProgress: [],
-        }),
-      };
-
-      (StoryArc.findOne as any).mockReturnValue({
-        populate: jest.fn().mockResolvedValue(mockStoryArc),
       });
+
+      (StoryArc.findOne as any).mockResolvedValue(mockStoryArc);
 
       // Mock the validation logic
       const result = await storyArcService.validateStoryConsistency(campaignId);
@@ -558,19 +527,16 @@ describe('StoryArcService', () => {
         progressPercentage: 0,
       };
 
-      const mockStoryArc = {
-        _id: new Types.ObjectId(),
+      const mockStoryArc = createMockStoryArc({
         campaignId,
         currentChapter: 1,
         currentAct: 1,
         totalChapters: 3,
         storyBeats: [],
         completedStoryBeats: 0,
-      };
-
-      (StoryArc.findOne as any).mockReturnValue({
-        populate: jest.fn().mockResolvedValue(mockStoryArc),
       });
+
+      (StoryArc.findOne as any).mockResolvedValue(mockStoryArc);
 
       const result = await storyArcService.getStoryProgression(campaignId);
 
