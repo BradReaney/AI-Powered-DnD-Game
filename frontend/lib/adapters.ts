@@ -154,76 +154,133 @@ export function adaptCampaign(backendCampaign: any): Campaign {
 }
 
 export function adaptCharacter(backendCharacter: any): Character {
-  // Helper function to safely extract skills array
-  const extractSkills = (skills: any): string[] => {
-    if (Array.isArray(skills)) {
-      return skills;
+  // Deep clean the character object to remove any problematic properties
+  const deepCleanObject = (obj: any): any => {
+    if (obj === null || obj === undefined) return obj;
+    if (typeof obj !== "object") return obj;
+    if (Array.isArray(obj)) return obj.map(deepCleanObject);
+
+    const cleaned: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      // Skip Mongoose internal properties and problematic keys
+      if (
+        key.startsWith("_") ||
+        key === "__v" ||
+        key === "arrivedAt" ||
+        key === "toJSON" ||
+        key === "toObject"
+      ) {
+        continue;
+      }
+      cleaned[key] = deepCleanObject(value);
     }
-    if (skills && typeof skills === "object") {
-      // Handle Map format from backend
-      return Object.keys(skills).filter(
-        (skill) => skills[skill]?.proficient === true,
+    return cleaned;
+  };
+
+  // Clean the entire backend character object first
+  const cleanedBackendCharacter = deepCleanObject(backendCharacter);
+
+  // Create the character object with safe defaults
+  const cleanedCharacter: Character = {
+    id:
+      cleanedBackendCharacter._id?.toString() ||
+      cleanedBackendCharacter.id ||
+      "",
+    campaignId:
+      cleanedBackendCharacter.campaignId?.toString() ||
+      cleanedBackendCharacter.campaignId ||
+      "",
+    name: cleanedBackendCharacter.name || "Unknown",
+    race: cleanedBackendCharacter.race || "Unknown",
+    class: cleanedBackendCharacter.class || "Unknown",
+    level: cleanedBackendCharacter.level || 1,
+    alignment: cleanedBackendCharacter.personality?.alignment || "Neutral",
+    background: cleanedBackendCharacter.personality?.background || "Adventurer",
+    hitPoints: {
+      current: cleanedBackendCharacter.hitPoints?.current || 0,
+      maximum: cleanedBackendCharacter.hitPoints?.maximum || 0,
+    },
+    armorClass: cleanedBackendCharacter.armorClass || 10,
+    proficiencyBonus:
+      Math.floor((cleanedBackendCharacter.level || 1 - 1) / 4) + 2,
+    stats: {
+      strength:
+        cleanedBackendCharacter.attributes?.strength ||
+        cleanedBackendCharacter.stats?.strength ||
+        10,
+      dexterity:
+        cleanedBackendCharacter.attributes?.dexterity ||
+        cleanedBackendCharacter.stats?.dexterity ||
+        10,
+      constitution:
+        cleanedBackendCharacter.attributes?.constitution ||
+        cleanedBackendCharacter.stats?.constitution ||
+        10,
+      intelligence:
+        cleanedBackendCharacter.attributes?.intelligence ||
+        cleanedBackendCharacter.stats?.intelligence ||
+        10,
+      wisdom:
+        cleanedBackendCharacter.attributes?.wisdom ||
+        cleanedBackendCharacter.stats?.wisdom ||
+        10,
+      charisma:
+        cleanedBackendCharacter.attributes?.charisma ||
+        cleanedBackendCharacter.stats?.charisma ||
+        10,
+    },
+    skills: extractSkills(cleanedBackendCharacter.skills),
+    equipment: extractEquipment(cleanedBackendCharacter.equipment),
+    backstory: cleanedBackendCharacter.personality?.backstory || "",
+    currentLocation:
+      typeof cleanedBackendCharacter.currentLocation === "string"
+        ? cleanedBackendCharacter.currentLocation
+        : cleanedBackendCharacter.currentLocation?.name || "",
+    createdAt: new Date(cleanedBackendCharacter.createdAt || new Date()),
+    updatedAt: new Date(cleanedBackendCharacter.updatedAt || new Date()),
+  };
+
+  return cleanedCharacter;
+}
+
+// Helper function to safely extract skills array
+function extractSkills(skills: any): string[] {
+  if (Array.isArray(skills)) {
+    return skills;
+  }
+  if (skills && typeof skills === "object") {
+    // Handle Map format from backend
+    return Object.keys(skills).filter(
+      (skill) => skills[skill]?.proficient === true,
+    );
+  }
+  return [];
+}
+
+// Helper function to safely extract equipment array
+function extractEquipment(equipment: any): string[] {
+  if (Array.isArray(equipment)) {
+    return equipment;
+  }
+  if (equipment && typeof equipment === "object") {
+    // Handle backend equipment format
+    const result: string[] = [];
+    if (equipment.weapons && Array.isArray(equipment.weapons)) {
+      result.push(
+        ...equipment.weapons.map((w: any) => w.name || w).filter(Boolean),
       );
     }
-    return [];
-  };
-
-  // Helper function to safely extract equipment array
-  const extractEquipment = (equipment: any): string[] => {
-    if (Array.isArray(equipment)) {
-      return equipment;
+    if (equipment.armor && equipment.armor.name) {
+      result.push(equipment.armor.name);
     }
-    if (equipment && typeof equipment === "object") {
-      // Handle backend equipment format
-      const result: string[] = [];
-      if (equipment.weapons && Array.isArray(equipment.weapons)) {
-        result.push(
-          ...equipment.weapons.map((w: any) => w.name || w).filter(Boolean),
-        );
-      }
-      if (equipment.armor && equipment.armor.name) {
-        result.push(equipment.armor.name);
-      }
-      if (equipment.items && Array.isArray(equipment.items)) {
-        result.push(
-          ...equipment.items.map((i: any) => i.name || i).filter(Boolean),
-        );
-      }
-      return result;
+    if (equipment.items && Array.isArray(equipment.items)) {
+      result.push(
+        ...equipment.items.map((i: any) => i.name || i).filter(Boolean),
+      );
     }
-    return [];
-  };
-
-  return {
-    id: backendCharacter._id?.toString() || backendCharacter._id,
-    campaignId:
-      backendCharacter.campaignId?.toString() || backendCharacter.campaignId,
-    name: backendCharacter.name,
-    race: backendCharacter.race,
-    class: backendCharacter.class,
-    level: backendCharacter.level,
-    alignment: backendCharacter.personality?.alignment || "Neutral",
-    background: backendCharacter.personality?.background || "Adventurer",
-    hitPoints: {
-      current: backendCharacter.hitPoints?.current || 0,
-      maximum: backendCharacter.hitPoints?.maximum || 0,
-    },
-    armorClass: backendCharacter.armorClass || 10,
-    proficiencyBonus: Math.floor((backendCharacter.level - 1) / 4) + 2,
-    stats: {
-      strength: backendCharacter.attributes?.strength || 10,
-      dexterity: backendCharacter.attributes?.dexterity || 10,
-      constitution: backendCharacter.attributes?.constitution || 10,
-      intelligence: backendCharacter.attributes?.intelligence || 10,
-      wisdom: backendCharacter.attributes?.wisdom || 10,
-      charisma: backendCharacter.attributes?.charisma || 10,
-    },
-    skills: extractSkills(backendCharacter.skills),
-    equipment: extractEquipment(backendCharacter.equipment),
-    backstory: backendCharacter.personality?.traits?.join(", ") || "",
-    createdAt: new Date(backendCharacter.createdAt),
-    updatedAt: new Date(backendCharacter.updatedAt),
-  };
+    return result;
+  }
+  return [];
 }
 
 export function adaptLocation(backendLocation: BackendLocation): Location {

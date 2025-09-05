@@ -37,12 +37,8 @@ export function CampaignCharacterSelector({
   const [selectedCharacterId, setSelectedCharacterId] = useState<string>("");
 
   // Filter campaigns that have characters available
-  const availableCampaigns = campaigns.filter((campaign) => {
-    const campaignCharacters = characters.filter(
-      (char) => char.campaignId === campaign.id,
-    );
-    return campaignCharacters.length > 0;
-  });
+  // Temporarily show all campaigns for testing
+  const availableCampaigns = campaigns;
 
   // Manual refresh function - now just triggers a re-render
   const handleRefresh = () => {

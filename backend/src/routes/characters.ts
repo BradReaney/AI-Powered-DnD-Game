@@ -16,8 +16,9 @@ router.get('/', async (req, res) => {
       return res.json(characters);
     }
 
-    // If no campaignId, return all characters (or empty array)
-    return res.json([]);
+    // If no campaignId, return all characters
+    const characters = await characterService.getAllCharacters();
+    return res.json(characters);
   } catch (error) {
     logger.error('Error getting characters:', error);
     return res.status(500).json({ error: 'Failed to get characters' });
@@ -214,13 +215,32 @@ router.post('/', async (req, res) => {
       class: characterData.class || 'Fighter', // Default class
       attributes: characterData.attributes || characterData.stats, // Use attributes field or fallback to stats
       personality: {
-        traits: characterData.traits ? [characterData.traits] : [],
-        ideals: characterData.ideals ? [characterData.ideals] : [],
-        bonds: characterData.bonds ? [characterData.bonds] : [],
-        flaws: characterData.flaws ? [characterData.flaws] : [],
+        traits: Array.isArray(characterData.traits)
+          ? characterData.traits
+          : characterData.traits
+            ? [characterData.traits]
+            : [],
+        ideals: Array.isArray(characterData.ideals)
+          ? characterData.ideals
+          : characterData.ideals
+            ? [characterData.ideals]
+            : [],
+        bonds: Array.isArray(characterData.bonds)
+          ? characterData.bonds
+          : characterData.bonds
+            ? [characterData.bonds]
+            : [],
+        flaws: Array.isArray(characterData.flaws)
+          ? characterData.flaws
+          : characterData.flaws
+            ? [characterData.flaws]
+            : [],
         background: characterData.background || '',
         alignment: characterData.alignment || '',
       },
+      equipment: characterData.equipment || [], // Handle equipment from form
+      backstory: characterData.backstory || '', // Handle backstory from form
+      currentLocation: characterData.currentLocation || '', // Handle current location from form
       sessionId: characterData.sessionId || null, // Make sessionId optional
       createdBy: characterData.createdBy || 'user', // Default to 'user' if not provided
     };
