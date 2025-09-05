@@ -1,5 +1,5 @@
 import logger from './LoggerService';
-import { Campaign, ICampaign } from '../models';
+import { Campaign, ICampaign, StoryArc, IStoryArc } from '../models';
 import LLMClientFactory from './LLMClientFactory';
 import { cacheService } from './CacheService';
 
@@ -161,6 +161,29 @@ class CampaignService {
 
       await campaign.save();
       logger.info(`Created campaign: ${campaign.name} with theme: ${campaign.theme}`);
+
+      // Automatically create a story arc for the campaign
+      try {
+        const storyArcData = await this.generateStoryArcContent(data, aiGeneratedContent);
+        const storyArc = new StoryArc({
+          campaignId: campaign._id,
+          theme: data.theme,
+          tone: storyArcData.tone,
+          pacing: storyArcData.pacing,
+          totalChapters: storyArcData.totalChapters,
+          storyBeats: storyArcData.storyBeats,
+          characterMilestones: [],
+          worldStateChanges: [],
+          questProgress: [],
+        });
+
+        await storyArc.save();
+        logger.info(`Created story arc for campaign: ${campaign.name}`);
+      } catch (error) {
+        logger.error(`Failed to create story arc for campaign ${campaign.name}:`, error);
+        // Don't fail campaign creation if story arc creation fails
+      }
+
       return campaign;
     } catch (error) {
       logger.error('Error creating campaign:', error);
@@ -1011,6 +1034,219 @@ Your journey starts now. What would you like to do first?`;
         },
       };
     }
+  }
+
+  /**
+   * Generate story arc content using LLM
+   */
+  private async generateStoryArcContent(
+    campaignData: CampaignCreationData,
+    aiGeneratedContent: any
+  ): Promise<{
+    tone: string;
+    pacing: string;
+    totalChapters: number;
+    storyBeats: any[];
+  }> {
+    try {
+      const prompt = `
+      Create a story arc structure for a D&D campaign called "${campaignData.name}" with the theme "${campaignData.theme}".
+
+      Campaign description: ${campaignData.description}
+      Campaign summary: ${aiGeneratedContent.summary}
+      Starting location: ${aiGeneratedContent.startingLocation}
+      Main threats: ${aiGeneratedContent.threats.map((t: any) => t.name).join(', ')}
+      Campaign goals: ${aiGeneratedContent.goals.map((g: any) => g.description).join(', ')}
+
+      Generate a story arc with:
+      1. Appropriate tone (light, serious, dark, humorous, mysterious)
+      2. Appropriate pacing (slow, normal, fast)
+      3. Total chapters (5-15 based on campaign complexity)
+      4. Initial story beats that establish the narrative structure
+
+      IMPORTANT: Use ONLY these exact enum values:
+      - Tone: "light", "serious", "dark", "humorous", "mysterious"
+      - Pacing: "slow", "normal", "fast"
+      - Beat types: "setup", "development", "climax", "resolution"
+      - Beat importance: "minor", "moderate", "major", "critical"
+
+      Return as JSON with this structure:
+      {
+        "tone": "serious",
+        "pacing": "normal",
+        "totalChapters": 8,
+        "storyBeats": [
+          {
+            "title": "The Call to Adventure",
+            "description": "The party receives their initial quest and learns about the main threat.",
+            "type": "setup",
+            "importance": "major",
+            "chapter": 1,
+            "act": 1,
+            "location": "Starting Town",
+            "npcs": ["Quest Giver", "Town Elder"],
+            "consequences": ["Quest acceptance", "Party formation", "Initial goal setting"]
+          },
+          {
+            "title": "First Steps",
+            "description": "The party begins their journey and faces their first challenge.",
+            "type": "development",
+            "importance": "moderate",
+            "chapter": 2,
+            "act": 1,
+            "location": "Wilderness",
+            "npcs": ["Guide", "Merchant"],
+            "consequences": ["Skill development", "Resource gathering", "Plot advancement"]
+          }
+        ]
+      }
+      `;
+
+      const response = await this.geminiClient.sendPrompt({
+        prompt,
+        taskType: 'story_arc_generation',
+        forceModel: 'pro',
+      });
+
+      if (!response.success) {
+        throw new Error('Failed to generate story arc content: ' + response.error);
+      }
+
+      const text = response.content;
+
+      // Extract JSON from response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('Failed to generate valid story arc content');
+      }
+
+      const content = JSON.parse(jsonMatch[0]);
+
+      // Validate the generated content
+      this.validateGeneratedStoryArcContent(content);
+
+      // Transform story beats to match the expected format
+      const storyBeats = content.storyBeats.map((beat: any, index: number) => ({
+        id: `beat_${Date.now()}_${index}`,
+        title: beat.title,
+        description: beat.description,
+        type: beat.type,
+        importance: beat.importance,
+        chapter: beat.chapter,
+        act: beat.act,
+        characters: [],
+        location: beat.location,
+        npcs: beat.npcs || [],
+        consequences: beat.consequences || [],
+        completed: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }));
+
+      return {
+        tone: content.tone,
+        pacing: content.pacing,
+        totalChapters: content.totalChapters,
+        storyBeats,
+      };
+    } catch (error) {
+      logger.error('Error generating story arc content:', error);
+
+      // Return fallback story arc content
+      return this.generateFallbackStoryArcContent(campaignData);
+    }
+  }
+
+  /**
+   * Validate generated story arc content
+   */
+  private validateGeneratedStoryArcContent(content: any): void {
+    const requiredFields = ['tone', 'pacing', 'totalChapters', 'storyBeats'];
+    for (const field of requiredFields) {
+      if (!content[field]) {
+        throw new Error(`Missing required field: ${field}`);
+      }
+    }
+
+    // Validate enum values
+    const validTones = ['light', 'serious', 'dark', 'humorous', 'mysterious'];
+    const validPacings = ['slow', 'normal', 'fast'];
+    const validBeatTypes = ['setup', 'development', 'climax', 'resolution'];
+    const validImportances = ['minor', 'moderate', 'major', 'critical'];
+
+    if (!validTones.includes(content.tone)) {
+      throw new Error(`Invalid tone: ${content.tone}. Valid tones are: ${validTones.join(', ')}`);
+    }
+
+    if (!validPacings.includes(content.pacing)) {
+      throw new Error(
+        `Invalid pacing: ${content.pacing}. Valid pacings are: ${validPacings.join(', ')}`
+      );
+    }
+
+    if (content.totalChapters < 5 || content.totalChapters > 15) {
+      throw new Error(`Invalid totalChapters: ${content.totalChapters}. Must be between 5 and 15`);
+    }
+
+    if (content.storyBeats && Array.isArray(content.storyBeats)) {
+      content.storyBeats.forEach((beat: any, index: number) => {
+        if (beat.type && !validBeatTypes.includes(beat.type)) {
+          throw new Error(
+            `Invalid beat type at index ${index}: ${beat.type}. Valid types are: ${validBeatTypes.join(', ')}`
+          );
+        }
+        if (beat.importance && !validImportances.includes(beat.importance)) {
+          throw new Error(
+            `Invalid beat importance at index ${index}: ${beat.importance}. Valid importances are: ${validImportances.join(', ')}`
+          );
+        }
+      });
+    }
+  }
+
+  /**
+   * Generate fallback story arc content
+   */
+  private generateFallbackStoryArcContent(campaignData: CampaignCreationData): any {
+    return {
+      tone: 'serious',
+      pacing: 'normal',
+      totalChapters: 8,
+      storyBeats: [
+        {
+          id: `beat_${Date.now()}_setup`,
+          title: 'The Beginning',
+          description: `The adventure begins in ${campaignData.theme.toLowerCase()} setting. The party gathers and learns about their quest.`,
+          type: 'setup',
+          importance: 'major',
+          chapter: 1,
+          act: 1,
+          characters: [],
+          location: 'Starting Location',
+          npcs: ['Quest Giver'],
+          consequences: ['Party formation', 'Quest introduction', 'Initial goal setting'],
+          completed: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: `beat_${Date.now()}_development`,
+          title: 'First Challenge',
+          description: `The party faces their first significant challenge related to ${campaignData.theme.toLowerCase()}.`,
+          type: 'development',
+          importance: 'moderate',
+          chapter: 2,
+          act: 1,
+          characters: [],
+          location: 'Challenge Location',
+          npcs: ['Antagonist', 'Helper NPC'],
+          consequences: ['Skill development', 'Team building', 'Plot advancement'],
+          completed: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ],
+    };
   }
 }
 

@@ -173,6 +173,7 @@ export function CampaignForm({
             <Label htmlFor="name">Campaign Name</Label>
             <Input
               id="name"
+              data-testid="campaign-name"
               value={formData.name}
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
@@ -187,6 +188,7 @@ export function CampaignForm({
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
+              data-testid="campaign-description"
               value={formData.description}
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
@@ -208,7 +210,7 @@ export function CampaignForm({
               required
               disabled={isCurrentlySaving}
             >
-              <SelectTrigger>
+              <SelectTrigger data-testid="campaign-theme">
                 <SelectValue placeholder="Select a campaign theme..." />
               </SelectTrigger>
               <SelectContent>

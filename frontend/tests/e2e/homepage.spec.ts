@@ -22,9 +22,7 @@ test.describe("Homepage", () => {
     ).toBeVisible();
 
     // Check that campaign data is displayed (use card title for unique identification)
-    await expect(
-      page.getByText(/test campaign for railway deployment/i),
-    ).toBeVisible();
+    await expect(page.getByText(/Test Adventure Campaign/i)).toBeVisible();
   });
 
   test("should have working navigation elements", async ({ page }) => {

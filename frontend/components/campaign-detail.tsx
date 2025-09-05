@@ -87,6 +87,31 @@ export function CampaignDetail({
   );
 
   const [storyArc, setStoryArc] = useState<StoryArc | null>(null);
+  const [isLoadingStoryArc, setIsLoadingStoryArc] = useState(false);
+
+  // Load story arc when campaign changes
+  useEffect(() => {
+    const fetchStoryArc = async () => {
+      if (!campaign?.id) return;
+
+      try {
+        setIsLoadingStoryArc(true);
+        const response = await fetch(`/api/story-arcs/campaign/${campaign.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data) {
+            setStoryArc(data.data);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching story arc:", error);
+      } finally {
+        setIsLoadingStoryArc(false);
+      }
+    };
+
+    fetchStoryArc();
+  }, [campaign?.id]);
 
   // Campaign settings state
   const [settings, setSettings] = useState(
@@ -881,7 +906,7 @@ export function CampaignDetail({
                       Manage the narrative structure and story progression
                     </CardDescription>
                   </div>
-                  {!storyArc && (
+                  {!storyArc && !isLoadingStoryArc && (
                     <Button onClick={handleCreateStoryArc}>
                       <Plus className="h-4 w-4 mr-2" />
                       Create Story Arc
@@ -890,15 +915,22 @@ export function CampaignDetail({
                 </div>
               </CardHeader>
               <CardContent>
-                {!storyArc ? (
+                {isLoadingStoryArc ? (
+                  <div className="text-center py-8">
+                    <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4 animate-pulse" />
+                    <p className="text-muted-foreground mb-4">
+                      Loading story arc...
+                    </p>
+                  </div>
+                ) : !storyArc ? (
                   <div className="text-center py-8">
                     <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <p className="text-muted-foreground mb-4">
-                      No story arc created for this campaign yet.
+                      No story arc found for this campaign.
                     </p>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Create a story arc to track narrative progression,
-                      character development, and world changes.
+                      Story arcs are automatically created when you create a
+                      campaign. If you don't see one, try refreshing the page.
                     </p>
                     <Button onClick={handleCreateStoryArc}>
                       Create Story Arc
