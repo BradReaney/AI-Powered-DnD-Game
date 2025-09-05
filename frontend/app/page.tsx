@@ -192,7 +192,7 @@ export default function HomePage() {
     if (viewMode === "campaign-character-selector") {
       refreshCharactersData();
     }
-  }, [viewMode]);
+  }, [viewMode, refreshCharactersData]);
 
   const handleCreateCampaign = () => {
     setSelectedCampaign(null);

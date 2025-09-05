@@ -1,5 +1,5 @@
 import logger from './LoggerService';
-import { Campaign, ICampaign, StoryArc, IStoryArc } from '../models';
+import { Campaign, ICampaign, StoryArc } from '../models';
 import LLMClientFactory from './LLMClientFactory';
 import { cacheService } from './CacheService';
 

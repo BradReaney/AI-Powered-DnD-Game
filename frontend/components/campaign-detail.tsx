@@ -898,7 +898,8 @@ export function CampaignDetail({
                     </p>
                     <p className="text-sm text-muted-foreground mb-4">
                       Story arcs are automatically created when you create a
-                      campaign. If you don't see one, try refreshing the page.
+                      campaign. If you don&apos;t see one, try refreshing the
+                      page.
                     </p>
                     <Button onClick={handleCreateStoryArc}>
                       Create Story Arc
