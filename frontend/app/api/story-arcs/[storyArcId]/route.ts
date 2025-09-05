@@ -50,7 +50,23 @@ export async function PUT(
       return NextResponse.json(data, { status: response.status });
     }
 
-    return NextResponse.json(data);
+    // Transform backend data to frontend format
+    const transformedData = data
+      ? {
+          ...data,
+          data: data.data
+            ? {
+                ...data.data,
+                id:
+                  data.data._id?.toString() ||
+                  data.data.id ||
+                  params.storyArcId,
+              }
+            : data.data,
+        }
+      : data;
+
+    return NextResponse.json(transformedData);
   } catch (error) {
     console.error("Error updating story arc:", error);
     return NextResponse.json(

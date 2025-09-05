@@ -27,6 +27,16 @@
       "type": "string"
     },
     {
+      "key": "storyArcId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "beatId",
+      "value": "",
+      "type": "string"
+    },
+    {
       "key": "userId",
       "value": "test-user-123",
       "type": "string"
@@ -1082,10 +1092,45 @@
       "name": "Story Arcs",
       "item": [
         {
-          "name": "Get All Story Arcs",
+          "name": "Create Story Arc",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data._id) {",
+                  "        pm.collectionVariables.set('storyArcId', response.data._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
-            "method": "GET",
-            "header": [],
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"campaignId\": \"{{campaignId}}\",\n  \"theme\": \"fantasy\",\n  \"tone\": \"serious\",\n  \"pacing\": \"normal\",\n  \"totalChapters\": 3\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/api/story-arcs",
               "host": ["{{baseUrl}}"],
@@ -1095,7 +1140,36 @@
           "response": []
         },
         {
-          "name": "Get Story Arcs by Campaign",
+          "name": "Get Story Arc by Campaign",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response has story arc data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    if (jsonData.data) {",
+                  "        pm.expect(jsonData.data).to.have.property('theme');",
+                  "        pm.expect(jsonData.data).to.have.property('tone');",
+                  "        pm.expect(jsonData.data).to.have.property('pacing');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -1108,7 +1182,74 @@
           "response": []
         },
         {
-          "name": "Create Story Arc",
+          "name": "Update Story Arc",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"theme\": \"updated-fantasy\",\n  \"tone\": \"light\",\n  \"pacing\": \"fast\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/story-arcs/{{storyArcId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "story-arcs", "{{storyArcId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Story Beat",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data) {",
+                  "        pm.collectionVariables.set('beatId', response.data);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -1119,12 +1260,423 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Test Story Arc\",\n  \"description\": \"A test story arc for API testing\",\n  \"campaignId\": \"{{campaignId}}\",\n  \"type\": \"main\",\n  \"status\": \"active\",\n  \"chapters\": [\n    {\n      \"title\": \"Chapter 1\",\n      \"description\": \"The beginning\",\n      \"completed\": false\n    }\n  ]\n}"
+              "raw": "{\n  \"title\": \"Test Story Beat\",\n  \"description\": \"A test story beat for API testing\",\n  \"chapter\": 1,\n  \"act\": 1,\n  \"type\": \"development\",\n  \"importance\": \"moderate\",\n  \"characters\": [\"{{characterId}}\"],\n  \"npcs\": [\"Test NPC\"],\n  \"consequences\": [\"Test consequence\"]\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/story-arcs",
+              "raw": "{{baseUrl}}/api/story-arcs/{{storyArcId}}/story-beats",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "story-arcs"]
+              "path": ["api", "story-arcs", "{{storyArcId}}", "story-beats"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Complete Story Beat",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"outcome\": \"Success\",\n  \"notes\": \"The story beat was completed successfully\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/story-arcs/{{storyArcId}}/story-beats/{{beatId}}/complete",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "story-arcs",
+                "{{storyArcId}}",
+                "story-beats",
+                "{{beatId}}",
+                "complete"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Character Milestone",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"characterId\": \"{{characterId}}\",\n  \"type\": \"level\",\n  \"title\": \"Character Level Up\",\n  \"description\": \"Character reached new level\",\n  \"impact\": \"major\",\n  \"storyBeatId\": \"{{beatId}}\",\n  \"metadata\": {\n    \"level\": 5\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/story-arcs/{{storyArcId}}/character-milestones",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "story-arcs",
+                "{{storyArcId}}",
+                "character-milestones"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add World State Change",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"location\",\n  \"title\": \"Location Discovered\",\n  \"description\": \"A new location was discovered\",\n  \"impact\": \"major\",\n  \"affectedElements\": [\"location\"],\n  \"storyBeatId\": \"{{beatId}}\",\n  \"characterIds\": [\"{{characterId}}\"],\n  \"location\": \"Forest of Shadows\",\n  \"permanent\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/story-arcs/{{storyArcId}}/world-state-changes",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "story-arcs",
+                "{{storyArcId}}",
+                "world-state-changes"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Quest Progress",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questId\": \"{{questId}}\",\n  \"updates\": {\n    \"status\": \"completed\",\n    \"objectives\": [\n      {\n        \"description\": \"Find the artifact\",\n        \"completed\": true,\n        \"completedAt\": \"{{$timestamp}}\"\n      }\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/story-arcs/{{storyArcId}}/quest-progress",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "story-arcs", "{{storyArcId}}", "quest-progress"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Advance Chapter",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/story-arcs/{{storyArcId}}/advance-chapter",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "story-arcs", "{{storyArcId}}", "advance-chapter"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current Story Beat",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/story-arcs/{{storyArcId}}/current-story-beat",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "story-arcs",
+                "{{storyArcId}}",
+                "current-story-beat"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Validate Story Consistency",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response has validation data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    if (jsonData.data) {",
+                  "        pm.expect(jsonData.data).to.have.property('isValid');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/story-arcs/{{storyArcId}}/validate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "story-arcs", "{{storyArcId}}", "validate"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Story Progression",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response has progression data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    if (jsonData.data) {",
+                  "        pm.expect(jsonData.data).to.have.property('currentChapter');",
+                  "        pm.expect(jsonData.data).to.have.property('totalChapters');",
+                  "        pm.expect(jsonData.data).to.have.property('progressPercentage');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/story-arcs/{{storyArcId}}/progression",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "story-arcs", "{{storyArcId}}", "progression"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Story Beat Suggestions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response has suggestions data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    pm.expect(jsonData.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chapter\": 1,\n  \"act\": 1,\n  \"context\": \"Fantasy adventure beginning\",\n  \"characters\": [\"{{characterId}}\"],\n  \"location\": \"Tavern\",\n  \"previousBeats\": [],\n  \"worldState\": \"Beginning of adventure\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/story-arcs/{{storyArcId}}/suggestions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "story-arcs", "{{storyArcId}}", "suggestions"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Story Arc",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/story-arcs/{{storyArcId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "story-arcs", "{{storyArcId}}"]
             }
           },
           "response": []

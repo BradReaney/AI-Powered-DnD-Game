@@ -85,6 +85,7 @@ export function CampaignDetail({
   const [selectedStoryArc, setSelectedStoryArc] = useState<StoryArc | null>(
     null,
   );
+
   const [storyArc, setStoryArc] = useState<StoryArc | null>(null);
 
   // Campaign settings state
@@ -217,7 +218,11 @@ export function CampaignDetail({
   const handleSaveLocationData = async (locationData: Partial<Location>) => {
     try {
       setIsSavingLocation(true);
-      await onSaveLocation({ ...locationData, campaignId: campaign.id });
+      await onSaveLocation({
+        ...locationData,
+        campaignId: campaign.id,
+        id: selectedLocation?.id, // Include the location ID for updates
+      });
       setLocationViewMode("list");
       setSelectedLocation(null);
     } catch (error) {
@@ -302,18 +307,18 @@ export function CampaignDetail({
     try {
       setIsSavingStoryArc(true);
 
-      const response = await fetch(
-        selectedStoryArc
-          ? `/api/story-arcs/${selectedStoryArc.id}`
-          : "/api/story-arcs",
-        {
-          method: selectedStoryArc ? "PUT" : "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(storyArcData),
+      const url = selectedStoryArc
+        ? `/api/story-arcs/${selectedStoryArc.id}`
+        : "/api/story-arcs";
+      const method = selectedStoryArc ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify(storyArcData),
+      });
 
       if (!response.ok) {
         throw new Error(
@@ -322,8 +327,9 @@ export function CampaignDetail({
       }
 
       const data = await response.json();
+
       if (data.success) {
-        setStoryArc(data.storyArc);
+        setStoryArc(data.data);
         setStoryArcViewMode("list");
         setSelectedStoryArc(null);
       }
@@ -344,7 +350,8 @@ export function CampaignDetail({
       )
     ) {
       try {
-        const response = await fetch(`/api/story-arcs/${storyArc.id}`, {
+        const storyArcId = storyArc.id || storyArc._id;
+        const response = await fetch(`/api/story-arcs/${storyArcId}`, {
           method: "DELETE",
         });
         if (!response.ok) {
