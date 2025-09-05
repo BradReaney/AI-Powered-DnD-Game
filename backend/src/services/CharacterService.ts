@@ -26,6 +26,9 @@ export interface CharacterCreationData {
     background: string;
     alignment: string;
   };
+  equipment?: string[];
+  backstory?: string;
+  currentLocation?: string;
   campaignId: string;
   sessionId: string;
   createdBy: string;
@@ -151,6 +154,22 @@ class CharacterService {
       // Initialize skills map
       const skills = this.initializeSkills(data.class);
 
+      // Process equipment from form data - simplified for now
+      const equipment =
+        data.equipment && Array.isArray(data.equipment)
+          ? {
+              weapons: [],
+              armor: null,
+              items: data.equipment.map(item => ({
+                name: item,
+                description: '',
+                quantity: 1,
+                weight: 1,
+                magical: false,
+              })),
+            }
+          : { weapons: [], armor: null, items: [] };
+
       const character = new Character({
         name: data.name,
         characterType: 'human',
@@ -165,12 +184,11 @@ class CharacterService {
         initiative: 0,
         speed,
         skills,
-        personality: data.personality,
-        equipment: {
-          weapons: [],
-          armor: null,
-          items: [],
+        personality: {
+          ...data.personality,
+          backstory: data.backstory || '',
         },
+        equipment: equipment,
         campaignId: data.campaignId,
         sessionId: data.sessionId,
         isActive: true,
@@ -887,6 +905,30 @@ class CharacterService {
     }
   }
 
+  public async getAllCharacters(): Promise<ICharacter[]> {
+    try {
+      // Try to get from cache first
+      const cacheKey = 'characters:all';
+      const cached = await cacheService.get<ICharacter[]>(cacheKey);
+      if (cached) {
+        logger.debug('Cache hit for all characters');
+        return cached;
+      }
+
+      // If not in cache, get from database
+      const characters = await Character.find({});
+
+      // Cache the result for 3 minutes
+      await cacheService.set(cacheKey, characters, { ttl: 180 });
+      logger.debug('Cached all characters');
+
+      return characters;
+    } catch (error) {
+      logger.error('Error getting all characters:', error);
+      throw error;
+    }
+  }
+
   public async getCharactersByCampaign(campaignId: string): Promise<ICharacter[]> {
     try {
       // Try to get from cache first
@@ -898,7 +940,7 @@ class CharacterService {
       }
 
       // If not in cache, get from database
-      const characters = await Character.find({ campaignId, isActive: true });
+      const characters = await Character.find({ campaignId });
 
       // Cache the result for 3 minutes
       await cacheService.set(cacheKey, characters, { ttl: 180 });

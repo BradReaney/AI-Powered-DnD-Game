@@ -115,9 +115,8 @@ class ApiService {
 
   // Characters
   async getCharacters(): Promise<Character[]> {
-    // Since there's no general get all characters endpoint, we'll need to get them by campaign
-    // For now, return empty array and handle this in the components
-    return [];
+    const characters = await this.request<Character[]>("/characters");
+    return characters;
   }
 
   async getCharactersByCampaign(campaignId: string): Promise<Character[]> {
@@ -136,7 +135,7 @@ class ApiService {
   }
 
   async createCharacter(characterData: Partial<Character>): Promise<Character> {
-    return this.request<Character>("/characters/simple", {
+    return this.request<Character>("/characters", {
       method: "POST",
       body: JSON.stringify(characterData),
     });

@@ -85,40 +85,11 @@ export default function HomePage() {
 
   const refreshCharactersData = async () => {
     try {
-      // Fetch characters for all active campaigns
-      const allCharacters: Character[] = [];
-      const activeCampaigns = campaigns.filter(
-        (campaign) => campaign.status === "active",
-      );
-
-      if (activeCampaigns.length > 0) {
-        // Fetch characters for all campaigns in parallel
-        const characterPromises = activeCampaigns.map(async (campaign) => {
-          try {
-            const campaignCharacters = await apiService.getCharactersByCampaign(
-              campaign.id,
-            );
-            return Array.isArray(campaignCharacters) ? campaignCharacters : [];
-          } catch (err) {
-            console.error(
-              `Failed to fetch characters for campaign ${campaign.id}:`,
-              err,
-            );
-            return [];
-          }
-        });
-
-        const characterResults = await Promise.all(characterPromises);
-        characterResults.forEach((characters) => {
-          if (Array.isArray(characters)) {
-            allCharacters.push(...characters);
-          }
-        });
-      }
-
-      setCharacters(allCharacters);
+      const allCharacters = await apiService.getCharacters();
+      setCharacters(Array.isArray(allCharacters) ? allCharacters : []);
     } catch (err) {
       console.error("Failed to refresh characters:", err);
+      setCharacters([]);
     }
   };
 
@@ -137,43 +108,14 @@ export default function HomePage() {
           : [];
         setCampaigns(campaignsArray);
 
-        // Fetch characters for all active campaigns
-        const allCharacters: Character[] = [];
-        const activeCampaigns = campaignsArray.filter(
-          (campaign) => campaign.status === "active",
-        );
-
-        if (activeCampaigns.length > 0) {
-          try {
-            // Fetch characters for all campaigns in parallel
-            const characterPromises = activeCampaigns.map(async (campaign) => {
-              try {
-                const campaignCharacters =
-                  await apiService.getCharactersByCampaign(campaign.id);
-                return Array.isArray(campaignCharacters)
-                  ? campaignCharacters
-                  : [];
-              } catch (err) {
-                console.error(
-                  `Failed to fetch characters for campaign ${campaign.id}:`,
-                  err,
-                );
-                return [];
-              }
-            });
-
-            const characterResults = await Promise.all(characterPromises);
-            characterResults.forEach((characters) => {
-              if (Array.isArray(characters)) {
-                allCharacters.push(...characters);
-              }
-            });
-          } catch (err) {
-            console.error("Failed to fetch characters:", err);
-          }
+        // Fetch all characters
+        try {
+          const allCharacters = await apiService.getCharacters();
+          setCharacters(Array.isArray(allCharacters) ? allCharacters : []);
+        } catch (err) {
+          console.error("Failed to fetch characters:", err);
+          setCharacters([]);
         }
-
-        setCharacters(allCharacters);
       } catch (err) {
         console.error("Failed to fetch data:", err);
         setError(err instanceof Error ? err.message : "Failed to fetch data");
