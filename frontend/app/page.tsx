@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -129,12 +129,7 @@ export default function HomePage() {
     fetchData();
   }, []);
 
-  // Refresh characters when navigating to campaign-character-selector
-  useEffect(() => {
-    if (viewMode === "campaign-character-selector") {
-      refreshCharactersData();
-    }
-  }, [viewMode, refreshCharactersData]);
+  // Characters are already loaded in the initial fetch, no need to refresh
 
   const handleCreateCampaign = () => {
     setSelectedCampaign(null);
